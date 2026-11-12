@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0e1720">
+  <meta name="description" content="A place for ideas. A world shaped by your lens. Walk the Living Atlas prototype.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230e1720'/%3E%3Cpath d='M32 9 53 46H11Z' fill='none' stroke='%234fd1c5' stroke-width='3'/%3E%3Ccircle cx='32' cy='34' r='6' fill='%23f2a541'/%3E%3C/svg%3E">
+  <title>Living Atlas · A place for ideas</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <canvas id="world" aria-label="Living Atlas 3D campus. Left joystick to walk; drag the scene to look; tap an object to read." tabindex="0"></canvas>
+  <div id="loading"><div class="atlas-mark">△<span>•</span></div><small>A PLACE FOR IDEAS</small><h1>Living Atlas</h1><p id="load-status">Growing your corner of the world…</p><div class="loading-line"></div></div>
+  <header id="topbar">
+    <button id="location" class="location glass" aria-label="Current location and walking guide"><span class="district-dot"></span><span><small id="district-name">MAKERS ROW</small><strong id="breadcrumb">tlh / studio</strong></span></button>
+    <div class="top-actions"><button id="fullscreen" class="icon-button glass" aria-label="Enter fullscreen">⛶</button><button id="atlas-button" class="glass"> <span aria-hidden="true">⌘</span> Atlas</button></div>
+  </header>
+  <div id="scene-title"><p id="scene-kicker">01 / MAKERS ROW</p><h1 id="scene-heading">A place for<br><em>ideas.</em></h1><p id="scene-subtitle">Nic’s Studio · Tallahassee</p></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="aim" aria-hidden="true"></div>
+  <button id="edge-prompt" class="glass" hidden></button>
+  <div id="walk-hint"><span>WALK</span><span>DRAG TO LOOK · TAP TO EXPLORE</span></div>
+  <div id="joystick" role="group" aria-label="Movement joystick"><div class="joy-ring"></div><div class="joy-knob"></div></div>
+  <nav id="bottom-bar"><button id="build-button" class="glass"><span>＋</span> Build</button><button id="perf-toggle" aria-label="Toggle performance overlay">◈</button><button id="lens-button"><span class="lens-icon">◉</span> Your lens <span id="lens-badge">Adult</span></button></nav>
+  <output id="performance" hidden></output>
+  <div id="veil" hidden></div>
+  <section id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <header class="sheet-header"><div><p id="sheet-eyebrow"></p><h2 id="sheet-title"></h2></div><button id="sheet-close" class="icon-button" aria-label="Close panel">×</button></header>
+    <div id="sheet-content"></div>
+  </section>
+  <noscript><div class="fatal">Living Atlas needs JavaScript to draw the campus.</div></noscript>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
