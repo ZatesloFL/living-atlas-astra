@@ -1,3 +1,4 @@
+import {permission,roomTitle} from './permissions.js';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { ROOMS, EDGES, DISTRICTS } from './data.js';
 import {drawModel} from './world-models.js';
@@ -51,8 +52,11 @@ export class World {
     for(const [id,r] of Object.entries(ROOMS)){
       if(r.layout?.scene!==this.kind||!roomVisible(id,this.lens))continue;
       const edge=EDGES.find(e=>e.to===id);if(edge&&visibleEdge(edge,this.lens).state==='hidden')continue;
-      this.placement={scale:1,facing:0,...r.layout};drawModel(this,r.layout.model??r.layout.landmark??r.layout.kind,id);
-      if(r.layout.sign!==false){const sign=r.layout.sign??[r.title,r.visibility==='private'?'Private space':r.blocks?.[0]?.reps?.text?.slice(0,58)||'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label(sign[0],sign[1],p.x,p.y,p.z,id,3.1,DISTRICTS[r.district].color);}
+      const rights=permission(r,this.lens);this.placement={scale:1,facing:0,...r.layout};drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
+      if(r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,r.visibility==='private'?'Private space':r.blocks?.[0]?.reps?.text?.slice(0,58)||'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label(sign[0],sign[1],p.x,p.y,p.z,id,3.1,DISTRICTS[r.district].color);}
+      if(rights.canLook)for(const agent of (this.lens.access?.presence??[]).filter(p=>p.room===r.id&&p.agent)){
+        this.add('diamond','teal',1.4,1.7,0,.18,.3,.18,'#fff',id);const p=this.transform(1.4,2.4,0);this.label('◇ '+agent.name,'AGENT PRESENT · SIMULATED',p.x,p.y,p.z,id);
+      }
       this.placement=null;
     }
   }
@@ -105,7 +109,7 @@ export class World {
       vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader:`varying vec2 vUv;uniform float time,opacity;uniform vec3 tint;void main(){float rim=pow(abs(vUv.x-.5)*2.,9.);float line=pow(.5+.5*sin(vUv.y*36.-time*.65),18.);float center=(1.-vUv.y)*.13;gl_FragColor=vec4(tint*(.22+rim*2.8+line*.12),opacity+rim*.4+center);}`});
     const plane=new THREE.Mesh(new THREE.PlaneGeometry(2.8,3),mat);plane.position.set(x,1.55,z);plane.rotation.y=rot;plane.userData.id='edge:'+edge.id;this.scene.add(plane);this.pickables.push(plane);this.dynamicResources.push(plane.geometry,mat);this.animated.push({type:'portal',object:plane});
-    const room=ROOMS[edge.to],title=room.title;this.label(title,`${result.type} · ${result.reasons.length?'LENS PREVIEW':'TAP TO EXPLORE'}`,x,3.99,z,'edge:'+edge.id,3.75);
+    const room=ROOMS[edge.to],title=roomTitle(room,this.lens);this.label(title,`${result.type} · ${result.reasons.length?'LENS PREVIEW':'TAP TO EXPLORE'}`,x,3.99,z,'edge:'+edge.id,3.75);
   }
   edge(edge){
     const result=visibleEdge(edge,this.lens);const item={...edge,result};this.edgeObjects.push(item);
@@ -163,7 +167,13 @@ export class World {
       const wm=new THREE.PointsMaterial({color:0xa4e8f0,size:.055,transparent:true,opacity:.7,depthWrite:false});this.waterPoints=new THREE.Points(wg,wm);this.scene.add(this.waterPoints);this.dynamicResources.push(wg,wm);
     }
   }
+  setWaypoint(point){
+    if(!point){if(this.waypoint)this.waypoint.visible=false;return;}
+    if(!this.waypoint){this.waypoint=new THREE.Group();const marker=new THREE.Mesh(geo.diamond,material.teal);marker.scale.set(.18,.55,.18);this.waypoint.add(marker);const ring=new THREE.Mesh(geo.ring,material.teal);ring.scale.set(.4,.4,.4);ring.rotation.x=Math.PI/2;ring.position.y=-2.3;this.waypoint.add(ring);this.scene.add(this.waypoint);}
+    this.waypoint.visible=true;this.waypoint.position.set(point[0],2.5,point[1]);
+  }
   update(t,position){
+    if(this.waypoint?.visible){this.waypoint.rotation.y=t*.35;this.waypoint.position.y=2.5+Math.sin(t*1.5)*.08;}
     if(position&&this.kind==='studio')this.sun.color.copy(makersSun).lerp(commonsSun,THREE.MathUtils.smoothstep(position.x,9,17));
     const time=this.reduced?0:t;
     for(const a of this.animated){
@@ -180,7 +190,7 @@ export class World {
   canStand(x,z){
     if(x<(this.kind==='studio'?-13.5:-13)||x>(this.kind==='studio'?34.2:13)||z<(this.kind==='studio'?-14.5:-20)||z>12)return false;
     for(const c of this.colliders)if(Math.abs(x-c.x)<c.w&&Math.abs(z-c.z)<c.d)return false;
-    for(const e of this.edgeObjects){if(this.zone(e,x,z)&&(e.result.state==='hidden'||e.result.type==='window'||(e.result.type==='door'&&!this.granted.has(e.id))))return false;}
+    for(const e of this.edgeObjects){if(this.zone(e,x,z)&&(()=>{const r=visibleEdge(e,this.lens);return r.state==='hidden'||r.state==='private'||r.type==='window'||(r.type==='door'&&!this.granted.has(e.id));})())return false;}
     return true;
   }
   nearest(x,z,yaw=0){let found=null,dist=Infinity;for(const e of this.edgeObjects){if(e.result.state==='hidden')continue;const dx=e.position[0]-x,dz=e.position[1]-z,d=Math.hypot(dx,dz);if(d>1.4&&(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)<.1)continue;if(d<4&&d<dist){dist=d;found=e;}}return found;}

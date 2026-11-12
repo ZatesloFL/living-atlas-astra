@@ -15,3 +15,6 @@ Anything unclear or wrong in docs/shared/.
 - 2026-11-12 / round 2a — Preferred form is saved even for Narrate/Text, which v4 explicitly defers. The UI identifies those as future preferences; no unavailable form is presented as working.
 - 2026-11-12 / A6 — v4 names Trust from but does not define how it filters core versus supporting blocks before community layers exist. Current interpretation keeps labeled core author content and filters supporting/detail blocks by recorded trust signals, with an explicit omission notice; no review is inferred from verified identity.
 - 2026-11-12 / A6 — Page-to-3D form switching needs a location rule before Tier B route travel exists. The current form switch keeps exact position for the same room and uses the selected room's approach for a changed article, after its entry preview. Tier B must supply graph-route behavior for its Travel action.
+
+- 2026-11-12 / Tier B — With no backend, an invite cannot transfer a trusted grant to another browser. This prototype demonstrates recipient matching and revocation in the same local browser; cross-device delivery remains unimplemented by design.
+- 2026-11-12 / Tier B — The brief does not define an explicit deny grant. A local individual Blocked override is included so a person can be excluded from a group baseline without altering the group; revocation removes that override.

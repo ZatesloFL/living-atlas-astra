@@ -11,7 +11,7 @@ export async function entryHash(entry){
   return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 export async function appendEntry(entries,actor,action,diff){
-  const entry={id:entries.length+1,prevHash:entries.at(-1)?.hash??GENESIS,actor,action,time:new Date().toISOString(),diff};
+  const entry={id:entries.length+1,prevHash:entries.at(-1)?.hash??GENESIS,actor,action,time:new Date().toISOString(),diff:structuredClone(diff)};
   entry.hash=await entryHash(entry);entries.push(entry);return entry;
 }
 export async function verifyChain(entries){

@@ -1,3 +1,4 @@
+import {permission} from './permissions.js';
 import {ROOMS,DIMENSIONS} from './data.js';
 import {blockAccess,selectContent,contentStore} from './content.js';
 export const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -38,7 +39,7 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">${html}${sourceHTML(block)}</section>`;
 }
 export function articleHTML(id,lens,options={}){
- const room=ROOMS[id];if(!room||room.visibility==='private')return '<p>Private space, something is here.</p>';
+ const room=ROOMS[id];if(!room||room.visibility==='private'||!permission(room,lens).canLook)return '<p>Private space, something is here.</p>';
  const view=selectContent(room,lens,contentStore.blocks(id));
  return `${view.omitted.trust?`<p class="reason">Trust from ${esc(lens.trustFrom)}: ${view.omitted.trust} supporting blocks lack that review and are omitted. Core author content remains visible; it is not independently verified.</p>`:''}${view.blocks.map(b=>blockHTML(b,room,lens,options)).join('')||'<p>No blocks match this Lens and Depth.</p>'}`;
 }

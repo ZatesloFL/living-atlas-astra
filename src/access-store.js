@@ -1,0 +1,41 @@
+import {ROOMS} from './data.js';
+import {permission,personId,SCOPES} from './permissions.js';
+import {crossing} from './rules.js';
+import {appendEntry,verifyChain} from './ledger.js';
+export const ACCESS_KEY='living-atlas.access.v4';
+export const GROUP_RECORDS=[{id:'family',name:'Family',kind:'made',members:[],maxScope:'enter'},{id:'writing-circle',name:'Writing circle',kind:'made',members:[],maxScope:'suggest'},{id:'tallahassee-resident',name:'Verified Tallahassee resident',kind:'credential',members:[],maxScope:'enter'},{id:'neighborhood',name:'My neighborhood',kind:'credential',members:[],maxScope:'look'}];
+const stamp=()=>new Date().toISOString(),id=()=>crypto.randomUUID();
+export class AccessStore {
+ constructor(storage=()=>globalThis.localStorage){
+  this.storage=storage;this.warning='';this.queue=Promise.resolve();this.listeners=new Set();this.data={grants:[],requests:[],groups:structuredClone(GROUP_RECORDS),policies:{},ledgers:{},presence:[],places:{}};
+  try{const raw=storage()?.getItem(ACCESS_KEY);if(raw){const d=JSON.parse(raw);if(d.version!==1)throw new Error('Unknown access data');for(const k of Object.keys(this.data))if(d[k]!==undefined&&Array.isArray(d[k])===Array.isArray(this.data[k]))this.data[k]=d[k];}}catch{this.warning='Saved access data could not be read. Using an empty local simulation.';}
+  this.ready=Promise.all(Object.values(this.data.ledgers).map(verifyChain)).then(results=>{this.valid=results.every(r=>r.valid);return this.valid;}).catch(()=>this.valid=false);
+ }
+ snapshot(){return this.data;}
+ lens(lens){const view={...lens,access:this.data};if(Object.values(ROOMS).some(r=>{const p=permission(r,view);return p.visibility!=='public'&&p.grant&&!p.denied;}))view.testMode=true;return view;}
+ subscribe(fn){this.listeners.add(fn);return()=>this.listeners.delete(fn);}
+ persist(){try{this.storage()?.setItem(ACCESS_KEY,JSON.stringify({version:1,...this.data}));}catch{this.warning='Access changes stay in memory because browser storage is blocked.';}for(const fn of this.listeners)fn();}
+ transaction(fn){const job=this.queue.then(async()=>{await this.ready;if(!this.valid)throw new Error('Room receipts failed verification. Preserved data cannot be changed.');const result=await fn();this.persist();return result;});this.queue=job.catch(()=>{});return job;}
+ room(key){const r=ROOMS[key]??Object.values(ROOMS).find(r=>r.id===key);if(!r)throw new Error('Room not found');return r;}
+ owner(lens){if(lens.playAs!=='owner'||lens.isAgent)throw new Error('A person playing as owner must approve this action. Agents cannot approve.');}
+ async record(room,lens,action,diff){const key=this.room(room).id;this.data.ledgers[key]??=[];return appendEntry(this.data.ledgers[key],personId(lens),action,diff);}
+ policy(key,visibility,lens){return this.transaction(async()=>{this.owner(lens);const r=this.room(key);if(r.layout?.root)throw new Error('The prototype keeps its home entrances public.');if(!['public','listed','hidden'].includes(visibility)||r.visibility==='private'&&visibility==='public')throw new Error('Choose an allowed visibility.');this.data.policies[r.id]={visibility};await this.record(key,lens,'visibility_changed',{visibility});});}
+ knock(key,lens,{scope='enter',onBehalfOf}={}){return this.transaction(async()=>{const r=this.room(key),p=permission(r,this.lens(lens));if(!p.visible)throw new Error('No reachable door for this request.');if(lens.isAgent&&!onBehalfOf)throw new Error('Choose the person this agent represents.');if(!SCOPES.includes(scope))throw new Error('Unknown scope');const request={id:id(),room:r.id,by:personId(lens),name:lens.profileName??lens.name??'Visitor',agent:!!lens.isAgent,to:onBehalfOf??personId(lens),scope,status:'pending',createdAt:stamp()};this.data.requests.push(request);await this.record(key,lens,'access_requested',request);return request;});}
+ async issue(key,to,scope,expires,lens,kind='grant',denied=false){
+  this.owner(lens);if(!SCOPES.includes(scope)||!to?.person&&!to?.group)throw new Error('Choose a recipient and scope.');if(expires&&(!Number.isFinite(Date.parse(expires))||Date.parse(expires)<=Date.now()))throw new Error('Expiry must be in the future.');
+  const r=this.room(key),grant={id:id(),room:r.id,to,scope,expires:expires||null,approvedBy:personId(lens),createdAt:stamp(),revokedAt:null,kind,denied};
+  // One current individual setting wins even when two actions share a timestamp.
+  if(to.person)for(const g of this.data.grants.filter(g=>g.room===r.id&&g.to.person===to.person&&!g.revokedAt)){g.revokedAt=stamp();await this.record(key,lens,'grant_superseded',{grant:g.id});}
+  this.data.grants.push(grant);await this.record(key,lens,kind==='invite'?'invite_created':'access_granted',grant);return grant;
+ }
+ grant(key,to,scope,expires,lens,kind='grant',denied=false){return this.transaction(()=>this.issue(key,to,scope,expires,lens,kind,denied));}
+ respond(requestId,approved,lens,expires=null){return this.transaction(async()=>{this.owner(lens);const q=this.data.requests.find(q=>q.id===requestId);if(!q||q.status!=='pending')throw new Error('Request is no longer pending.');let grant;if(approved)grant=await this.issue(q.room,{person:q.to},q.scope,expires,lens,'knock');q.status=approved?'approved':'declined';q.decidedAt=stamp();await this.record(q.room,lens,'request_'+q.status,{request:q.id,grant:grant?.id??null});return grant;});}
+ revoke(grantId,lens){return this.transaction(async()=>{this.owner(lens);const g=this.data.grants.find(g=>g.id===grantId);if(!g||g.revokedAt)throw new Error('Grant is no longer active.');g.revokedAt=stamp();await this.record(g.room,lens,'access_revoked',{grant:g.id});});}
+ group(key,groupId,members,maxScope,lens){return this.transaction(async()=>{this.owner(lens);const group=this.data.groups.find(g=>g.id===groupId);if(!group||!SCOPES.includes(maxScope))throw new Error('Unknown group or scope');if(group.kind==='made')group.members=[...new Set(members)];group.maxScope=maxScope;await this.record(key,lens,'group_updated',{group:groupId,members:group.members,maxScope});});}
+ use(key,scope,lens){return this.transaction(async()=>{const r=this.room(key),view=this.lens(lens),p=permission(r,view),gate=crossing({to:Object.keys(ROOMS).find(k=>ROOMS[k]===r),type:'door'},view);if(gate.state==='hidden'||!p.canLook||SCOPES.indexOf(p.scope)<SCOPES.indexOf(scope))throw new Error('Access changed before arrival.');await this.record(key,lens,'access_used',{scope,grant:p.grant?.id??'public',approvedBy:p.grant?.approvedBy??'room author',name:lens.profileName??lens.name??'Visitor',agent:!!lens.isAgent});if(scope!=='look'){this.data.presence=this.data.presence.filter(p=>p.person!==personId(lens));this.data.presence.push({room:r.id,person:personId(lens),name:lens.profileName??lens.name??'Visitor',agent:!!lens.isAgent,at:stamp()});}return p;});}
+ leave(key,lens){return this.transaction(async()=>{this.data.presence=this.data.presence.filter(p=>!(p.person===personId(lens)&&p.room===this.room(key).id));await this.record(key,lens,'room_left',{});});}
+ redeem(inviteId,lens){return this.transaction(async()=>{const g=this.data.grants.find(g=>g.id===inviteId&&g.kind==='invite');if(!g||g.revokedAt||g.to.person!==personId(lens)||g.expires&&Date.parse(g.expires)<=Date.now())throw new Error('This local invite is missing, expired, revoked, or addressed to a different profile.');await this.record(g.room,lens,'invite_opened',{grant:g.id});return Object.keys(ROOMS).find(k=>ROOMS[k].id===g.room);});}
+ places(lens){return this.data.places[personId(lens)]??{pins:[],recent:[]};}
+ pin(key,lens){const p=this.data.places[personId(lens)]??={pins:[],recent:[]};p.pins=p.pins.includes(key)?p.pins.filter(k=>k!==key):[...p.pins,key];this.persist();}
+ recent(key,lens){const p=this.data.places[personId(lens)]??={pins:[],recent:[]};p.recent=[key,...p.recent.filter(k=>k!==key)].slice(0,12);this.persist();}
+}

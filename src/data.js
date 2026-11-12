@@ -36,6 +36,8 @@ export const ROOMS = {
   civic:room('studio/civic','Civic table','makers','A community-owned civic data hub: a place to put public knowledge together.',{author:named('Civic contributors (sample)'),permissions:{substance:'open',style:'open',embed:'anyone'}}),
   // Deliberately no private interior, people, body, scores, or provenance in the public payload.
   family:{id:'studio/family',address:'tlh/studio/family',title:'Private space',visibility:'private',district:'makers'},
+  writing:room('studio/writing','Writing room (sample)','makers','A fictional shared room for testing access. No private personal material is stored here.',{visibility:'listed',layout:{kind:'booth',scene:'studio',slot:[-7,8],approach:[-7,9.1],scale:1,facing:0}}),
+  archive:room('commons/archive','Archive alcove (sample)','commons','A fictional hidden alcove containing only this sample note.',{visibility:'hidden',layout:{kind:'gallery-wall',scene:'studio',slot:[20,6],approach:[20,7.2],scale:1,facing:0}}),
   commons:room('commons','The Commons','commons','Paths meet here. Your lens decides which connections appear.'),
   market:room('commons/market','Night Market','commons','Lanterns and late conversations. Visitors say it is livelier than its author declares.',{author:named('Market collective (sample)'),content:scores({sensory:1}),measured:scores({sensory:2})}),
   night:room('after-dark','After Dark','night','An adults-only district. This is a simulated identity check, not real verification.',{minAge:18,visibility:'verified-only',content:scores({viewpoint:2,sensory:2}),measured:scores({viewpoint:2,sensory:2})}),
@@ -43,12 +45,14 @@ export const ROOMS = {
   canopy:room('tallahassee/canopy','Canopy roads','history','Live oaks shelter the road. A city seen at walking speed.',{substance:sample('Live oaks shelter the road. A city seen at walking speed.','https://www.leoncountyfl.gov/'),authors:[nic,named('Local contributor (sample)')]}),
   capitol:room('tallahassee/capitol','The two Capitols','history','The historic Capitol and the modern tower share a skyline.',{substance:sample('The historic Capitol and the modern tower share a skyline.','https://www.flhistoriccapitol.gov/'),authors:[nic,anonymous]}),
   mission:room('tallahassee/mission','Mission San Luis','history','A place to learn about Apalachee and Spanish life in the seventeenth century.',{substance:sample('A place to learn about Apalachee and Spanish life in the seventeenth century.','https://www.missionsanluis.org/'),authors:[nic,named('History contributor (sample)')]}),
-  boycott:room('tallahassee/boycott','The 1956 bus boycott','history','A community’s campaign against segregated public transport. This sample discusses racial injustice.',{content:scores({disturbing:2,viewpoint:1}),measured:scores({disturbing:2,viewpoint:1}),substance:sample('A community’s campaign against segregated public transport. This sample discusses racial injustice.','https://www.floridamemory.com/'),authors:[nic,named('Archive contributor (sample)'),anonymous]}),
+  boycott:room('tallahassee/1956','The 1956 bus boycott','history','A community’s campaign against segregated public transport. This sample discusses racial injustice.',{content:scores({disturbing:2,viewpoint:1}),measured:scores({disturbing:2,viewpoint:1}),aliases:['tlh/tallahassee/boycott'],substance:sample('A community’s campaign against segregated public transport. This sample discusses racial injustice.','https://www.floridamemory.com/'),authors:[nic,named('Archive contributor (sample)'),anonymous]}),
   cascades:room('tallahassee/cascades','Cascades Park','history','Water, open sky, and a place to gather.',{substance:sample('Water, open sky, and a place to gather.','https://www.talgov.com/'),authors:[nic,anonymous]}),
 };
 enrichRooms(ROOMS);
 export const EDGES = [
-  {id:'studio-city',from:'studio',to:'tallahassee',type:'door',scene:'studio',position:[0,-12],destination:'history',consent:'Target owner approved'},
+  {id:'studio-writing',from:'studio',to:'writing',type:'door',scene:'studio',position:[-7,10.4],before:[-7,11.3],after:[-7,9.1],zone:{x:[-9.6,-4.4],z:[5.3,10.3]}},
+  {id:'commons-archive',from:'commons',to:'archive',type:'door',scene:'studio',position:[20,8],before:[20,9.4],after:[20,7.2],zone:{x:[17.5,22.5],z:[4,7.9]}},
+  {id:'studio-city',from:'studio',to:'tallahassee',type:'door',scene:'studio',position:[0,-12],before:[0,-10.2],destination:'history',consent:'Target owner approved'},
   {id:'studio-commons',from:'studio',to:'commons',type:'seamless',scene:'studio',position:[12,1],axis:'x',consent:'Both owners approved'},
   {id:'commons-market',from:'commons',to:'market',type:'seamless',scene:'studio',position:[22,-5],consent:'Both owners approved'},
   {id:'commons-night',from:'commons',to:'night',type:'door',scene:'studio',position:[29,2],axis:'x',consent:'Verified adults only'},
@@ -67,9 +71,9 @@ const zones={
  'studio-broadcast':{x:[-10.3,-5.4],z:[-.9,3.9]},'broadcast-listening':{x:[-10.3,-5.4],z:[-.9,1.85]},'studio-lab':{x:[4.2,9.8],z:[-8.5,-4.1]},
  'city-boycott':{x:[5.8,Infinity],z:[-9.5,-3.3]},'canopy-capitol':{x:[-6,6],z:[-Infinity,-9.5]},'city-mission':{x:[-Infinity,-5.7],z:[-Infinity,-1.4]},'city-cascades':{x:[5.7,Infinity],z:[5,Infinity]}
 };
-EDGES.push({id:'city-studio',from:'tallahassee',to:'studio',type:'door',scene:'history',position:[0,11],destination:'studio'});
-const contexts=['broadcast-listening','commons-night','commons-market','studio-commons','canopy-capitol','city-boycott','city-mission','city-cascades','studio-broadcast'];
-for(const edge of EDGES){edge.zone=zones[edge.id];edge.contextPriority=contexts.indexOf(edge.id);}
+EDGES.push({id:'city-studio',from:'tallahassee',to:'studio',type:'door',scene:'history',position:[0,11],before:[0,9.2],destination:'studio'});
+const contexts=['studio-writing','commons-archive','broadcast-listening','commons-night','commons-market','studio-commons','canopy-capitol','city-boycott','city-mission','city-cascades','studio-broadcast'];
+for(const edge of EDGES){edge.zone??=zones[edge.id];edge.contextPriority=contexts.indexOf(edge.id);}
 
 export const PRESETS = {
   Kids:{limits:scores({sensory:1}),hard:scores({sensory:1})},

@@ -1,3 +1,4 @@
+import {permission} from './permissions.js';
 import {accessSettings,identityOf} from './identity.js';
 import { DIMENSIONS, PRESETS, ROOMS } from './data.js';
 export function setPreset(lens, name) {
@@ -8,7 +9,7 @@ export function contentScore(room,key) { return Math.max(room.content?.[key]??0,
 export function crossing(edge,lens,rooms=ROOMS) {
   const target=rooms[edge.to];
   if(!target) return {state:'hidden',type:null,reasons:['Missing room'],oddness:[]};
-  if(target.visibility==='private') return {state:'private',type:'door',reasons:['Private space'],oddness:[]};
+  const rights=permission(target,lens);if(!rights.visible)return {state:'hidden',type:null,reasons:['No grant to this hidden room'],oddness:[],rights};
   const identity=effectiveIdentity(lens),access=accessSettings(lens);
   const reasons=[],over=[],oddness=[];
   if(identity.age<target.minAge) reasons.push(`Minimum age ${target.minAge}`);
@@ -21,17 +22,20 @@ export function crossing(edge,lens,rooms=ROOMS) {
     if(effective>access.limits[key]) over.push(`${label}: ${effective}, your limit ${access.limits[key]}`);
     if((target.measured?.[key]??0)>(target.content?.[key]??0)) oddness.push(`${label} ${target.measured[key]} (declared ${target.content[key]})`);
   }
-  if(reasons.length) return {state:'hidden',type:null,reasons,oddness};
+  if(reasons.length) return {state:'hidden',type:null,reasons,oddness,rights};
+  if(!rights.canLook)return {state:'private',type:'door',reasons:[rights.reason,'Knock to request access'],oddness:[],rights};
+  if(!rights.canEnter)return {state:over.length?'door':'pass',type:'window',reasons:[rights.reason,'Look only · entering is not granted',...over],oddness,rights};
+  if(rights.visibility!=='public')return {state:'door',type:edge.type==='window'?'window':'door',reasons:[rights.reason,...over],oddness,rights};
   // With no hard limit, any amount over a soft limit requires explicit informed entry.
   // A view-only window never becomes an enterable door.
-  if(over.length) return {state:'door',type:edge.type==='window'?'window':'door',reasons:over,oddness};
-  return {state:'pass',type:edge.type,reasons:[],oddness};
+  if(over.length) return {state:'door',type:edge.type==='window'?'window':'door',reasons:over,oddness,rights};
+  return {state:'pass',type:edge.type,reasons:[],oddness,rights};
 }
 export function roomVisible(key,lens) {
-  if(key==='family') return true;
   const room=ROOMS[key];
   if(!room) return false;
   if(!crossing({to:key,type:'seamless'},lens).type) return false;
+  if(!permission(room,lens).canLook||!room.author)return true;
   return room.author.isAgent||lens.show[identityOf(room.author).display]!==false;
 }
 export function visibleEdge(edge,lens) {
