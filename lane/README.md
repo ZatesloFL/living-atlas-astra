@@ -6,7 +6,7 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · verified app build [1a54e2f](https://github.com/ZatesloFL/living-atlas-astra/commit/1a54e2f796b1d733a442e8003b537c4a191e7d89). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [b51e305](https://github.com/ZatesloFL/living-atlas-astra/commit/b51e305517f611244d8ed80728e84ef123c36efc). The session report is committed afterward as documentation.
 
 ## Run and verify
 
@@ -79,3 +79,5 @@ What's broken or rough.
 ## Next
 What you'd do next with one more session.
 ```
+
+- A0 diagnostics and safe mode: `?safe` disables post-processing/shadows. `tests/startup-browser.cjs` runs 19 recovery checks with the same environment variables as the other browser suites. Pixel startup confirmation is still required; see report `2026-11-12-03.md`.
