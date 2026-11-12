@@ -15,7 +15,7 @@ const $=id=>document.getElementById(id);
 const reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const profiles=diag.run('profiles',()=>new ProfileStore());
 let profileUI,page,pageOrigin,selectedRoom;
-let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>profiles.current()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,active=true,near=null,contextKey='studio';
+let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>profiles.current()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,titlePosition=null,active=true,near=null,contextKey='studio';
 const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110));
 let labels=null;
 const raycaster=new THREE.Raycaster(),tapPoint=new THREE.Vector2();
@@ -67,12 +67,13 @@ function loop(time){
   const elapsed=(time-lastTime)/1000||.016,dt=Math.min(elapsed,.05);lastTime=time;
   let fade=0;if(transition){const p=(performance.now()-transition.start)/420;fade=p<.5?p*2:2-p*2;if(p>=.5&&!transition.done){transition.done=true;try{transition.action();}catch(error){diag.fallback('scene transition',error);return;}}if(p>=1){transition=null;fade=0;}}
   try{controls.update(dt,world);}catch(error){diag.record('controls update',error,'Movement disabled; Page form remains available.');controls=staticControls();}
+  if(!titlePosition)titlePosition=controls.position.clone();if(titlePosition.distanceTo(controls.position)>.12)ui.fadeTitle();
   try{world.update(time/1000,controls.position);}catch(error){diag.fallback('scene update',error);return;}
   try{graphics.render(world.scene,camera,Math.max(0,fade));}catch(error){diag.fallback('frame render',error);return;}
   if(labels)try{labels.update(world,camera);}catch(error){diag.record('labels update',error,'Nameplates disabled; object selection and Page form remain available.');labels=null;$('world-labels')?.replaceChildren();}
   frames++;period+=elapsed;
   if(frames%8===0){updateContext();const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
-  if(period>=1){fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}
+  if(period>=1){fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind,level:graphics.status().label});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}
 }
 function staticControls(){
   const position=new THREE.Vector3(0,1.88,SPAWN_Z);const fallback={position,smoothYaw:0,reduced:reducedQuery.matches,resetInput(){},update(){},apply(){camera.position.copy(position);camera.rotation.set(.065,0,0,'YXZ');},teleport(x,z,yaw=0){position.set(x,1.88,z);this.smoothYaw=yaw;camera.position.copy(position);camera.rotation.set(.065,yaw,0,'YXZ');}};fallback.apply();return fallback;
@@ -102,6 +103,7 @@ diag.stop3D=()=>{diag.threeFailed=true;active=false;cancelAnimationFrame(frame);
 graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:diag.safe}));
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
+diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
 ui=diag.run('UI',()=>new UI({state,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));

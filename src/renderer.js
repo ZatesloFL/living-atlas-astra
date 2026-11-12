@@ -1,8 +1,9 @@
 import * as THREE from '../vendor/three/three.module.min.js';
+export const RENDER_LABELS={hdr:'Full bloom',ldr:'Cheaper bloom',direct:'No post-processing',unshadowed:'No post-processing or shadows'};
 export const RENDER_MODES=['hdr','ldr','direct','unshadowed'];
 export class Renderer {
   constructor(canvas,{diagnostics,safe=false}={}) {
-    this.diagnostics=diagnostics;this.safe=safe;this.mode=safe?'unshadowed':'hdr';this.post=[];this.calls=0;this.validateNext=true;
+    this.diagnostics=diagnostics;this.safe=safe;this.mode=safe?'unshadowed':'hdr';this.post=[];this.calls=0;this.validateNext=true;this.reason=safe?'Safe mode requested by ?safe in this URL.':'Normal startup: highest supported level first.';
     const attrs={antialias:false,alpha:false,powerPreference:'high-performance'};
     let context;
     try{context=canvas.getContext('webgl2',attrs);}catch(error){if(diagnostics)diagnostics.contextFailed=true;throw error;}
@@ -13,8 +14,10 @@ export class Renderer {
     this.ratio=Math.min(devicePixelRatio||1,safe?1:1.65,2);this.maxRatio=this.ratio;
     const debug=context.getExtension('WEBGL_debug_renderer_info');
     if(diagnostics)diagnostics.gpu={renderer:debug?context.getParameter(debug.UNMASKED_RENDERER_WEBGL):context.getParameter(context.RENDERER),version:context.getParameter(context.VERSION),maxTextureSize:context.getParameter(context.MAX_TEXTURE_SIZE)};
-    this.renderer.setPixelRatio(this.ratio);this.renderer.setSize(innerWidth,innerHeight,false);
+    this.renderer.setPixelRatio(this.ratio);this.renderer.setSize(innerWidth,innerHeight,false);if(diagnostics)diagnostics.renderState=()=>this.status();
   }
+  status(){return {mode:this.mode,level:RENDER_MODES.indexOf(this.mode)+1,label:RENDER_LABELS[this.mode],shadows:this.renderer.shadowMap.enabled,dpr:this.ratio,reason:this.reason,firstFramePassed:this.lastFrameMode===this.mode};}
+  retryFull(scene,camera){this.safe=false;this.reason='Full quality requested in Diagnostics; retry at DPR ≤ 1.25.';this.ratio=Math.min(devicePixelRatio||1,1.25);this.setupShadows(true);this.initPost();this.render(scene,camera);}
   setupShadows(enabled=!this.safe){
     this.renderer.shadowMap.enabled=enabled;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.shadowMap.autoUpdate=false;this.renderer.shadowMap.needsUpdate=enabled;
   }
@@ -66,7 +69,7 @@ export class Renderer {
   }
   initPost(){
     const modes=this.safe?['unshadowed']:RENDER_MODES;
-    for(const mode of modes){try{if(this.diagnostics)this.diagnostics.run(`post-processing:${mode}`,()=>this.configure(mode));else this.configure(mode);return;}catch(error){this.diagnostics?.record(`post-processing:${mode}`,error,`Trying ${RENDER_MODES[RENDER_MODES.indexOf(mode)+1]??'Page form'}`);}}
+    for(const mode of modes){try{if(this.diagnostics)this.diagnostics.run(`post-processing:${mode}`,()=>this.configure(mode));else this.configure(mode);return;}catch(error){this.reason=`${mode} initialization failed: ${error.message}`;this.diagnostics?.record(`post-processing:${mode}`,error,`Trying ${RENDER_MODES[RENDER_MODES.indexOf(mode)+1]??'Page form'}`);}}
     throw new Error('All rendering configurations failed to initialize.');
   }
   resize(){
@@ -87,13 +90,13 @@ export class Renderer {
       this.quad.material=this.final;this.final.uniforms.fade.value=fade;r.setRenderTarget(null);r.render(this.scene,this.camera);
     }
     if(this.validateNext){const gl=r.getContext(),error=gl.getError();this.validateNext=false;if(error!==gl.NO_ERROR)throw new Error(`WebGL error after ${this.mode} render: 0x${error.toString(16)}`);}
-    this.calls=r.info.render.calls;
+    this.calls=r.info.render.calls;this.lastFrameMode=this.mode;
   }
   render(scene,camera,fade=0){
     while(true){
       try{this.diagnostics?.check(`render:${this.mode}`);this.draw(scene,camera,fade);if(this.pendingRecovery){this.diagnostics?.recovered(this.pendingRecovery,`Recovered with ${this.mode}; shadows ${this.renderer.shadowMap.enabled?'on':'off'}.`);this.diagnostics?.setMode(`3D · ${this.mode} · shadows ${this.renderer.shadowMap.enabled?'on':'off'}`);this.pendingRecovery=null;}return;}
       catch(error){
-        const failed=this.mode,next=RENDER_MODES[RENDER_MODES.indexOf(failed)+1];this.diagnostics?.record(`render:${failed}`,error,next?`Retrying with ${next}`:'Using Page form');
+        const failed=this.mode;this.reason=`${failed} render failed: ${error.message}`;const next=RENDER_MODES[RENDER_MODES.indexOf(failed)+1];this.diagnostics?.record(`render:${failed}`,error,next?`Retrying with ${next}`:'Using Page form');
         if(!next)throw error;this.pendingRecovery=`render:${failed}`;
         let configured=false;
         for(const mode of RENDER_MODES.slice(RENDER_MODES.indexOf(next))){try{this.configure(mode);configured=true;break;}catch(e){this.diagnostics?.record(`post-processing:${mode}`,e,'Trying a simpler rendering mode');}}

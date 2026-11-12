@@ -1,6 +1,6 @@
 export class Diagnostics {
   constructor(){
-    this.build='2026-11-12-a6';this.events=[];this.errors=[];this.current='bootstrap';this.mode='starting';this.contextFailed=false;
+    this.build='2026-11-12-polish';this.events=[];this.errors=[];this.current='bootstrap';this.mode='starting';this.contextFailed=false;
     this.params=new URLSearchParams(location.search);this.safe=this.params.has('safe');this.inject=new Set(this.params.has('test')?(this.params.get('fail')??'').split(','):[]);
     this.ensurePanel();
   }
@@ -8,7 +8,8 @@ export class Diagnostics {
     const host=document.body||document.documentElement;
     this.toggle=document.createElement('button');this.toggle.id='diagnostics-toggle';this.toggle.textContent='Diagnostics';this.toggle.onclick=()=>{this.panel.hidden=!this.panel.hidden;this.refresh();};host.append(this.toggle);
     this.panel=document.createElement('section');this.panel.id='startup-diagnostics';this.panel.hidden=true;this.panel.setAttribute('role','region');this.panel.setAttribute('aria-label','Startup diagnostics');
-    this.panel.innerHTML='<h2>Startup diagnostics</h2><p class="diagnostic-summary"></p><pre class="diagnostic-errors" tabindex="0"></pre><div class="diagnostic-actions"><button data-copy>Copy diagnostics</button><button data-close>Continue</button></div><p class="diagnostic-copy-status" role="status"></p>';
+    this.panel.innerHTML='<h2>Startup diagnostics</h2><p class="diagnostic-summary"></p><p class="diagnostic-render"></p><div class="diagnostic-actions"><button data-quality hidden>Try full quality</button><button data-perf>Show fps</button></div><pre class="diagnostic-errors" tabindex="0"></pre><div class="diagnostic-actions"><button data-copy>Copy diagnostics</button><button data-close>Continue</button></div><p class="diagnostic-copy-status" role="status"></p>';
+    this.panel.querySelector('[data-quality]').onclick=()=>this.onFullQuality?.();this.panel.querySelector('[data-perf]').onclick=()=>{const p=document.getElementById('performance');if(p)p.hidden=false;this.panel.hidden=true;};
     this.panel.querySelector('[data-copy]').onclick=()=>this.copy();this.panel.querySelector('[data-close]').onclick=()=>{this.panel.hidden=true;};host.append(this.panel);
   }
   begin(step){this.current=step;const event={step,status:'running',time:Math.round(performance.now())};this.events.push(event);return event;}
@@ -23,13 +24,15 @@ export class Diagnostics {
   recovered(step,description){const e=[...this.errors].reverse().find(e=>e.step===step);if(e)e.recovery=description;this.refresh();}
   setMode(mode){this.mode=mode;this.refresh();}
   payload(){
-    return {build:this.build,path:location.pathname,safe:this.safe,mode:this.mode,startupStep:this.current,webglContextFailed:this.contextFailed,
+    return {build:this.build,path:location.pathname,safe:this.safe,render:this.renderState?.()??null,mode:this.mode,startupStep:this.current,webglContextFailed:this.contextFailed,
       browser:navigator.userAgent,viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},gpu:this.gpu??null,
       stages:this.events,errors:this.errors.map(({original,...e})=>e)};
   }
   refresh(){
     if(!this.panel)return;
-    this.toggle.textContent=this.errors.length?`Diagnostics · ${this.errors.length}`:this.safe?'Safe mode · Diagnostics':'Diagnostics';
+    const render=this.renderState?.();this.toggle.textContent=render?`L${render.level} · Diagnostics`:'Diagnostics';
+    this.panel.querySelector('.diagnostic-render').textContent=render?`Level ${render.level}: ${render.label}. Shadows ${render.shadows?'on':'off'}. DPR ${render.dpr.toFixed(2)}. ${render.firstFramePassed?'Frame validated.':'Awaiting frame validation.'} ${render.reason}`:'No 3D renderer active.';
+    this.panel.querySelector('[data-quality]').hidden=!this.onFullQuality;
     this.panel.querySelector('.diagnostic-summary').textContent=`${this.mode} · ${this.safe?'safe mode · ':''}last stage: ${this.current}`;
     this.panel.querySelector('.diagnostic-errors').textContent=this.errors.length?this.errors.map(e=>`STEP: ${e.step}\n${e.name}: ${e.message}\n${e.stack}\nRECOVERY: ${e.recovery}`).join('\n\n'):JSON.stringify(this.payload(),null,2);
   }
