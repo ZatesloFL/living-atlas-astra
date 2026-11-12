@@ -1,3 +1,4 @@
+import {enrichRooms} from './content-data.js';
 export const DIMENSIONS = [
   ['violence', 'Violence'], ['sexual', 'Sexual content'], ['language', 'Language'],
   ['disturbing', 'Disturbing themes'], ['viewpoint', 'Viewpoint'], ['sensory', 'Sensory'],
@@ -45,6 +46,7 @@ export const ROOMS = {
   boycott:room('tallahassee/boycott','The 1956 bus boycott','history','A community’s campaign against segregated public transport. This sample discusses racial injustice.',{content:scores({disturbing:2,viewpoint:1}),measured:scores({disturbing:2,viewpoint:1}),substance:sample('A community’s campaign against segregated public transport. This sample discusses racial injustice.','https://www.floridamemory.com/'),authors:[nic,named('Archive contributor (sample)'),anonymous]}),
   cascades:room('tallahassee/cascades','Cascades Park','history','Water, open sky, and a place to gather.',{substance:sample('Water, open sky, and a place to gather.','https://www.talgov.com/'),authors:[nic,anonymous]}),
 };
+enrichRooms(ROOMS);
 export const EDGES = [
   {id:'studio-city',from:'studio',to:'tallahassee',type:'door',scene:'studio',position:[0,-12],destination:'history',consent:'Target owner approved'},
   {id:'studio-commons',from:'studio',to:'commons',type:'seamless',scene:'studio',position:[12,1],axis:'x',consent:'Both owners approved'},
@@ -59,10 +61,16 @@ export const EDGES = [
   {id:'city-boycott',from:'tallahassee',to:'boycott',type:'seamless',scene:'history',position:[8,-3]},
   {id:'city-cascades',from:'tallahassee',to:'cascades',type:'seamless',scene:'history',position:[8,7]},
 ];
-export const EXHIBITS = [
-  {id:'workbench',x:-4.7,z:-2}, {id:'silver',x:-4.7,z:-2}, {id:'governance',x:-7,z:-8},
-  {id:'research',x:-10,z:-3}, {id:'civic',x:6,z:4}, {id:'family',x:-12,z:-8},
-];
+const zones={
+ 'studio-city':{x:[-1.9,1.9],z:[-Infinity,-11.7]},'city-studio':{x:[-1.9,1.9],z:[10.7,Infinity]},
+ 'studio-commons':{x:[12.5,Infinity]},'commons-market':{x:[17,27],z:[-Infinity,-5.2]},'commons-night':{x:[29.1,Infinity],z:[-1.5,5.5]},
+ 'studio-broadcast':{x:[-10.3,-5.4],z:[-.9,3.9]},'broadcast-listening':{x:[-10.3,-5.4],z:[-.9,1.85]},'studio-lab':{x:[4.2,9.8],z:[-8.5,-4.1]},
+ 'city-boycott':{x:[5.8,Infinity],z:[-9.5,-3.3]},'canopy-capitol':{x:[-6,6],z:[-Infinity,-9.5]},'city-mission':{x:[-Infinity,-5.7],z:[-Infinity,-1.4]},'city-cascades':{x:[5.7,Infinity],z:[5,Infinity]}
+};
+EDGES.push({id:'city-studio',from:'tallahassee',to:'studio',type:'door',scene:'history',position:[0,11],destination:'studio'});
+const contexts=['broadcast-listening','commons-night','commons-market','studio-commons','canopy-capitol','city-boycott','city-mission','city-cascades','studio-broadcast'];
+for(const edge of EDGES){edge.zone=zones[edge.id];edge.contextPriority=contexts.indexOf(edge.id);}
+
 export const PRESETS = {
   Kids:{limits:scores({sensory:1}),hard:scores({sensory:1})},
   Teen:{limits:scores({violence:1,sexual:1,language:2,disturbing:1,viewpoint:1,sensory:1}),hard:scores({violence:2,sexual:2,language:2,disturbing:2,viewpoint:2,sensory:2})},

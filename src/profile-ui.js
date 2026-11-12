@@ -33,8 +33,8 @@ export class ProfileUI {
       <p class="muted">Backing: none. Choosing a name or entering an age does not verify you.</p>
       <label>Default content lens<select name="preset">${options(Object.keys(PRESETS),'Teen')}</select></label>
       <p class="summary" id="setup-cap">Without verified backing, content is capped at Teen. Children under 13 are capped at Kids. After Dark remains hidden.</p>
-      <div class="form-columns"><label>Depth<select name="depth">${options(['Glance','Standard','Deep'],'Standard')}</select></label><label>Preferred form<select name="form"><option value="3d">3D</option><option value="card">Cards</option><option value="narration">Narrate</option><option value="text">Text</option></select></label></div>
-      <p class="muted">3D and info cards are available now. Other forms will use your saved preference when available.</p>
+      <div class="form-columns"><label>Depth<select name="depth">${options(['Glance','Standard','Deep'],'Standard')}</select></label><label>Preferred form<select name="form"><option value="3d">3D</option><option value="card">Cards</option><option value="page">Page</option><option value="narration">Narrate</option><option value="text">Text</option></select></label></div>
+      <p class="muted">3D, cards and Page are available now. Narration and Text are saved for later.</p>
       ${this.store.storageWarning?`<p class="reason">${esc(this.store.storageWarning)}</p>`:''}<p id="setup-error" role="alert"></p><button class="primary" type="submit">Save profile & enter the Atlas ↗</button></form>`;
     $('setup-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,submit=form.querySelector('button[type=submit]');submit.disabled=true;
       try{const data=Object.fromEntries(new FormData(form));data.age=Number(data.age);await this.store.setup(data);await this.api.apply();this.ui.close();this.ui.title(this.api.state().kind);this.refresh();if(this.store.storageWarning)this.ui.toast(this.store.storageWarning);}

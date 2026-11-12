@@ -1,6 +1,6 @@
 export async function startAtlas(diag){
 const THREE=await diag.asyncRun('engine module',()=>import('../vendor/three/three.module.min.js'));
-const {ROOMS}=await diag.asyncRun('data module',()=>import('./data.js'));
+const {ROOMS,EDGES}=await diag.asyncRun('data module',()=>import('./data.js'));
 const {Renderer}=await diag.asyncRun('renderer module',()=>import('./renderer.js'));
 const {Controls,SPAWN_Z}=await diag.asyncRun('controls module',()=>import('./controls.js'));
 const {World}=await diag.asyncRun('world module',()=>import('./world.js'));
@@ -8,16 +8,18 @@ const {WorldLabels}=await diag.asyncRun('labels module',()=>import('./labels.js'
 const {UI}=await diag.asyncRun('UI module',()=>import('./ui.js'));
 const {ProfileStore}=await diag.asyncRun('profiles module',()=>import('./profiles.js'));
 const {ProfileUI}=await diag.asyncRun('profile UI module',()=>import('./profile-ui.js'));
+const {roomEntry}=await diag.asyncRun('content rules module',()=>import('./content.js'));
+const {PageRenderer}=await diag.asyncRun('Page module',()=>import('./page.js'));
 const {visibleEdge}=await diag.asyncRun('rules module',()=>import('./rules.js'));
 const $=id=>document.getElementById(id);
 const reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const profiles=diag.run('profiles',()=>new ProfileStore());
-let profileUI;
+let profileUI,page,pageOrigin,selectedRoom;
 let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>profiles.current()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,active=true,near=null,contextKey='studio';
 const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110));
 let labels=null;
 const raycaster=new THREE.Raycaster(),tapPoint=new THREE.Vector2();
-function state(){return {kind,lens,context,profiles,position:controls?.position,near};}
+function state(){return {kind,lens,context,profiles,position:controls?.position,near,approvedRooms:[...(world?.granted??[])].map(id=>EDGES.find(e=>e.id===id)?.to)};}
 function rebuild(next=kind){
   const nextWorld=diag.run(world?'scene rebuild':'first scene',()=>new World(next,lens,reducedQuery.matches));
   try{world?.dispose();}catch(error){diag.record('scene disposal',error,'The new scene remains available.');}
@@ -27,11 +29,12 @@ function rebuild(next=kind){
 }
 function fadeTo(action){if(reducedQuery.matches){action();return;}transition={start:performance.now(),action,done:false};controls.resetInput();}
 function changeScene(next){fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':'Makers Row'}`);});}
-function lensChanged(){profiles.preferences(lens);lens=profiles.current();profileUI?.refresh();controls.resetInput();fadeTo(()=>rebuild());}
-async function applyProfile(){lens=profiles.current();controls?.resetInput();fadeTo(()=>rebuild());profileUI?.refresh();}
+function lensChanged(){profiles.preferences(lens);lens=profiles.current();profileUI?.refresh();controls.resetInput();if(page&&!page.root.hidden)rebuild();else fadeTo(()=>rebuild());}
+async function applyProfile(){lens=profiles.current();controls?.resetInput();if(lens.form==='page'){rebuild();setTimeout(()=>openPage(context.room),0);}else fadeTo(()=>rebuild());profileUI?.refresh();}
 async function switchProfile(id){await profiles.switchProfile(id);await applyProfile();}
 function enter(edge){
   const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window')return;
+  if(edge.readTarget){focusRoom(edge.readTarget,true);return;}
   if(edge.destination){changeScene(edge.destination);return;}
   world.granted.add(edge.id);
   const [x,z]=edge.position;
@@ -41,7 +44,7 @@ function enter(edge){
 }
 function selectId(id){
   if(id?.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e)ui.edge(e);}
-  else if(id)ui.info(id);
+  else if(id){selectedRoom=id;ui.info(id);}
 }
 function select(x,y){
   const label=labels?.pick(x,y);if(label){selectId(label);return;}
@@ -49,7 +52,7 @@ function select(x,y){
   const hits=raycaster.intersectObjects(world.pickables,false);
   for(const hit of hits){if(hit.distance>22)continue;const id=hit.object.userData.id??hit.object.userData.ids?.[hit.instanceId];if(!id)continue;
     if(id.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e)ui.edge(e);}
-    else ui.info(id);return;
+    else {selectedRoom=id;ui.info(id);}return;
   }
 }
 function updateContext(){
@@ -74,12 +77,32 @@ function loop(time){
 function staticControls(){
   const position=new THREE.Vector3(0,1.88,SPAWN_Z);const fallback={position,smoothYaw:0,reduced:reducedQuery.matches,resetInput(){},update(){},apply(){camera.position.copy(position);camera.rotation.set(.065,0,0,'YXZ');},teleport(x,z,yaw=0){position.set(x,1.88,z);this.smoothYaw=yaw;camera.position.copy(position);camera.rotation.set(.065,yaw,0,'YXZ');}};fallback.apply();return fallback;
 }
-diag.pageState=()=>({lens,room:context.room,onLensChange:next=>{lens=next;profiles.preferences(lens);}});
-diag.stop3D=()=>{active=false;cancelAnimationFrame(frame);try{controls?.resetInput();}catch{}};
+async function readingAge(age){if(!profiles.completed){await profiles.setup({name:'My reading visit',age,preset:age<13?'Kids':'Teen',depth:'Standard',form:'page',display:'anonymous'});lens=profiles.current();}return lens;}
+function focusRoom(id,approved=false){
+  const r=ROOMS[id];if(!r?.layout||roomEntry(id,lens,EDGES).state==='hidden')return;
+  const edge=EDGES.find(e=>e.to===id);if(r.layout.scene!==kind){controls.teleport(0,SPAWN_Z);rebuild(r.layout.scene);}
+  if(approved&&edge)world.granted.add(edge.id);
+  const [x,z]=r.layout.approach??[r.layout.slot[0],r.layout.slot[1]+2];
+  if(world.canStand(x,z)){const dx=r.layout.slot[0]-x,dz=r.layout.slot[1]-z;controls.teleport(x,z,Math.atan2(-dx,-dz));}
+  selectedRoom=id;updateContext();
+}
+function readRoom(id,showCard=true){const result=roomEntry(id,lens,EDGES);if(result.state==='hidden')return;if(result.type==='door'&&result.state!=='private'){ui.edge({...EDGES.find(e=>e.to===id),id:'read-'+id,to:id,type:'door',readTarget:id});return;}focusRoom(id);if(showCard)ui.info(id);}
+function resume3D(id){
+  lens=profiles.current();lens.form='3d';profiles.preferences(lens);page=null;
+  if(id!==pageOrigin)focusRoom(id,true);
+  active=true;lastTime=performance.now();cancelAnimationFrame(frame);frame=requestAnimationFrame(loop);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);
+}
+function openPage(id=context.room){
+  ui.close();controls.resetInput();active=false;cancelAnimationFrame(frame);transition=null;pageOrigin=context.room;page?.close();lens.form='page';profiles.preferences(lens);
+  page=new PageRenderer({lens,room:id,diagnostics:diag,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onVisit:next=>{selectedRoom=next;},onLensChange:next=>{lens=next;profiles.preferences(lens);rebuild();profileUI?.refresh();},on3D:resume3D});
+  page.open(id);diag.setMode('Page form');if(diag.params.has('test'))window.__atlasPage=page;
+}
+diag.pageState=()=>({lens,room:context.room,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onLensChange:next=>{lens=next;profiles.preferences(lens);}});
+diag.stop3D=()=>{diag.threeFailed=true;active=false;cancelAnimationFrame(frame);try{controls?.resetInput();}catch{}};
 graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:diag.safe}));
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
-ui=diag.run('UI',()=>new UI({state,pause:()=>controls?.resetInput(),lensChanged,enter,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+ui=diag.run('UI',()=>new UI({state,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
@@ -93,11 +116,14 @@ reducedQuery.addEventListener('change',()=>{try{controls.reduced=reducedQuery.ma
 document.addEventListener('visibilitychange',()=>{active=!document.hidden&&!document.body.classList.contains('page-mode');controls.resetInput();lastTime=performance.now();frames=0;period=0;});
 $('world').addEventListener('webglcontextlost',event=>{event.preventDefault();diag.fallback('graphics context lost',new Error('The browser reported a lost graphics context after initialization.'));});
 $('loading').classList.add('done');requestAnimationFrame(loop);
-await diag.asyncRun('profile initialization',()=>profiles.ready);
+await diag.asyncRun('profile initialization',()=>profiles.ready);if(diag.threeFailed)return;
 if(!profiles.completed)diag.run('first-run UI',()=>profileUI.setup());else profileUI.refresh();
 diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);
-const pageButton=document.createElement('button');pageButton.id='page-form-button';pageButton.textContent='Page';pageButton.onclick=()=>diag.fallback('Page selected');document.body.append(pageButton);
-window.atlasStatus=()=>({mode:'3d',renderMode:graphics.mode,shadows:graphics.renderer.shadowMap.enabled,safe:diag.safe,scene:kind,room:context.room,fps:Math.round(fps),drawCalls:graphics.calls,dpr:graphics.ratio,triangles:graphics.renderer.info.render.triangles,position:{x:controls.position.x,z:controls.position.z},reducedMotion:reducedQuery.matches});
+const pageButton=document.createElement('button');pageButton.id='page-form-button';pageButton.textContent='Page';pageButton.onclick=()=>openPage(context.room);document.body.append(pageButton);
+window.atlasStatus=()=>({mode:document.body.classList.contains('page-mode')?'page':'3d',renderMode:graphics.mode,shadows:graphics.renderer.shadowMap.enabled,safe:diag.safe,scene:kind,room:page?.room??context.room,fps:Math.round(fps),drawCalls:graphics.calls,dpr:graphics.ratio,triangles:graphics.renderer.info.render.triangles,position:{x:controls.position.x,z:controls.position.z},reducedMotion:reducedQuery.matches});
+if(diag.params.get('form')==='3d'){lens.form='3d';profiles.preferences(lens);}
+if(profiles.completed&&lens.form==='page')openPage(context.room);
+const initialRoom=diag.params.get('room');if(initialRoom&&ROOMS[initialRoom]&&profiles.completed&&initialRoom!==context.room)readRoom(initialRoom,false);
 if(new URLSearchParams(location.search).has('test')){
   window.__atlas={state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),pick:(id)=>id.startsWith('edge:')?ui.edge(world.edgeObjects.find(e=>e.id===id.slice(5))):ui.info(id),close:()=>ui.close(),changeScene,scene:()=>world.scene};
 }

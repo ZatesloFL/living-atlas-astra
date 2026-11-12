@@ -91,10 +91,10 @@ export class Renderer {
   }
   render(scene,camera,fade=0){
     while(true){
-      try{this.diagnostics?.check(`render:${this.mode}`);this.draw(scene,camera,fade);return;}
+      try{this.diagnostics?.check(`render:${this.mode}`);this.draw(scene,camera,fade);if(this.pendingRecovery){this.diagnostics?.recovered(this.pendingRecovery,`Recovered with ${this.mode}; shadows ${this.renderer.shadowMap.enabled?'on':'off'}.`);this.diagnostics?.setMode(`3D · ${this.mode} · shadows ${this.renderer.shadowMap.enabled?'on':'off'}`);this.pendingRecovery=null;}return;}
       catch(error){
         const failed=this.mode,next=RENDER_MODES[RENDER_MODES.indexOf(failed)+1];this.diagnostics?.record(`render:${failed}`,error,next?`Retrying with ${next}`:'Using Page form');
-        if(!next)throw error;
+        if(!next)throw error;this.pendingRecovery=`render:${failed}`;
         let configured=false;
         for(const mode of RENDER_MODES.slice(RENDER_MODES.indexOf(next))){try{this.configure(mode);configured=true;break;}catch(e){this.diagnostics?.record(`post-processing:${mode}`,e,'Trying a simpler rendering mode');}}
         if(!configured)throw error;

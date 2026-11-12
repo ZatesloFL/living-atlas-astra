@@ -15,7 +15,7 @@ export class Controls {
     canvas.addEventListener('pointermove',e=>{const p=this.look;if(!p||p.id!==e.pointerId)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.moved+=Math.hypot(dx,dy);this.yaw-=dx*.004;this.pitch=Math.max(-1.1,Math.min(1.0,this.pitch-dy*.0034));p.x=e.clientX;p.y=e.clientY;});
     canvas.addEventListener('pointerup',e=>{const p=this.look;if(!p||p.id!==e.pointerId)return;this.look=null;if(p.moved<11&&performance.now()-p.time<420&&canMove())onTap(e.clientX,e.clientY);});
     canvas.addEventListener('pointercancel',()=>{this.look=null;});canvas.addEventListener('lostpointercapture',()=>{this.look=null;});
-    window.addEventListener('keydown',e=>{if(e.target.matches('input,button,select,textarea'))return;this.keys.add(e.code);if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();});
+    window.addEventListener('keydown',e=>{if(!canMove()||e.target.matches('input,button,select,textarea'))return;this.keys.add(e.code);if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();});
     window.addEventListener('keyup',e=>this.keys.delete(e.code));
     window.addEventListener('blur',()=>this.resetInput());
     document.addEventListener('visibilitychange',()=>this.resetInput());

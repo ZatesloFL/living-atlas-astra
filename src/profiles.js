@@ -17,7 +17,7 @@ function sanitize(p){
   out.preset=[...Object.keys(PRESETS),'Custom'].includes(p.preset)?p.preset:'Teen';
   for(const [k] of DIMENSIONS){out.limits[k]=Number.isInteger(p.limits?.[k])&&p.limits[k]>=0&&p.limits[k]<=3?p.limits[k]:PRESETS.Teen.limits[k];out.hard[k]=p.hard?.[k]===null?null:Number.isInteger(p.hard?.[k])&&p.hard[k]>=0&&p.hard[k]<=3?p.hard[k]:PRESETS.Teen.hard[k];}
   for(const k of ['real','pseudonym','anonymous','agent'])out.show[k]=p.show?.[k]!==false;
-  for(const [k,values] of Object.entries({trustFrom:['Author','Vouched','Academic','Community'],depth:['Glance','Standard','Deep'],form:['3d','card','narration','text'],stylePreset:['Studio','Documentary','Gallery','Kids'],playAs:['visitor','owner']}))if(values.includes(p[k]))out[k]=p[k];
+  for(const [k,values] of Object.entries({trustFrom:['Author','Vouched','Academic','Community'],depth:['Glance','Standard','Deep'],form:['3d','card','page','narration','text'],stylePreset:['Studio','Documentary','Gallery','Kids'],playAs:['visitor','owner']}))if(values.includes(p[k]))out[k]=p[k];
   out.groups=Array.isArray(p.groups)?p.groups.filter(k=>GROUPS.some(g=>g[0]===k)):[];
   out.acceptedLayers=Array.isArray(p.acceptedLayers)?p.acceptedLayers.filter(k=>typeof k==='string').slice(0,200):[];
   out.isAgent=!!p.isAgent;out.isTest=out.seed||!!p.isTest||out.identity.backing==='verified'||out.groups.length>0||out.playAs==='owner';return out;
