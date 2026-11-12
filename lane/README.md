@@ -6,18 +6,18 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [0554437](https://github.com/ZatesloFL/living-atlas-astra/commit/0554437). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [de781c6](https://github.com/ZatesloFL/living-atlas-astra/commit/de781c6c25ec3ef91bcf58c8fe2f5ce5d6db2f93). The session report is committed afterward as documentation.
 
 ## Run and verify
 
 No installation or compilation is needed for the static app. From the repository root, `npm start` serves `index.html` on port 8000. All runtime imports are local, including Three.js. Live processes do not survive environment restarts; restart this command when needed. Use this existing checkout; do not create a worktree for routine tasks.
 
-- `npm test`: 41 Node tests for typed content, late-loading fallbacks, crossing rules, independent identity settings, content ceilings, profile storage, hash-chained receipts, and Atlas label separation.
+- `npm test`: 49 Node tests for typed content, late-loading fallbacks, crossing rules, independent identity settings, content ceilings, profile storage, hash-chained receipts, and Atlas label separation.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/browser-smoke.cjs`: 22 functional checks using the cloud machine’s existing Chromium and Playwright. Start the local server first. In another environment, provide the path to its installed Playwright module and optionally `ATLAS_CHROMIUM`.
 - The ◈ button in the app toggles fps, draw calls, scene, and rendering resolution. The display uses actual elapsed time; a software renderer’s numbers do not predict Pixel performance.
 - Profiles, preferences, the last-used profile, and receipts persist in localStorage when allowed. Unsaved developer overrides, position, and temporary door confirmations reset on reload. Blocked storage falls back to an explicitly labeled in-memory session. There is no login or backend.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/tier-a-browser.cjs`: 16 round-2a checks, including native long-press touch events and first-run/reload behavior. Both browser suites accept `ATLAS_URL` if the server uses a different port.
-- Current round: A0, Tier A and Tier B are implemented. Nic confirmed Pixel startup and Deep Page; Tier B phone checks are in `reports/2026-11-12-04.md`. Tier C is next. Earlier reports remain as history.
+- Current round: A0 and Tiers A, B and C are implemented. Nic confirmed Pixel startup and Deep Page. New phone checks are in `reports/2026-11-12-04.md` (B) and `reports/2026-11-12-05.md` (C); visual quality and fps remain Partial. Rounds 3 and 4 are queued. Earlier reports remain as history.
 
 ## Report template
 
@@ -85,3 +85,5 @@ What you'd do next with one more session.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/content-browser.cjs`: 14 A6 checks covering Page-only startup, same-content rendering, Lens/Depth/Trust, form/place continuity, late/failing content and a data-only new room. It accepts `ATLAS_URL`. `?page` opens the independent reader; `?safe&form=3d` retries safe 3D even with a saved Page preference.
 
 - `tests/tier-b-browser.cjs`: eight access/travel browser checks (same Playwright and ATLAS_URL environment variables). `tests/polish-browser.cjs`: five diagnostics/labels checks. Access receipts, grants, pins and recents are browser-local simulation.
+
+- `tests/tier-c-browser.cjs`: nine audience/style/layer/creator checks, including a native touch divider drag, reload persistence, owner merge and split full-bloom validation. Same Playwright and ATLAS_URL variables. Layer merges are browser-local and credited in the room ledger; creator preview does not switch the saved profile.
