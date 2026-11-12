@@ -32,6 +32,40 @@ On first load: a short setup sheet asks age and the visitor's default lens (Kids
 ### A5. Developer test panel
 A panel with a switch for every identity and access setting: age, display, backing (verified or not), group memberships, and "play as owner / play as visitor." Shows a persistent **TEST MODE** banner while it's open or while any override is active. It's a build tool and will be removed once real verification exists.
 
+### A6. Content as data, formats as renderers (do this before Tier B)
+
+Goal: the same content can be shown as a web page, a 3D walk, and later VR and real-world AR, **without changing the data or making the builder rebuild anything**. This is a restructure, so do it now before Tier B and C add more content.
+
+**1. Content blocks.** Every room's content becomes an ordered list of typed blocks that say what the content is, not where it goes:
+
+```
+block: { id, type: "heading" | "text" | "image" | "video" | "audio" | "model" |
+               "timeline" | "map" | "quote" | "data" | "infobox" | "citation" | "link",
+         importance: "core" | "supporting" | "detail",
+         body, reps: { text, alt, transcript, poster, model, image },  // fallbacks
+         sources: [ { label, url, status: "to verify" | "verified" } ],
+         content: { ...six dimension scores, optional; inherits the room's } }
+```
+
+- **Wikipedia-level depth:** a room can hold an article's worth of blocks: an infobox, a lead, sections with headings, a timeline, media, citations, and "related" links to other rooms. `importance` lets each renderer and the Depth setting decide how much to show: Glance = core only, Standard = core + supporting, Deep = everything.
+- **Fallback ladder:** every block carries simpler forms (model → image → text; video → poster + transcript). Any renderer can always show something, and narration/text forms come free later.
+
+**2. Layout hints instead of hard-coded positions.** Move room placement out of `world.js` into the data. Each room gets:
+
+```
+layout: { kind: "gallery-wall" | "plinth" | "path-stops" | "booth" | "panorama" | "courtyard",
+          slot, scale, facing },
+geo:    { lat, lng, heading, elevation }   // optional; real places only
+```
+
+The 3D renderer turns a layout hint into geometry. It should be possible to add a new room to the data with a layout hint and see it appear in the walk without touching renderer code. Add `geo` to the five Tallahassee rooms (approximate coordinates are fine; mark them "to verify"). Studio rooms have no `geo`.
+
+**3. A Page renderer (the proof).** Add **Page** to the Form options. It renders the current room, or a room picked from the Atlas, as a scrolling, readable web article built from the same blocks: infobox, lead, sections, timeline, media with fallbacks, citations, related-room links (tapping one goes to that room in whichever form is active). The Lens applies exactly as in 3D: content limits, Depth, Show me, Trust from, and later versions and layers. Switching between 3D and Page keeps your place.
+
+**4. One deep sample.** Fill the **1956 bus boycott** room to article depth (infobox, lead, 4 to 6 sections, a timeline, 3+ media placeholders with alt text, related links to the Capitol and Cascades Park, and citations marked "to verify"). Write it as clearly marked sample content; don't present unverified facts as verified. Keep the other rooms light.
+
+**Rule:** renderers never contain content, and content never contains renderer code. The rules engine stays shared by all renderers.
+
 ## Tier B: travel and access
 
 ### B1. Atlas is also fast travel
@@ -133,11 +167,11 @@ Keep everything compatible with the v3 room record and the Second Look future-fi
 
 ## Order of work
 
-Finish Tier A, push, and give Nic a phone checklist. Then Tier B, then C. Same rule as before: a solid Tier A beats three rough tiers.
+Finish Tier A (including A6), push, and give Nic a phone checklist. Then Tier B, then C. Same rule as before: a solid Tier A beats three rough tiers.
 
 ## Done looks like (report each Pass / Partial / Fail)
 
-**Tier A:** tier 1 fixes · identity two axes and badges · first-run setup · profiles saved, remembered, switcher and radial wheel · test panel with TEST MODE banner · Teen cap without verification.
+**Tier A:** tier 1 fixes · identity two axes and badges · first-run setup · profiles saved, remembered, switcher and radial wheel · test panel with TEST MODE banner · Teen cap without verification · A6: content blocks, layout hints in data (new room appears without renderer edits), geo on Tallahassee rooms, Page renderer with Lens and Depth, deep bus boycott sample.
 
 **Tier B:** Atlas travel with doors respected · waypoint and compass · address bar · pins, recents, home · public / listed / hidden rooms · grants with scope and expiry · made and credential groups with individual overrides · knock, invite, guest pass, key group · ledger entries and Who's been here view.
 
