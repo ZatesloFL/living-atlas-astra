@@ -1,0 +1,104 @@
+export async function startAtlas(diag){
+const THREE=await diag.asyncRun('engine module',()=>import('../vendor/three/three.module.min.js'));
+const {ROOMS}=await diag.asyncRun('data module',()=>import('./data.js'));
+const {Renderer}=await diag.asyncRun('renderer module',()=>import('./renderer.js'));
+const {Controls,SPAWN_Z}=await diag.asyncRun('controls module',()=>import('./controls.js'));
+const {World}=await diag.asyncRun('world module',()=>import('./world.js'));
+const {WorldLabels}=await diag.asyncRun('labels module',()=>import('./labels.js'));
+const {UI}=await diag.asyncRun('UI module',()=>import('./ui.js'));
+const {ProfileStore}=await diag.asyncRun('profiles module',()=>import('./profiles.js'));
+const {ProfileUI}=await diag.asyncRun('profile UI module',()=>import('./profile-ui.js'));
+const {visibleEdge}=await diag.asyncRun('rules module',()=>import('./rules.js'));
+const $=id=>document.getElementById(id);
+const reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
+const profiles=diag.run('profiles',()=>new ProfileStore());
+let profileUI;
+let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>profiles.current()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,active=true,near=null,contextKey='studio';
+const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110));
+let labels=null;
+const raycaster=new THREE.Raycaster(),tapPoint=new THREE.Vector2();
+function state(){return {kind,lens,context,profiles,position:controls?.position,near};}
+function rebuild(next=kind){
+  const nextWorld=diag.run(world?'scene rebuild':'first scene',()=>new World(next,lens,reducedQuery.matches));
+  try{world?.dispose();}catch(error){diag.record('scene disposal',error,'The new scene remains available.');}
+  world=nextWorld;kind=next;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;
+  if(!world.canStand(controls.position.x,controls.position.z)){controls.teleport(0,SPAWN_Z);ui.toast('Your lens changed this path. You’re back at a safe entrance.');}
+  near=null;updateContext();ui.prompt(null);
+}
+function fadeTo(action){if(reducedQuery.matches){action();return;}transition={start:performance.now(),action,done:false};controls.resetInput();}
+function changeScene(next){fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':'Makers Row'}`);});}
+function lensChanged(){profiles.preferences(lens);lens=profiles.current();profileUI?.refresh();controls.resetInput();fadeTo(()=>rebuild());}
+async function applyProfile(){lens=profiles.current();controls?.resetInput();fadeTo(()=>rebuild());profileUI?.refresh();}
+async function switchProfile(id){await profiles.switchProfile(id);await applyProfile();}
+function enter(edge){
+  const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window')return;
+  if(edge.destination){changeScene(edge.destination);return;}
+  world.granted.add(edge.id);
+  const [x,z]=edge.position;
+  let px=x,pz=z-1.05;if(edge.axis==='x'){px=x+1.05;pz=z;}
+  if(world.canStand(px,pz))controls.teleport(px,pz,edge.axis==='x'?-Math.PI/2:0);
+  ui.toast(result.oddness.length?`${ROOMS[edge.to].title} reads louder: ${result.oddness.join(', ')}`:`Entered ${ROOMS[edge.to].title}`);updateContext();
+}
+function selectId(id){
+  if(id?.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e)ui.edge(e);}
+  else if(id)ui.info(id);
+}
+function select(x,y){
+  const label=labels?.pick(x,y);if(label){selectId(label);return;}
+  tapPoint.set(x/innerWidth*2-1,-y/innerHeight*2+1);raycaster.setFromCamera(tapPoint,camera);
+  const hits=raycaster.intersectObjects(world.pickables,false);
+  for(const hit of hits){if(hit.distance>22)continue;const id=hit.object.userData.id??hit.object.userData.ids?.[hit.instanceId];if(!id)continue;
+    if(id.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e)ui.edge(e);}
+    else ui.info(id);return;
+  }
+}
+function updateContext(){
+  context=world.context(controls.position.x,controls.position.z);ui.location(context);
+  if(context.room!==contextKey){contextKey=context.room;const name=ROOMS[context.room].title;
+    if(context.room==='market')ui.toast('Night Market reads louder than it says: Sensory 2.');else if(context.inside)ui.toast('Inside: Broadcast booth · host rules apply');else ui.toast(`Entered ${DISTRICT_NAME(context.room)}`);
+  }
+}
+function DISTRICT_NAME(id){return {studio:'Makers Row',commons:'the Commons',night:'After Dark',tallahassee:'History Quarter',capitol:'the Capitol grounds'}[id]??ROOMS[id].title;}
+function loop(time){
+  frame=requestAnimationFrame(loop);if(!active)return;
+  const elapsed=(time-lastTime)/1000||.016,dt=Math.min(elapsed,.05);lastTime=time;
+  let fade=0;if(transition){const p=(performance.now()-transition.start)/420;fade=p<.5?p*2:2-p*2;if(p>=.5&&!transition.done){transition.done=true;try{transition.action();}catch(error){diag.fallback('scene transition',error);return;}}if(p>=1){transition=null;fade=0;}}
+  try{controls.update(dt,world);}catch(error){diag.record('controls update',error,'Movement disabled; Page form remains available.');controls=staticControls();}
+  try{world.update(time/1000,controls.position);}catch(error){diag.fallback('scene update',error);return;}
+  try{graphics.render(world.scene,camera,Math.max(0,fade));}catch(error){diag.fallback('frame render',error);return;}
+  if(labels)try{labels.update(world,camera);}catch(error){diag.record('labels update',error,'Nameplates disabled; object selection and Page form remain available.');labels=null;$('world-labels')?.replaceChildren();}
+  frames++;period+=elapsed;
+  if(frames%8===0){updateContext();const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
+  if(period>=1){fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}
+}
+function staticControls(){
+  const position=new THREE.Vector3(0,1.88,SPAWN_Z);const fallback={position,smoothYaw:0,reduced:reducedQuery.matches,resetInput(){},update(){},apply(){camera.position.copy(position);camera.rotation.set(.065,0,0,'YXZ');},teleport(x,z,yaw=0){position.set(x,1.88,z);this.smoothYaw=yaw;camera.position.copy(position);camera.rotation.set(.065,yaw,0,'YXZ');}};fallback.apply();return fallback;
+}
+diag.pageState=()=>({lens,room:context.room,onLensChange:next=>{lens=next;profiles.preferences(lens);}});
+diag.stop3D=()=>{active=false;cancelAnimationFrame(frame);try{controls?.resetInput();}catch{}};
+graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:diag.safe}));
+try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
+graphics.initPost();
+ui=diag.run('UI',()=>new UI({state,pause:()=>controls?.resetInput(),lensChanged,enter,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
+profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
+try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
+rebuild();controls.apply();
+diag.run('first scene update',()=>world.update(0));
+diag.run('first render',()=>graphics.render(world.scene,camera));
+if(labels)try{diag.run('first label pass',()=>labels.update(world,camera));}catch(error){labels=null;$('world-labels')?.replaceChildren();diag.recovered('first label pass','Nameplates disabled; object selection remains available.');}
+try{diag.run('scene HUD',()=>ui.title(kind));}catch(error){diag.recovered('scene HUD','Decorative scene title unavailable; the scene remains usable.');}
+window.addEventListener('resize',()=>{try{controls.resetInput();camera.aspect=innerWidth/innerHeight;camera.fov=innerHeight>innerWidth?67:61;camera.updateProjectionMatrix();graphics.resize();}catch(error){diag.fallback('resize',error);}});
+reducedQuery.addEventListener('change',()=>{try{controls.reduced=reducedQuery.matches;rebuild();}catch(error){diag.fallback('reduced-motion update',error);}});
+document.addEventListener('visibilitychange',()=>{active=!document.hidden&&!document.body.classList.contains('page-mode');controls.resetInput();lastTime=performance.now();frames=0;period=0;});
+$('world').addEventListener('webglcontextlost',event=>{event.preventDefault();diag.fallback('graphics context lost',new Error('The browser reported a lost graphics context after initialization.'));});
+$('loading').classList.add('done');requestAnimationFrame(loop);
+await diag.asyncRun('profile initialization',()=>profiles.ready);
+if(!profiles.completed)diag.run('first-run UI',()=>profileUI.setup());else profileUI.refresh();
+diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);
+const pageButton=document.createElement('button');pageButton.id='page-form-button';pageButton.textContent='Page';pageButton.onclick=()=>diag.fallback('Page selected');document.body.append(pageButton);
+window.atlasStatus=()=>({mode:'3d',renderMode:graphics.mode,shadows:graphics.renderer.shadowMap.enabled,safe:diag.safe,scene:kind,room:context.room,fps:Math.round(fps),drawCalls:graphics.calls,dpr:graphics.ratio,triangles:graphics.renderer.info.render.triangles,position:{x:controls.position.x,z:controls.position.z},reducedMotion:reducedQuery.matches});
+if(new URLSearchParams(location.search).has('test')){
+  window.__atlas={state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),pick:(id)=>id.startsWith('edge:')?ui.edge(world.edgeObjects.find(e=>e.id===id.slice(5))):ui.info(id),close:()=>ui.close(),changeScene,scene:()=>world.scene};
+}
+}

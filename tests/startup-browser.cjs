@@ -1,0 +1,22 @@
+// Fault injection is enabled only with ?test. Real WebGL errors keep their original stack.
+const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.ATLAS_CHROMIUM||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
+ const base=process.env.ATLAS_URL||'http://127.0.0.1:8000/';let passed=0;
+ const page=await browser.newPage({viewport:{width:524,height:1166},deviceScaleFactor:2.06,isMobile:true,hasTouch:true});
+ const load=async(params='')=>{await page.goto(base+'?test&'+params);await page.waitForFunction(()=>window.__atlas||window.__atlasPage);return page.evaluate(()=>({status:atlasStatus(),diag:atlasDiagnostics()}));};
+ const check=async(name,fn)=>{await fn();passed++;console.log('PASS '+name);};
+ try{
+ await check('Normal startup succeeds at the reported Pixel CSS size and DPR',async()=>{const {status,diag}=await load();assert.equal(status.mode,'3d');assert.equal(status.renderMode,'hdr');assert.equal(status.shadows,true);assert.deepEqual(diag.errors,[]);assert.ok(Math.abs(diag.viewport.dpr-2.06)<.001);});
+ await check('Safe URL creates no post targets and disables shadows',async()=>{const {status,diag}=await load('safe');assert.equal(status.renderMode,'unshadowed');assert.equal(status.shadows,false);assert.equal(diag.safe,true);assert.deepEqual(diag.errors,[]);});
+ for(const [faults,mode] of [['post-processing:hdr','ldr'],['render:hdr','ldr'],['render:hdr,render:ldr','direct'],['render:hdr,render:ldr,render:direct','unshadowed']]){
+ await check(faults+' degrades to '+mode,async()=>{const {status,diag}=await load('fail='+encodeURIComponent(faults));assert.equal(status.mode,'3d');assert.equal(status.renderMode,mode);assert.equal(diag.webglContextFailed,false);assert.ok(diag.errors[0].stack.includes('Injected test failure'));if(mode==='unshadowed')assert.equal(status.shadows,false);});
+ }
+ for(const step of ['shadows','controls','labels','first label pass'])await check(step+' failure keeps the 3D scene available',async()=>{const {status,diag}=await load('fail='+encodeURIComponent(step));assert.equal(status.mode,'3d');assert.ok(diag.errors.some(e=>e.step===step));if(step==='shadows')assert.equal(status.shadows,false);});
+ for(const step of ['renderer','profiles','UI','profile UI','first scene','first render','render:hdr,render:ldr,render:direct,render:unshadowed'])await check(step+' failure opens Page with an actionable stack',async()=>{const {status,diag}=await load('fail='+encodeURIComponent(step));assert.equal(status.mode,'page');assert.equal(diag.webglContextFailed,false);assert.ok(diag.errors.length);assert.ok(await page.locator('#page-form h1').innerText());assert.ok(await page.locator('#startup-diagnostics').isVisible());assert.match(await page.locator('.diagnostic-errors').innerText(),/STEP:.*\nError: Injected test failure/);assert.equal(await page.locator('#loading').getAttribute('class'),'done');});
+ await check('Page fallback remains interactive and copying works without Clipboard API access',async()=>{await page.locator('[data-close]').click();await page.locator('#page-depth').selectOption('Deep');assert.equal(await page.locator('#page-depth').inputValue(),'Deep');await page.getByRole('button',{name:/Diagnostics/}).click();await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:()=>Promise.reject(new Error('Clipboard denied'))}}));await page.locator('[data-copy]').click();const text=await page.locator('textarea[aria-label="Diagnostics to copy"]').inputValue();assert.ok(JSON.parse(text).errors[0].stack);assert.equal(JSON.parse(text).webglContextFailed,false);});
+ await check('Actual context failure is distinguished and also falls back to Page',async()=>{await page.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type==='webgl2'?null:get.call(this,type,...args);};});const {status,diag}=await load();assert.equal(status.mode,'page');assert.equal(diag.webglContextFailed,true);assert.match(diag.errors.find(e=>e.step==='renderer').message,/getContext.*returned null/);});
+ console.log(JSON.stringify({passed,note:'Software Chromium, not PowerVR hardware confirmation.'}));
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});
