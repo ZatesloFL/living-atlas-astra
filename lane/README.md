@@ -6,17 +6,18 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · verified app build [4481f76](https://github.com/ZatesloFL/living-atlas-astra/commit/4481f76b1d7d1be6cc8b30ffa3f672fce3aba9a5). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · verified app build [1a54e2f](https://github.com/ZatesloFL/living-atlas-astra/commit/1a54e2f796b1d733a442e8003b537c4a191e7d89). The session report is committed afterward as documentation.
 
 ## Run and verify
 
 No installation or compilation is needed for the static app. From the repository root, `npm start` serves `index.html` on port 8000. All runtime imports are local, including Three.js. Live processes do not survive environment restarts; restart this command when needed. Use this existing checkout; do not create a worktree for routine tasks.
 
-- `npm test`: 11 Node tests for crossing rules, identity checks, embedded limits, display filters, and private-room data.
+- `npm test`: 25 Node tests for crossing rules, independent identity settings, content ceilings, profile storage, hash-chained receipts, and Atlas label separation.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/browser-smoke.cjs`: 22 functional checks using the cloud machine’s existing Chromium and Playwright. Start the local server first. In another environment, provide the path to its installed Playwright module and optionally `ATLAS_CHROMIUM`.
 - The ◈ button in the app toggles fps, draw calls, scene, and rendering resolution. The display uses actual elapsed time; a software renderer’s numbers do not predict Pixel performance.
-- State is in memory and resets on reload. There is no login, backend, or persistence.
-- Tier 2 is gated on Nic’s confirmation that tier 1 works smoothly on his Pixel. See the exact test route in `reports/2026-11-12-01.md`.
+- Profiles, preferences, the last-used profile, and receipts persist in localStorage when allowed. Unsaved developer overrides, position, and temporary door confirmations reset on reload. Blocked storage falls back to an explicitly labeled in-memory session. There is no login or backend.
+- `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/tier-a-browser.cjs`: 16 round-2a checks, including native long-press touch events and first-run/reload behavior. Both browser suites accept `ATLAS_URL` if the server uses a different port.
+- Current round: v4 Tier A. Tier B starts after the Tier A phone checkpoint; see `reports/2026-11-12-02.md`. The v3 report remains in place as history.
 
 ## Report template
 
@@ -31,33 +32,37 @@ Two or three sentences: what you built or changed this session.
 ## Build
 Repo: | Live URL: | Commit:
 
-## Tier 1: walk and see
+## Tier A: polish and profiles
 | Item | Pass / Partial / Fail | Note |
 |---|---|---|
-| Studio and Tallahassee load, connect, game-quality at 60 fps | | |
-| Touch controls feel good | | |
-| Four edge types behave differently | | |
-| Crossing check by dimension (pass / door with reason / not rendered) | | |
-| Lens: View as, content presets + Advanced, Show me | | |
-| Info cards with content chips | | |
-| Atlas + "Show what others see" | | |
-| Private room shows doorway and address only | | |
+| Tier 1 fixes: signs, 1956 occlusion, portrait framing, Atlas labels | | |
+| Identity: two independent axes and badges | | |
+| First-run setup | | |
+| Profiles: saved, remembered, switcher, radial wheel, switch receipts | | |
+| Test panel with persistent TEST MODE banner | | |
+| Teen cap without verification | | |
 
-## Tier 2: change things
+## Tier B: travel and access
 | Item | Pass / Partial / Fail | Note |
 |---|---|---|
-| Build: Style, Substance (4 permission states, forks, diff), Connect | | |
-| Ledger: History + Verify chain | | |
-| Depth, Trust from, Style presets, Quiet mode | | |
+| Atlas travel with doors respected | | |
+| Waypoint and compass | | |
+| Address bar | | |
+| Pins, recents, home | | |
+| Public / listed / hidden rooms | | |
+| Grants with scope and expiry | | |
+| Made and credential groups with individual overrides | | |
+| Knock, invite, guest pass, key group | | |
+| Room ledger entries and Who’s been here | | |
 
-## Tier 3: the rest
+## Tier C: audience versions, style, layers
 | Item | Pass / Partial / Fail | Note |
 |---|---|---|
-| Contest flow end to end | | |
-| Narrate and Text forms | | |
-| Bus boycott time slider | | |
-| Intro cards | | |
-| Stretch: drop a ready-made room into homestead | | |
+| Audience versions and “other versions exist” label | | |
+| Style control per item | | |
+| Layers: pins, preview, integrate, type filters | | |
+| Propose-to-author merge | | |
+| Preview as, split compare, lens diff | | |
 
 ## Phone checklist for Nic
 Exactly what to tap, where to walk, and what should happen.
