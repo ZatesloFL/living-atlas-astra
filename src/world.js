@@ -19,22 +19,13 @@ const stoneContext=stoneCanvas.getContext('2d');stoneContext.fillStyle='#b9beb4'
 const stoneNoise=random(947);for(let i=0;i<10000;i++){const n=Math.floor(120+stoneNoise()*95);stoneContext.fillStyle=`rgba(${n},${n},${n},.16)`;stoneContext.fillRect(stoneNoise()*256,stoneNoise()*256,1+stoneNoise()*2,1+stoneNoise()*2);}
 const stoneTexture=new THREE.CanvasTexture(stoneCanvas);stoneTexture.wrapS=stoneTexture.wrapT=THREE.RepeatWrapping;stoneTexture.repeat.set(9,9);stoneTexture.colorSpace=THREE.SRGBColorSpace;stoneTexture.anisotropy=4;
 material.ground=new THREE.MeshStandardMaterial({color:0xffffff,map:stoneTexture,roughness:.96});
-const labelCache=new Map();
-function labelMaterial(title,sub,color='#c2eddf'){
-  const key=title+'|'+sub+'|'+color;if(labelCache.has(key))return labelCache.get(key);
-  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=176;const c=canvas.getContext('2d');
-  c.fillStyle='#101e29ee';c.beginPath();c.roundRect(2,2,764,170,20);c.fill();c.strokeStyle='#627b8388';c.lineWidth=2;c.stroke();
-  c.fillStyle=color;c.fillRect(30,34,5,103);c.font='500 34px system-ui';c.fillStyle='#edf4f3';c.fillText(title,58,76,674);c.font='500 19px system-ui';c.fillStyle='#b9ced1';c.fillText(sub.toUpperCase(),59,121,660);
-  const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;
-  const mat=new THREE.SpriteMaterial({map:t,transparent:true,depthTest:true,toneMapped:false});labelCache.set(key,mat);return mat;
-}
 function random(seed){let a=seed;return()=>{a=(a*1664525+1013904223)>>>0;return a/4294967296;};}
 const pose=new THREE.Object3D();
 const makersSun=new THREE.Color(0xffdfad),commonsSun=new THREE.Color(0xd2e6c3);
 export class World {
   constructor(kind,lens,reduced=false){
     this.kind=kind;this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
-    this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;
+    this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
     const sun=new THREE.DirectionalLight(0xffdfad,2.2);sun.position.set(-13,23,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=29;sun.shadow.camera.bottom=-29;sun.shadow.camera.near=1;sun.shadow.camera.far=80;sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;this.scene.add(sun);this.sun=sun;
     this.ground();
@@ -58,7 +49,7 @@ export class World {
     }
     this.batches.clear();
   }
-  label(title,sub,x,y,z,id=null,width=3.1,color){const s=new THREE.Sprite(labelMaterial(title,sub,color));s.position.set(x,y,z);s.scale.set(width,width*176/768,1);s.userData.id=id;this.scene.add(s);if(id)this.pickables.push(s);return s;}
+  label(title,sub,x,y,z,id=null,width=3.1,color){this.labels.push({title,sub,position:new THREE.Vector3(x,y,z),id,color});}
   tree(x,z,size=1,seed=1){
     const r=random(seed*174+23),y=1.6*size;
     this.add('cylinder','wood',x,y,z,.2*size,3.2*size,.22*size,'#746452');
@@ -203,7 +194,7 @@ export class World {
       this.floor(9,-6,6,6,'#73857e');this.box(9,1.15,-6,3.6,1.6,1.6,'#c5b68a','wood','boycott');this.box(9,1.65,-6.82,3.3,.62,.04,'#547985','stone','boycott');
       this.box(9,1.65,-5.18,3.3,.62,.04,'#547985','stone','boycott');for(let i=0;i<5;i++)this.box(7.65+i*.67,1.65,-5.12,.05,.66,.05,'#b8bd9e','metal','boycott');
       for(const x of [7.9,10.1])for(const z of [-6.8,-5.2])this.add('cylinder','wood',x,.45,z,.35,.18,.35,'#2b4149','boycott',[Math.PI/2,0,0]);
-      this.block(9,-6,3.8,2);this.label('1956 · BUS BOYCOTT','SAMPLE HISTORY · SOURCES TO VERIFY',9,3.05,-6,'boycott',4,'#b6d1ff');
+      this.block(9,-6,3.8,2);this.label('1956 · BUS BOYCOTT','SAMPLE HISTORY · SOURCES TO VERIFY',7.6,3.4,-5.1,'boycott',4,'#b6d1ff');
     }
     if(roomVisible('cascades',this.lens)){
       this.add('cylinder','stone',9,.08,7,2.8,.22,2.8,'#899d98','cascades');this.add('cylinder','water',9,.21,7,2.5,.04,2.5,'#fff','cascades');this.block(9,7,5.5,5.5);

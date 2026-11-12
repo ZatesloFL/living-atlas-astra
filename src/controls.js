@@ -1,9 +1,10 @@
 import * as THREE from '../vendor/three/three.module.min.js';
+export const EYE_HEIGHT=1.88, SPAWN_Z=5.6, DEFAULT_PITCH=.065;
 export class Controls {
   constructor(canvas,camera,joystick,onTap,canMove) {
     this.camera=camera;this.canvas=canvas;this.joystick=joystick;this.onTap=onTap;this.canMove=canMove;
-    this.position=new THREE.Vector3(0,1.68,7.8);this.velocity=new THREE.Vector2();
-    this.stick=new THREE.Vector2();this.yaw=0;this.pitch=-.035;this.smoothYaw=0;this.smoothPitch=-.035;
+    this.position=new THREE.Vector3(0,EYE_HEIGHT,SPAWN_Z);this.velocity=new THREE.Vector2();
+    this.stick=new THREE.Vector2();this.yaw=0;this.pitch=DEFAULT_PITCH;this.smoothYaw=0;this.smoothPitch=DEFAULT_PITCH;
     this.look=null;this.joy=null;this.keys=new Set();this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.camera.rotation.order='YXZ';
     joystick.addEventListener('pointerdown',e=>{if(!canMove()||this.joy!==null)return;e.preventDefault();this.joy=e.pointerId;joystick.setPointerCapture(e.pointerId);this.joyUpdate(e);});
@@ -21,7 +22,7 @@ export class Controls {
   }
   joyUpdate(e){const r=this.joystick.getBoundingClientRect();const x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2;this.stick.set(x,y).clampLength(0,38).divideScalar(38);this.joystick.style.setProperty('--jx',`${this.stick.x*34}px`);this.joystick.style.setProperty('--jy',`${this.stick.y*34}px`);}
   resetInput(){this.joy=null;this.look=null;this.stick.set(0,0);this.keys.clear();this.velocity.set(0,0);this.joystick.style.setProperty('--jx','0px');this.joystick.style.setProperty('--jy','0px');}
-  teleport(x,z,yaw=0){this.position.set(x,1.68,z);this.yaw=this.smoothYaw=yaw;this.pitch=this.smoothPitch=-.035;this.resetInput();this.apply();}
+  teleport(x,z,yaw=0){this.position.set(x,EYE_HEIGHT,z);this.yaw=this.smoothYaw=yaw;this.pitch=this.smoothPitch=DEFAULT_PITCH;this.resetInput();this.apply();}
   apply(){this.camera.position.copy(this.position);this.camera.rotation.set(this.smoothPitch,this.smoothYaw,0,'YXZ');}
   update(dt,world){
     if(!this.canMove()){this.velocity.set(0,0);return;}

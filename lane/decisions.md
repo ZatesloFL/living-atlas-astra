@@ -19,3 +19,8 @@ One line per call the brief did not settle, with the reason.
 - 2026-11-12 — Seamless thresholds blend vertex colors on the ground; moving from the studio to the Commons also eases the sun’s color. Doors require explicit entry, windows never admit movement, and the embedded booth changes the breadcrumb on crossing.
 - 2026-11-12 — Accepting a soft-limit door grants entry for the current scene/lens only. A lens change clears those grants and relocates a visitor to the entrance if their current position becomes inaccessible.
 - 2026-11-12 — Local automated Chromium is available for functional validation, although it uses software rendering here; its fps is not evidence of Pixel performance or approval of visual quality.
+
+- 2026-11-12 / round 2a A1 — Room names use crisp projected nameplates at a fixed readable CSS size, outside the low-resolution bloom buffer; they face the camera, avoid each other and controls, and remain readable across foreground foliage. Only labels belonging to the visible world are projected.
+- 2026-11-12 / round 2a A1 — The bus sign anchor moves toward the walking path; the nameplate layer also prevents the tree trunk from occluding its text.
+- 2026-11-12 / round 2a A1 — Eye height is 1.88m, default pitch tilts upward slightly, portrait FOV widens to 67°, and the entrance moves 2.2m forward to reduce empty foreground without camera bob.
+- 2026-11-12 / round 2a A1 — Atlas labels have explicit boxes placed outside every marker's 22-unit clearance and outside other labels; small dark backplates separate text from crossing lines.

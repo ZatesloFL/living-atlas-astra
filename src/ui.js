@@ -1,3 +1,4 @@
+import {positions,mapTitles,layoutAtlasLabels} from './atlas-layout.js';
 import { ROOMS, EDGES, DISTRICTS, DIMENSIONS, PRESETS } from './data.js';
 import { visibleEdge, crossing, roomVisible, contentScore, presetForIdentity, setPreset } from './rules.js';
 const $=id=>document.getElementById(id);
@@ -5,7 +6,7 @@ export const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 const icon={seamless:'≈',door:'∩',embedded:'◎',window:'▧'};
 const tierText={verified:'✓ Verified person',named:'Named',anonymous:'Anonymous',agent:'◇ Agent'};
 const substanceText={none:'View only · substance locked',suggest:'Suggest changes · author decides',branch:'Fork allowed · original stays intact',open:'Open to substance edits'};
-const positions={studio:[95,335],commons:[290,335],market:[295,242],night:[346,409],broadcast:[72,444],listening:[72,512],lab:[200,446],tallahassee:[95,179],canopy:[80,91],capitol:[75,32],mission:[210,91],boycott:[292,117],cascades:[302,33],workbench:[30,273],family:[24,390]};
+const atlasLabels=layoutAtlasLabels();
 const internal=[{id:'map-workbench',from:'studio',to:'workbench',type:'seamless'},{id:'map-family',from:'studio',to:'family',type:'door'}];
 export class UI {
   constructor(api){
@@ -95,10 +96,10 @@ export class UI {
     }
     for(const [id,[x,y]] of Object.entries(positions)){
       const visible=reachable.has(id);if(!visible&&!this.showOthers)continue;const r=ROOMS[id],color=DISTRICTS[r.district].color,isHere=id===context.room||id==='tallahassee'&&this.api.state().kind==='history'&&context.room==='tallahassee';
-      const title={studio:'Studio',tallahassee:'Tallahassee',canopy:'Canopy',capitol:'Capitols',mission:'San Luis',boycott:'1956',cascades:'Cascades',commons:'Commons',market:'Night Market',night:'After Dark',broadcast:'Broadcast',listening:'Listening',lab:'Lab window',workbench:'Workbench',family:'Private'}[id];
-      nodes+=`<g class="map-node" data-map-node="${id}" role="button" tabindex="0" aria-label="${escapeHTML(r.title)}${visible?'':', hidden'}"><circle cx="${x}" cy="${y}" r="22" fill="transparent"/>${isHere?`<circle cx="${x}" cy="${y}" r="16" fill="none" stroke="#fff" stroke-width="1.5"/>`:''}<circle cx="${x}" cy="${y}" r="${id==='studio'?10:7}" fill="${visible?color:'#465367'}" stroke="${visible?'#d4e4ec':'#8c99a9'}" stroke-width="1.2"/><text x="${x}" y="${y+29}" text-anchor="middle" style="opacity:${visible?1:.6}">${title}</text></g>`;
+      const title=mapTitles[id],label=atlasLabels[id];
+      nodes+=`<g class="map-node" data-map-node="${id}" role="button" tabindex="0" aria-label="${escapeHTML(r.title)}${visible?'':', hidden'}"><circle cx="${x}" cy="${y}" r="22" fill="transparent"/>${isHere?`<circle cx="${x}" cy="${y}" r="16" fill="none" stroke="#fff" stroke-width="1.5"/>`:''}<circle cx="${x}" cy="${y}" r="${id==='studio'?10:7}" fill="${visible?color:'#465367'}" stroke="${visible?'#d4e4ec':'#8c99a9'}" stroke-width="1.2"/><g class="atlas-label" opacity="${visible?1:.6}"><rect x="${label.x}" y="${label.y}" width="${label.w}" height="${label.h}" rx="5" fill="#122332"/><text x="${label.x+label.w/2}" y="${label.y+15}" text-anchor="middle">${title}</text></g></g>`;
     }
-    this.content.innerHTML=`<div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}" class="${this.showOthers?'active':''}">${this.showOthers?'On':'Off'}</button></div><p class="muted">Faint connections show what your lens hides or changes. Tap a line or a place for its reason.</p><div class="map-wrap"><svg id="atlas-map" viewBox="0 0 390 560" aria-label="Room graph" role="group">${paths}${nodes}</svg></div><div class="legend"><span data-symbol="≈">Seamless</span><span data-symbol="∩">Door</span><span data-symbol="◎">Embedded</span><span data-symbol="▧">Window</span></div><div id="map-detail" aria-live="polite">You are in ${escapeHTML(ROOMS[context.room].title)}. The map shows connections, not walking distances.</div>`;
+    this.content.innerHTML=`<div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}" class="${this.showOthers?'active':''}">${this.showOthers?'On':'Off'}</button></div><p class="muted">Faint connections show what your lens hides or changes. Tap a line or a place for its reason.</p><div class="map-wrap"><svg id="atlas-map" viewBox="0 0 440 660" aria-label="Room graph" role="group">${paths}${nodes}</svg></div><div class="legend"><span data-symbol="≈">Seamless</span><span data-symbol="∩">Door</span><span data-symbol="◎">Embedded</span><span data-symbol="▧">Window</span></div><div id="map-detail" aria-live="polite">You are in ${escapeHTML(ROOMS[context.room].title)}. The map shows connections, not walking distances.</div>`;
     $('show-others').onclick=()=>{this.showOthers=!this.showOthers;this.renderAtlas();};
     const selectEdge=e=>{const r=visibleEdge(e,lens);$('map-detail').innerHTML=`<strong>${escapeHTML(ROOMS[e.from].title)} → ${escapeHTML(ROOMS[e.to].title)}</strong><br>${r.state==='hidden'?'Hidden':r.type!==e.type?`${e.type} → ${r.type}`:r.type} · ${escapeHTML(r.reasons.join(' · ')||r.oddness.join(' · ')||'Within your lens')}`;};
     this.content.querySelectorAll('[data-map-edge]').forEach(el=>{const select=()=>selectEdge(all.find(e=>e.id===el.dataset.mapEdge));el.onclick=select;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}};});
