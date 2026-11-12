@@ -16,3 +16,6 @@ One line per call the brief did not settle, with the reason.
 - 2026-11-12 — No storage, downloaded assets, external fonts, analytics, backend, or runtime CDN. Three.js r181 is vendored with its license; all geometry and textures are made in code.
 - 2026-11-12 — The studio lab is viewed through the seeded window edge; the listening booth demonstrates embedding. These supply all four edge types without adding content-heavy rooms.
 - 2026-11-12 — The Build button explains its tier-2 availability; editing, ledger, narration, intro cards, and the time slider are deliberately deferred.
+- 2026-11-12 — Seamless thresholds blend vertex colors on the ground; moving from the studio to the Commons also eases the sun’s color. Doors require explicit entry, windows never admit movement, and the embedded booth changes the breadcrumb on crossing.
+- 2026-11-12 — Accepting a soft-limit door grants entry for the current scene/lens only. A lens change clears those grants and relocates a visitor to the entrance if their current position becomes inaccessible.
+- 2026-11-12 — Local automated Chromium is available for functional validation, although it uses software rendering here; its fps is not evidence of Pixel performance or approval of visual quality.

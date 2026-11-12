@@ -47,7 +47,7 @@ function loop(time){
   frame=requestAnimationFrame(loop);if(!active)return;
   const elapsed=(time-lastTime)/1000||.016,dt=Math.min(elapsed,.05);lastTime=time;
   let fade=0;if(transition){const p=(performance.now()-transition.start)/420;fade=p<.5?p*2:2-p*2;if(p>=.5&&!transition.done){transition.done=true;transition.action();}if(p>=1){transition=null;fade=0;}}
-  controls.update(dt,world);world.update(time/1000);graphics.render(world.scene,camera,Math.max(0,fade));
+  controls.update(dt,world);world.update(time/1000,controls.position);graphics.render(world.scene,camera,Math.max(0,fade));
   frames++;period+=elapsed;
   if(frames%8===0){updateContext();const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
   if(period>=1){fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}

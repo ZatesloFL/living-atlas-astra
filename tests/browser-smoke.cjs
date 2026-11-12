@@ -1,0 +1,56 @@
+/* Run against npm start. Set ATLAS_PLAYWRIGHT_MODULE to your existing Playwright
+   module if it is not installed in the invoking environment. No runtime dependency. */
+const { chromium } = require(process.env.ATLAS_PLAYWRIGHT_MODULE || 'playwright-core');
+const assert = require('node:assert/strict');
+(async()=>{
+  const browser=await chromium.launch({executablePath:process.env.ATLAS_CHROMIUM || '/usr/bin/chromium',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
+  let passed=0;
+  const page=await browser.newPage({viewport:{width:412,height:915},deviceScaleFactor:1,hasTouch:true,isMobile:true});
+  const errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>requests.push(r.url()));
+  async function check(name,fn){await fn();passed++;console.log('PASS '+name);}
+  const settled=()=>page.waitForTimeout(750);
+  const state=()=>page.evaluate(()=>__atlas.state());
+  const close=()=>page.evaluate(()=>__atlas.close());
+  const edgeState=async id=>(await state()).edges.find(e=>e.id===id).result;
+  const pick=id=>page.evaluate(id=>__atlas.pick(id),id);
+  const persona=async name=>{await close();await page.getByRole('button',{name:/Your lens/}).click();await page.getByRole('button',{name,exact:true}).click();await settled();};
+  try {
+    await page.goto((process.env.ATLAS_URL || 'http://127.0.0.1:8000/')+'?test=1',{waitUntil:'networkidle'});
+    await page.waitForFunction(()=>window.__atlas,{timeout:30000});
+    await check('WebGL scene loads with entirely local runtime assets',async()=>{assert.equal((await state()).kind,'studio');assert.ok(requests.every(u=>u.startsWith('http://127.0.0.1:8000/')||u.startsWith('data:')));assert.deepEqual(errors,[]);});
+    await check('A canvas tap raycasts the actual glowing doorway',async()=>{await page.touchscreen.tap(206,470);assert.equal(await page.locator('#sheet-title').innerText(),'Welcome to Tallahassee');await close();});
+    await check('Two simultaneous touches move and look, then stop on release',async()=>{
+      const client=await page.context().newCDPSession(page),rect=await page.locator('#joystick').boundingBox(),jx=rect.x+rect.width/2,jy=rect.y+rect.height/2;
+      const before=(await state()).position;
+      await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:jx,y:jy-32},{id:2,x:340,y:420}]});
+      await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:jx,y:jy-32},{id:2,x:375,y:425}]});
+      await page.waitForTimeout(1000);
+      await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      await page.waitForTimeout(600);
+      const after=(await state()).position;assert.ok(Math.hypot(after.x-before.x,after.z-before.z)>.25);
+      assert.ok(Math.abs(after.x-before.x)>.01,'look changes movement direction');
+      await page.waitForTimeout(700);const stopped=(await state()).position;assert.ok(Math.hypot(stopped.x-after.x,stopped.z-after.z)<.06);
+      await client.detach();
+    });
+    await check('Workbench card includes author, fork permission, ratings and scores',async()=>{await pick('workbench');const t=await page.locator('#sheet-content').innerText();for(const value of ['Nic','Verified person','Fork allowed','All six dimensions','1 seeded fork','Ratings:'])assert.ok(t.includes(value),value);await close();});
+    await check('Private doorway reveals only boundary text and address',async()=>{await pick('family');const t=await page.locator('#sheet-content').innerText();assert.equal(t.trim(),'Private space, something is here.\n\ntlh/studio/family');assert.equal(await page.locator('#sheet-content button').count(),0);await close();});
+    await check('Window cannot be entered, even after selecting it',async()=>{await pick('edge:studio-lab');assert.ok((await page.locator('#sheet-content').innerText()).includes('view-only'));assert.equal(await page.locator('#edge-enter').count(),0);assert.equal(await page.evaluate(()=>__atlas.canStand(7,-4.6)),false);await close();});
+    await check('Embedded listening booth changes the breadcrumb inside the host',async()=>{await page.evaluate(()=>__atlas.position(-8,1.4));assert.equal((await state()).context.inside,'Broadcast booth');assert.ok((await page.locator('#district-name').innerText()).includes('Inside:'));await page.evaluate(()=>__atlas.position(0,7.8));});
+    await check('Teen changes market to a reasoned door, and blocks walking around it',async()=>{await persona('Unverified visitor');assert.equal((await edgeState('commons-market')).type,'door');assert.equal(await page.evaluate(()=>__atlas.canStand(22,-6)),false);assert.equal(await page.evaluate(()=>__atlas.canStand(25,-7)),false);await close();await pick('edge:commons-market');assert.ok((await page.locator('#sheet-content').innerText()).includes('Sensory: 2, your limit 1'));});
+    await check('Confirming a soft-limit door permits entry without changing the lens',async()=>{await page.getByRole('button',{name:/Enter Night Market/}).click();await settled();assert.equal((await state()).context.room,'market');assert.equal((await state()).lens.preset,'Teen');assert.equal(await page.evaluate(()=>__atlas.canStand(22,-6)),true);});
+    await check('Child hides market and After Dark and moves an invalid position to safety',async()=>{await persona('Child');assert.equal((await edgeState('commons-market')).state,'hidden');assert.equal((await edgeState('commons-night')).state,'hidden');assert.equal((await state()).context.room,'studio');assert.equal(await page.evaluate(()=>__atlas.scene().children.some(o=>o.userData.id==='market')),false);await close();});
+    await check('Atlas reveals hidden connections and their reasons',async()=>{await page.getByRole('button',{name:/Atlas/,exact:false}).click();assert.equal(await page.locator('[data-map-node="market"]').count(),0);await page.getByRole('switch',{name:'Show what others see'}).click();assert.equal(await page.locator('[data-map-node="market"]').count(),1);await page.locator('[data-map-edge="commons-market"]').click();assert.ok((await page.locator('#map-detail').innerText()).includes('hard limit 1'));await close();});
+    await check('Verified adult reveals After Dark; unverified identity removes it',async()=>{await persona('Verified adult');assert.equal((await edgeState('commons-night')).type,'door');await persona('Unverified visitor');assert.equal((await edgeState('commons-night')).state,'hidden');});
+    await check('All six Advanced controls work; a sensory hard lock removes the lab',async()=>{await persona('Me');await page.getByRole('button',{name:/Advanced · six/}).click();assert.equal(await page.locator('input[type="range"]').count(),6);await page.locator('#limit-sensory').fill('0');await page.locator('#limit-sensory').dispatchEvent('change');await settled();await page.locator('[data-lock="sensory"]').click();await settled();assert.equal((await edgeState('studio-lab')).state,'hidden');assert.equal((await state()).lens.hard.sensory,0);});
+    await check('Agent display can be dimmed but Silver remains selectable',async()=>{await page.getByRole('button',{name:'Adult',exact:true}).click();await settled();await page.locator('[data-show="agent"]').click();await settled();assert.ok((await page.locator('[data-show="agent"]').innerText()).includes('Dimmed'));await page.locator('[data-show="verified"]').click();await settled();await close();await pick('silver');assert.equal(await page.locator('#sheet-title').innerText(),'Silver');assert.ok((await page.locator('#sheet-content').innerText()).includes('Operated by a verified person: yes'));await close();});
+    await check('An agent gets structured room data without private content',async()=>{await persona('An agent');await page.locator('[data-show="verified"]').click();await settled();const data=JSON.parse(await page.locator('#agent-view').innerText());assert.equal(data.visitor.identity,'agent');assert.ok(data.rooms.some(r=>r.author.isAgent));assert.ok(!data.rooms.some(r=>r.address==='tlh/studio/family'));await close();});
+    await check('Studio door is solid until confirmation and loads Tallahassee',async()=>{assert.equal(await page.evaluate(()=>__atlas.canStand(0,-12.2)),false);await page.evaluate(()=>__atlas.position(0,-10.3));await page.waitForFunction(()=>!document.getElementById('edge-prompt').hidden);await page.getByRole('button',{name:/Welcome to Tallahassee/}).click();await page.getByRole('button',{name:/Enter Welcome to Tallahassee/}).click();await page.waitForFunction(()=>__atlas.state().kind==='history');await settled();assert.equal((await state()).context.room,'tallahassee');});
+    await check('History includes authors and source-to-verify links',async()=>{await pick('capitol');const t=await page.locator('#sheet-content').innerText();assert.ok(t.includes('Anonymous contributor'));assert.ok(t.includes('Academic: not reviewed'));assert.ok(t.toLowerCase().includes('source to verify'));assert.equal(await page.locator('#sheet-content a').getAttribute('href'),'https://www.flhistoriccapitol.gov/');await close();});
+    await check('Teen gets a disturbing-themes door; Child hides only the boycott stop',async()=>{await persona('Unverified visitor');assert.equal((await edgeState('city-boycott')).type,'door');assert.ok((await edgeState('city-boycott')).reasons.includes('Disturbing themes: 2, your limit 1'));await persona('Child');assert.equal((await edgeState('city-boycott')).state,'hidden');assert.equal((await edgeState('canopy-capitol')).type,'seamless');await close();});
+    await check('Portrait and landscape UI fit; performance overlay reports real counters',async()=>{await page.setViewportSize({width:915,height:412});await settled();await page.getByRole('button',{name:'Toggle performance overlay'}).click();await settled();assert.match(await page.locator('#performance').innerText(),/\d+ fps.*\d+ draws/);for(const id of ['lens-button','joystick','atlas-button','fullscreen']){const r=await page.locator('#'+id).boundingBox();assert.ok(r.x>=0&&r.y>=0&&r.x+r.width<=916&&r.y+r.height<=413,id);}await page.getByRole('button',{name:/Your lens/}).click();const r=await page.locator('#sheet').boundingBox();assert.ok(r.y>=0&&r.y+r.height<=413);await close();await page.setViewportSize({width:412,height:915});});
+    await check('Reduced motion is applied at runtime',async()=>{await page.emulateMedia({reducedMotion:'reduce'});await settled();assert.equal((await state()).reducedMotion,true);});
+    await check('Return threshold reconnects to the studio',async()=>{await pick('edge:city-studio');await page.getByRole('button',{name:/Enter Nic’s Studio/}).click();await page.waitForFunction(()=>__atlas.state().kind==='studio');});
+    await check('No JavaScript or shader errors through the entire session',async()=>assert.deepEqual(errors,[]));
+    console.log(JSON.stringify({passed,errors,final:await page.evaluate(()=>atlasStatus()),note:'Software-rendered Chrome smoke checks. These are not Pixel performance measurements.'}));
+  } finally {await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

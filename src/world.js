@@ -30,6 +30,7 @@ function labelMaterial(title,sub,color='#c2eddf'){
 }
 function random(seed){let a=seed;return()=>{a=(a*1664525+1013904223)>>>0;return a/4294967296;};}
 const pose=new THREE.Object3D();
+const makersSun=new THREE.Color(0xffdfad),commonsSun=new THREE.Color(0xd2e6c3);
 export class World {
   constructor(kind,lens,reduced=false){
     this.kind=kind;this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
@@ -104,7 +105,12 @@ export class World {
       const [x,z]=edge.position;this.planter(x,z,1.25);this.planter(x+1.5,z-.6,.8);return false;
     }
     if(result.type==='seamless'){
-      const [x,z]=edge.position,across=edge.axis==='x';this.floor(x,z,across?7:3.7,across?3.7:7,edge.to==='capitol'?'#6f8185':'#567b72');
+      const [x,z]=edge.position,across=edge.axis==='x';const ground=new THREE.PlaneGeometry(across?7:3.7,across?3.7:7,8,8),p=ground.attributes.position,colors=[];
+      const a=new THREE.Color(this.kind==='studio'?'#425e56':'#4b665b'),b=new THREE.Color(edge.to==='capitol'?'#748c88':'#3d6153');
+      for(let i=0;i<p.count;i++){const t=THREE.MathUtils.smoothstep((across?p.getX(i):p.getY(i)),-3.5,3.5),c=a.clone().lerp(b,t);colors.push(c.r,c.g,c.b);}
+      ground.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+      const groundMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.96,map:stoneTexture});
+      const band=new THREE.Mesh(ground,groundMat);band.rotation.x=-Math.PI/2;band.position.set(x,.052,z);band.receiveShadow=true;this.scene.add(band);this.dynamicResources.push(ground,groundMat);
       for(const side of [-1,1]){this.box(x+(across?0:side*1.8),.033,z+(across?side*1.8:0),across?6.8:.045,.015,across?.045:6.8,'#659b91');}
     }else this.arch(edge,result);
     return true;
@@ -217,7 +223,8 @@ export class World {
       const wm=new THREE.PointsMaterial({color:0xa4e8f0,size:.055,transparent:true,opacity:.7,depthWrite:false});this.waterPoints=new THREE.Points(wg,wm);this.waterPoints.visible=roomVisible('cascades',this.lens);this.scene.add(this.waterPoints);this.dynamicResources.push(wg,wm);
     }
   }
-  update(t){
+  update(t,position){
+    if(position&&this.kind==='studio')this.sun.color.copy(makersSun).lerp(commonsSun,THREE.MathUtils.smoothstep(position.x,9,17));
     const time=this.reduced?0:t;
     for(const a of this.animated){
       if(a.type==='agent'){a.object.position.y=a.base+Math.sin(time*.9)*.065;a.object.rotation.y=time*.2;}
