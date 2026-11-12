@@ -1,0 +1,35 @@
+# Living Atlas: instructions for the builder (GPT Astra)
+
+You are one of two builders working on the same prototype in parallel. The other builder works in a separate repo from the same instructions. Nic (the owner) compares the results.
+
+## Read first, in order
+
+1. `docs/shared/01-concept.md`: what Living Atlas is and why. Read for intent.
+2. `docs/shared/02-build-brief.md`: what to build (v3). Read for exact requirements.
+3. `docs/shared/03-vision-board.md`: visual direction and screen-by-screen UI.
+4. `docs/shared/04-decisions-and-open-questions.md`: what's settled, what isn't, what's out of scope.
+
+`docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
+
+## Where things go
+
+- **App code:** repo root. The app must be served at `index.html` via GitHub Pages. Three.js is vendored in `vendor/three/`; no runtime CDN. Generate all assets in code.
+- **Your lane (reports and notes):** `lane/`. Write your notes and reports only there.
+  - `lane/README.md`: fill in "Where the build lives".
+  - `lane/decisions.md`: one line per call the brief didn't settle, with the reason.
+  - `lane/questions.md`: anything unclear or wrong in `docs/shared/`.
+  - `lane/reports/YYYY-MM-DD-NN.md`: a new report per work session, using the template in `lane/README.md`. Never overwrite old reports.
+
+## Rules
+
+1. Target: Chrome on a Google Pixel phone, portrait first, landscape working. 3D-game visual quality, stable 60 fps.
+2. Finish tier 1 and make it solid before tier 2; same for tier 3. A polished tier 1 beats three rough tiers.
+3. Push commits directly to `main` with clear messages so GitHub Pages updates. If you can't push to main, open a PR and tell Nic.
+4. No backend, login or live AI. Visitors view and make permitted edits; no creating new rooms from scratch.
+5. You can't see the app running. After each tier, tell Nic exactly what to check on his phone. His feedback is the source of truth for visuals, feel and frame rate. Anything you couldn't verify yourself is Partial until he confirms it.
+6. Only stop and ask for something that truly blocks the build. Otherwise make the most reasonable call, log it in `lane/decisions.md`, and keep going.
+7. Privacy: sample content about Nic stays at the level in the brief. No family details beyond the private-room doorway, no home address, no named private people.
+
+## Done for this round
+
+The tier checklists at the end of the build brief, each item reported Pass / Partial / Fail in your report, with the live Pages URL.
