@@ -10,6 +10,7 @@ You are one of two builders working on the same prototype in parallel. The other
 4. `docs/shared/04-decisions-and-open-questions.md`: what's settled, what isn't, what's out of scope.
 5. `docs/shared/05-brief-v4-round-2a.md`: **the current round.** v4 builds on v3; where they differ, v4 wins. Its tiers (A, B, C) replace v3's tiers 2 and 3.
 6. `docs/shared/06-brief-round-3-queued.md`: **queued.** Read it for direction so your 2a work doesn't block it, but don't start it until Nic says go.
+7. `docs/shared/07-brief-round-4-connected-sources-queued.md`: **queued.** Don't build it yet, but A6's block model must already support its source pointers (see its last section).
 
 `docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
 

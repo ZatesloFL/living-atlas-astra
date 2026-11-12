@@ -64,6 +64,8 @@ The 3D renderer turns a layout hint into geometry. It should be possible to add 
 
 **4. One deep sample.** Fill the **1956 bus boycott** room to article depth (infobox, lead, 4 to 6 sections, a timeline, 3+ media placeholders with alt text, related links to the Capitol and Cascades Park, and citations marked "to verify"). Write it as clearly marked sample content; don't present unverified facts as verified. Keep the other rooms light.
 
+**Connected sources (queued, round 4):** blocks may carry an optional `source` pointer and rooms a `sources` list, and renderers must handle content that arrives late or fails to load. See `07-brief-round-4-connected-sources-queued.md`, last section.
+
 **Rule:** renderers never contain content, and content never contains renderer code. The rules engine stays shared by all renderers.
 
 ## Tier B: travel and access
