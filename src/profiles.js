@@ -4,7 +4,7 @@ export const STORAGE_KEY='living-atlas.profiles.v4';
 export const GROUPS=[['family','Family','made'],['writing-circle','Writing circle','made'],['tallahassee-resident','Verified Tallahassee resident','credential'],['neighborhood','My neighborhood','credential']];
 const clone=value=>structuredClone(value);
 export function makeProfile(name,extra={}){
-  return {id:crypto.randomUUID(),name,identity:{display:'pseudonym',backing:'none'},age:18,preset:'Teen',limits:{...PRESETS.Teen.limits},hard:{...PRESETS.Teen.hard},show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
+  return {id:crypto.randomUUID(),name,identity:{display:'pseudonym',backing:'none'},age:18,preset:'Teen',limits:{...PRESETS.Teen.limits},hard:{...PRESETS.Teen.hard},show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],layerConsents:{},layerMode:'Core only',layerTypes:['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'],itemStyles:{},groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
 }
 export function seedProfiles(){
   const base=(id,name,preset,extra={})=>makeProfile(name,{id,seed:true,isTest:true,preset,limits:{...PRESETS[preset].limits},hard:{...PRESETS[preset].hard},...extra});
@@ -17,10 +17,11 @@ function sanitize(p){
   out.preset=[...Object.keys(PRESETS),'Custom'].includes(p.preset)?p.preset:'Teen';
   for(const [k] of DIMENSIONS){out.limits[k]=Number.isInteger(p.limits?.[k])&&p.limits[k]>=0&&p.limits[k]<=3?p.limits[k]:PRESETS.Teen.limits[k];out.hard[k]=p.hard?.[k]===null?null:Number.isInteger(p.hard?.[k])&&p.hard[k]>=0&&p.hard[k]<=3?p.hard[k]:PRESETS.Teen.hard[k];}
   for(const k of ['real','pseudonym','anonymous','agent'])out.show[k]=p.show?.[k]!==false;
-  for(const [k,values] of Object.entries({trustFrom:['Author','Vouched','Academic','Community'],depth:['Glance','Standard','Deep'],form:['3d','card','page','narration','text'],stylePreset:['Studio','Documentary','Gallery','Kids'],playAs:['visitor','owner']}))if(values.includes(p[k]))out[k]=p[k];
+  for(const [k,values] of Object.entries({trustFrom:['Author','Vouched','Academic','Community'],depth:['Glance','Standard','Deep'],form:['3d','card','page','narration','text'],stylePreset:['Studio','Documentary','Gallery','Kids'],layerMode:['Core only','Vouched','Everything'],playAs:['visitor','owner']}))if(values.includes(p[k]))out[k]=p[k];
   out.groups=Array.isArray(p.groups)?p.groups.filter(k=>GROUPS.some(g=>g[0]===k)):[];
   out.acceptedLayers=Array.isArray(p.acceptedLayers)?p.acceptedLayers.filter(k=>typeof k==='string').slice(0,200):[];
-  out.isAgent=!!p.isAgent;out.isTest=out.seed||!!p.isTest||out.identity.backing==='verified'||out.groups.length>0||out.playAs==='owner';return out;
+  out.layerTypes=Array.isArray(p.layerTypes)?p.layerTypes.filter(t=>['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'].includes(t)):out.layerTypes;out.itemStyles=p.itemStyles&&typeof p.itemStyles==='object'?clone(p.itemStyles):{};
+  out.layerConsents=p.layerConsents&&typeof p.layerConsents==='object'?clone(p.layerConsents):{};out.isAgent=!!p.isAgent;out.isTest=out.seed||!!p.isTest||out.identity.backing==='verified'||out.groups.length>0||out.playAs==='owner';return out;
 }
 const seedIds=new Set(['seed-me','seed-verified','seed-visitor','seed-child','seed-agent']);
 export class ProfileStore {
@@ -70,7 +71,7 @@ export class ProfileStore {
     if(this.activeId===id){const next=this.profiles.find(p=>!p.seed&&!p.isTest)??this.profiles.find(p=>!p.seed);if(next)await this.record('profile_switched',{from:id,to:next.id});this.activeId=next?.id??null;this.override=null;this.completed=!!next;}
     if(this.regularId===id)this.regularId=this.profiles.find(p=>!p.seed&&!p.isTest)?.id??null;this.persist();
   });}
-  preferences(lens){const p=this.active();if(!p)return;for(const key of ['preset','limits','hard','show','trustFrom','depth','form','stylePreset','acceptedLayers'])if(lens[key]!==undefined)p[key]=clone(lens[key]);this.persist();}
+  preferences(lens){const p=this.active();if(!p)return;for(const key of ['preset','limits','hard','show','trustFrom','depth','form','stylePreset','acceptedLayers','layerMode','layerTypes','itemStyles','layerConsents'])if(lens[key]!==undefined)p[key]=clone(lens[key]);this.persist();}
   setDisplay(display){const p=this.active();if(!p||!['anonymous','pseudonym','real'].includes(display))return;p.identity.display=display;this.persist();}
   setOverride(changes){this.override={...this.override,...clone(changes),identity:{...this.current().identity,...changes.identity}};}
   async exitTest(){if(this.active()?.isTest){if(this.regularId)return this.switchProfile(this.regularId);this.completed=false;this.activeId=null;this.override=null;this.persist();return;}this.override=null;this.persist();}

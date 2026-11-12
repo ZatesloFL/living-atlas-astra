@@ -35,9 +35,10 @@ export function drawModel(w,model,id){
  case 'bus':
   w.floor(0,0,6,6,'#73857e');box(0,1.15,0,3.6,1.6,1.6,'#c5b68a','wood',id);box(0,1.65,-.82,3.3,.62,.04,'#547985','stone',id);box(0,1.65,.82,3.3,.62,.04,'#547985','stone',id);for(let i=0;i<5;i++)box(-1.35+i*.67,1.65,.88,.05,.66,.05,'#b8bd9e','metal',id);for(const x of [-1.1,1.1])for(const z of [-.8,.8])add('cylinder','wood',x,.45,z,.35,.18,.35,'#2b4149',id,[Math.PI/2,0,0]);w.block(0,0,3.8,2);return;
  case 'fountain':
-  add('cylinder','stone',0,.08,0,2.8,.22,2.8,'#899d98',id);add('cylinder','water',0,.21,0,2.5,.04,2.5,'#fff',id);w.block(0,0,5.5,5.5);add('cylinder','stone',0,.5,0,.6,.8,.6,'#b0bbb0',id);add('orb','blue',0,.96,0,.13,.13,.13,'#fff',id);w.fountainLayout={...w.placement};return;
+  add('cylinder','stone',0,.08,0,2.8,.22,2.8,'#899d98',id);add('cylinder','water',0,.21,0,2.5,.04,2.5,'#fff',id);w.block(0,0,5.5,5.5);add('cylinder','stone',0,.5,0,.6,.8,.6,'#b0bbb0',id);add('orb','blue',0,.96,0,.13,.13,.13,'#fff',id);if(!w.placement.ghost)w.fountainLayout={...w.placement};return;
  case 'panorama':box(0,1.3,0,4,2.6,.2,'#486d76','wood',id);w.block(0,0,4,.2);add('ring','blue',0,1.5,.2,.65,.65,.65,'#fff',id);return;
- case 'path-stops':w.floor(0,0,2.5,2.5,'#638477'); // fall through to a reusable plinth
+ case 'path-stops':
+  w.floor(0,0,5.2,3,'#638477');for(let i=0;i<3;i++){const x=(i-1)*1.6;add('cylinder','stone',x,.42,0,.5,.84,.5,'#9ab49d',id);box(x,1.3,0,1.1,1.2,.12,'#c8c69e','wood',id);add('diamond','teal',x,2.15,0,.12,.22,.12,'#fff',id);w.block(x,0,1.1,.8);}box(0,.08,1.1,3.4,.06,.09,'#a1d8ba','stone',id);return;
  default:add('cylinder','stone',0,.4,0,.65,.8,.65,'#82988b',id);add('diamond','teal',0,1.35,0,.35,.5,.35,'#fff',id);w.block(0,0,1.3,1.3);
  }
 }

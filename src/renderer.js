@@ -17,7 +17,7 @@ export class Renderer {
     this.renderer.setPixelRatio(this.ratio);this.renderer.setSize(innerWidth,innerHeight,false);if(diagnostics)diagnostics.renderState=()=>this.status();
   }
   status(){return {mode:this.mode,level:RENDER_MODES.indexOf(this.mode)+1,label:RENDER_LABELS[this.mode],shadows:this.renderer.shadowMap.enabled,dpr:this.ratio,reason:this.reason,firstFramePassed:this.lastFrameMode===this.mode};}
-  retryFull(scene,camera){this.safe=false;this.reason='Full quality requested in Diagnostics; retry at DPR ≤ 1.25.';this.ratio=Math.min(devicePixelRatio||1,1.25);this.setupShadows(true);this.initPost();this.render(scene,camera);}
+  retryFull(scene,camera){this.safe=false;this.reason='Full quality requested in Diagnostics; retry at DPR ≤ 1.25.';this.ratio=Math.min(devicePixelRatio||1,this.comparison?1:1.25);this.setupShadows(true);this.initPost();this.render(scene,camera);}
   setupShadows(enabled=!this.safe){
     this.renderer.shadowMap.enabled=enabled;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.shadowMap.autoUpdate=false;this.renderer.shadowMap.needsUpdate=enabled;
   }
@@ -77,11 +77,24 @@ export class Renderer {
     if(this.target){this.target.setSize(Math.round(innerWidth*this.ratio),Math.round(innerHeight*this.ratio));const divisor=this.mode==='ldr'?8:4;this.bloomA.setSize(Math.max(1,Math.round(innerWidth*this.ratio/divisor)),Math.max(1,Math.round(innerHeight*this.ratio/divisor)));this.bloomB?.setSize(this.bloomA.width,this.bloomA.height);this.final.uniforms.texel.value.set(1.5/this.bloomA.width,1.5/this.bloomA.height);}
     this.validateNext=true;
   }
+  drawWorld(scene,camera){
+    const r=this.renderer,compare=this.comparison;
+    if(!compare){r.render(scene,camera);return;}
+    // Populate static shadow maps before clipping either view. Both scenes share the camera.
+    this.shadowReady??=new WeakSet();
+    const shadowDirty=r.shadowMap.needsUpdate;
+    if(r.shadowMap.enabled)for(const view of [scene,compare.scene])if(shadowDirty||!this.shadowReady.has(view)){
+      r.setScissorTest(false);r.shadowMap.needsUpdate=true;r.render(view,camera);this.shadowReady.add(view);
+    }
+    const w=innerWidth,h=innerHeight,x=Math.round(w*compare.split);
+    try{r.setScissorTest(true);r.setScissor(0,0,x,h);r.render(scene,camera);r.setScissorTest(true);r.setScissor(x,0,w-x,h);r.render(compare.scene,camera);}
+    finally{r.setScissorTest(false);r.setScissor(0,0,w,h);}
+  }
   draw(scene,camera,fade){
     const r=this.renderer;r.info.reset();
-    if(!this.target){r.setRenderTarget(null);r.render(scene,camera);}
+    if(!this.target){r.setRenderTarget(null);this.drawWorld(scene,camera);}
     else{
-      r.setRenderTarget(this.target);r.render(scene,camera);
+      r.setRenderTarget(this.target);this.drawWorld(scene,camera);
       this.quad.material=this.bright;r.setRenderTarget(this.bloomA);r.render(this.scene,this.camera);
       if(this.mode==='hdr'){
         this.quad.material=this.blur;this.blur.uniforms.inputTex.value=this.bloomA.texture;this.blur.uniforms.direction.value.set(1.5/this.bloomA.width,0);r.setRenderTarget(this.bloomB);r.render(this.scene,this.camera);

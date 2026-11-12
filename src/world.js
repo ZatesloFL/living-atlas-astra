@@ -1,3 +1,6 @@
+import {viewRoom,versionLabel} from './audience.js';
+import {itemStyle} from './item-style.js';
+import {layerSelection} from './layers.js';
 import {permission,roomTitle} from './permissions.js';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { ROOMS, EDGES, DISTRICTS } from './data.js';
@@ -5,6 +8,7 @@ import {drawModel} from './world-models.js';
 import { visibleEdge, roomVisible } from './rules.js';
 const geo={box:new THREE.BoxGeometry(1,1,1),cylinder:new THREE.CylinderGeometry(1,1,1,10),cone:new THREE.ConeGeometry(1,1,9),orb:new THREE.IcosahedronGeometry(1,1),diamond:new THREE.OctahedronGeometry(1,0),ring:new THREE.TorusGeometry(1,.035,6,36),sphere:new THREE.SphereGeometry(1,12,8)};
 const material={
+  ghost:new THREE.MeshBasicMaterial({color:0x8b929c,transparent:true,opacity:.2,wireframe:true,depthWrite:false}),
   stone:new THREE.MeshStandardMaterial({color:0xffffff,roughness:.93,flatShading:true}),
   wood:new THREE.MeshStandardMaterial({color:0xffffff,roughness:.84,flatShading:true}),
   metal:new THREE.MeshStandardMaterial({color:0xffffff,roughness:.4,metalness:.5}),
@@ -25,7 +29,8 @@ function random(seed){let a=seed;return()=>{a=(a*1664525+1013904223)>>>0;return 
 const pose=new THREE.Object3D();
 const makersSun=new THREE.Color(0xffdfad),commonsSun=new THREE.Color(0xd2e6c3);
 export class World {
-  constructor(kind,lens,reduced=false){
+  constructor(kind,lens,reduced=false,diffLens=null){
+    this.diffLens=diffLens;
     this.kind=kind;this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
     this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
@@ -33,29 +38,40 @@ export class World {
     this.ground();
     if(kind==='studio')this.studio();else this.history();
     this.renderRooms();this.particles();this.flush();
-    this.scene.updateMatrixWorld(true);
+    this.scene.userData.view={profile:lens.profileId,rooms:this.renderedRooms};this.scene.updateMatrixWorld(true);
   }
   add(shape,mat,x,y,z,sx=1,sy=1,sz=1,color='#ffffff',id=null,rotation=[0,0,0]){
     if(this.placement){
       const p=this.transform(x,y,z);x=p.x;y=p.y;z=p.z;const scale=this.placement.scale;sx*=scale;sy*=scale;sz*=scale;
       const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)).premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.placement.facing));const e=new THREE.Euler().setFromQuaternion(q);rotation=[e.x,e.y,e.z];
     }
+    if(this.placement?.ghost){mat='ghost';color='#a0a8b4';id=null;}else if(this.placement?.style){const st=this.placement.style;color=new THREE.Color(color).lerp(new THREE.Color(st.accent),st.mix).getStyle();}
     const key=shape+'|'+mat;let batch=this.batches.get(key);if(!batch){batch={shape,mat,items:[]};this.batches.set(key,batch);}
     batch.items.push({x,y,z,sx,sy,sz,color,id,rotation});
   }
   box(x,y,z,w,h,d,c,mat='stone',id=null,rotation){this.add('box',mat,x,y,z,w,h,d,c,id,rotation);}
-  block(x,z,w,d){if(this.placement){const p=this.transform(x,0,z),c=Math.abs(Math.cos(this.placement.facing)),s=Math.abs(Math.sin(this.placement.facing)),scale=this.placement.scale;x=p.x;z=p.z;[w,d]=[(c*w+s*d)*scale,(s*w+c*d)*scale];}this.colliders.push({x,z,w:w/2+.24,d:d/2+.24});}
+  block(x,z,w,d){if(this.placement?.ghost)return;if(this.placement){const p=this.transform(x,0,z),c=Math.abs(Math.cos(this.placement.facing)),s=Math.abs(Math.sin(this.placement.facing)),scale=this.placement.scale;x=p.x;z=p.z;[w,d]=[(c*w+s*d)*scale,(s*w+c*d)*scale];}this.colliders.push({x,z,w:w/2+.24,d:d/2+.24});}
   transform(x,y,z){const l=this.placement;return new THREE.Vector3(x,y,z).multiplyScalar(l.scale).applyAxisAngle(new THREE.Vector3(0,1,0),l.facing).add(new THREE.Vector3(l.slot[0],0,l.slot[1]));}
-  placeMesh(mesh,id){mesh.position.copy(this.transform(...mesh.position.toArray()));mesh.scale.multiplyScalar(this.placement.scale);mesh.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.placement.facing));mesh.userData.id=id;this.scene.add(mesh);this.pickables.push(mesh);}
+  placeMesh(mesh,id){if(this.placement.ghost){mesh.material=material.ghost;id=null;if(mesh.userData.ids)mesh.userData.ids.fill(null);}else if(this.placement.style){mesh.material=mesh.material.clone();this.dynamicResources.push(mesh.material);mesh.material.color?.lerp(new THREE.Color(this.placement.style.accent),this.placement.style.mix);}
+    mesh.position.copy(this.transform(...mesh.position.toArray()));mesh.scale.multiplyScalar(this.placement.scale);mesh.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.placement.facing));mesh.userData.id=id;this.scene.add(mesh);this.pickables.push(mesh);}
   renderRooms(){
-    this.geometry=geo;this.material=material;
-    for(const [id,r] of Object.entries(ROOMS)){
-      if(r.layout?.scene!==this.kind||!roomVisible(id,this.lens))continue;
-      const edge=EDGES.find(e=>e.to===id);if(edge&&visibleEdge(edge,this.lens).state==='hidden')continue;
-      const rights=permission(r,this.lens);this.placement={scale:1,facing:0,...r.layout};drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
-      if(r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,r.visibility==='private'?'Private space':r.blocks?.[0]?.reps?.text?.slice(0,58)||'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label(sign[0],sign[1],p.x,p.y,p.z,id,3.1,DISTRICTS[r.district].color);}
-      if(rights.canLook)for(const agent of (this.lens.access?.presence??[]).filter(p=>p.room===r.id&&p.agent)){
-        this.add('diamond','teal',1.4,1.7,0,.18,.3,.18,'#fff',id);const p=this.transform(1.4,2.4,0);this.label('◇ '+agent.name,'AGENT PRESENT · SIMULATED',p.x,p.y,p.z,id);
+    this.geometry=geo;this.material=material;this.renderedRooms=[];
+    const visible=(id,lens)=>roomVisible(id,lens)&&!EDGES.some(e=>e.to===id&&visibleEdge(e,lens).state==='hidden');
+    for(const [id,original] of Object.entries(ROOMS)){
+      if(original.layout?.scene!==this.kind)continue;
+      const own=visible(id,this.lens),other=this.diffLens&&visible(id,this.diffLens),rights=permission(original,this.lens),ghost=!own&&other&&rights.visibility==='public';
+      if(!own&&!ghost)continue;
+      const r=viewRoom(original,ghost?this.diffLens:this.lens),style=itemStyle(r,ghost?this.diffLens:this.lens);
+      this.placement={scale:1,facing:0,...r.layout,style,ghost};if(rights.canLook)this.placement.scale*=style.scale;
+      drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
+      this.renderedRooms.push({id,ghost:!!ghost,version:r.version?.id,style:rights.canLook?style:null});
+      if(r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':versionLabel(r,this.lens)||sign[1],p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
+      if(this.diffLens&&own&&rights.visibility==='public'&&(!other||viewRoom(original,this.diffLens).version?.id!==r.version?.id))this.add('ring','ghost',0,.15,0,2,2,2,'#aaa',null,[Math.PI/2,0,0]);
+      if(!ghost&&rights.canLook){
+        for(const [i,{layer}] of layerSelection(original,this.lens).filter(x=>!x.accepted).entries())this.add('diamond','teal',-1+i*.9,2.2,1.9,.16,.25,.16,'#fff','layer:'+id+':'+layer.id);
+        for(const agent of (this.lens.access?.presence??[]).filter(p=>p.room===r.id&&p.agent)){
+          this.add('diamond','teal',1.4,1.7,0,.18,.3,.18,'#fff',id);const p=this.transform(1.4,2.4,0);this.label('◇ '+agent.name,'AGENT PRESENT · SIMULATED',p.x,p.y,p.z,id);
+        }
       }
       this.placement=null;
     }

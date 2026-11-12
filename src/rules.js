@@ -1,3 +1,4 @@
+import {viewRoom,selectVersion} from './audience.js';
 import {permission} from './permissions.js';
 import {accessSettings,identityOf} from './identity.js';
 import { DIMENSIONS, PRESETS, ROOMS } from './data.js';
@@ -7,14 +8,15 @@ export function setPreset(lens, name) {
 export function effectiveIdentity(lens) {const a=accessSettings(lens);return {age:a.age,verified:a.verified};}
 export function contentScore(room,key) { return Math.max(room.content?.[key]??0,room.measured?.[key]??0); }
 export function crossing(edge,lens,rooms=ROOMS) {
-  const target=rooms[edge.to];
+  const original=rooms[edge.to],target=original&&viewRoom(original,lens);
+  if(original?.versions?.length&&!selectVersion(original,lens))return {state:'hidden',type:null,reasons:['No audience version fits this lens'],oddness:[]};
   if(!target) return {state:'hidden',type:null,reasons:['Missing room'],oddness:[]};
   const rights=permission(target,lens);if(!rights.visible)return {state:'hidden',type:null,reasons:['No grant to this hidden room'],oddness:[],rights};
   const identity=effectiveIdentity(lens),access=accessSettings(lens);
   const reasons=[],over=[],oddness=[];
   if(identity.age<target.minAge) reasons.push(`Minimum age ${target.minAge}`);
   if(target.visibility==='verified-only'&&!identity.verified) reasons.push('Verified adults only');
-  const host=edge.host?rooms[edge.host]:null;
+  const host=edge.host?viewRoom(rooms[edge.host],lens):null;
   for(const [key,label] of DIMENSIONS) {
     const score=contentScore(target,key),effective=host?Math.max(score,contentScore(host,key)):score;
     if(host&&score>contentScore(host,key)) reasons.push(`${label} exceeds the host’s score`);

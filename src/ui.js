@@ -1,3 +1,6 @@
+import {viewRoom} from './audience.js';
+import {styleLabel} from './item-style.js';
+import {experienceHTML,bindExperience,layerSettings,bindLayerSettings} from './experience-ui.js';
 import {permission,roomTitle} from './permissions.js';
 import {graphEdges,graphRoute} from './navigation.js';
 import {articleHTML,bindBlocks} from './block-renderer.js';
@@ -17,7 +20,7 @@ export class UI {
     this.api=api;this.mode=null;this.sheet=$('sheet');this.content=$('sheet-content');this.lastFocus=null;this.showOthers=false;this.softApproved=new Set();contentStore.subscribe(id=>{if(this.mode==='info'&&this.infoId===id)this.info(id,true);});
     $('sheet-close').onclick=()=>this.close();$('veil').onclick=()=>this.close();
     $('lens-button').onclick=()=>this.lens();$('atlas-button').onclick=()=>this.atlas();$('location').onclick=()=>this.guide();
-    $('build-button').onclick=()=>{this.open('build','A work in progress','Build');this.content.innerHTML='<p>First, get to know the place.</p><p>This is a place to explore through your saved lens. Round 2a starts with profiles. Travel and access come in Tier B; audience versions, style controls, and layers come in Tier C.</p><button class="primary" id="explore-again">Keep exploring</button>';$('explore-again').onclick=()=>this.close();};
+    $('build-button').onclick=()=>this.api.openBuild();
     $('perf-toggle').onclick=()=>{$('performance').hidden=!$('performance').hidden;};
     $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else this.toast('Fullscreen is unavailable in this browser.');}catch{this.toast('Fullscreen was not granted. You can keep exploring.');}};
     document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen':'Enter fullscreen');});
@@ -29,7 +32,7 @@ export class UI {
     for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=true;
     this.content.scrollTop=0;$('sheet-close').focus({preventScroll:true});this.api.panelChanged?.();
   }
-  close(){if(this.mode==='setup'&&!this.api.state().profiles.completed)return;this.mode=null;this.sheet.hidden=true;$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();}
+  close(){if(this.mode==='setup'&&!this.api.state().profiles.completed)return;this.mode=null;this.sheet.hidden=true;this.content.replaceChildren();$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();}
   toast(message){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4500);}
   location(context){
     const r=ROOMS[context.room]??ROOMS.studio,d=DISTRICTS[r.district];$('district-name').textContent=context.inside?`Inside: ${context.inside}`:d.name.toUpperCase();$('district-name').style.color=d.color;$('breadcrumb').textContent=r.address.replaceAll('/',' / ');document.querySelector('.district-dot').style.background=d.color;
@@ -38,6 +41,7 @@ export class UI {
   title(kind){$('scene-title').classList.remove('faded');$('scene-kicker').textContent=kind==='studio'?'01 / MAKERS ROW':'02 / HISTORY QUARTER';$('scene-heading').innerHTML=kind==='studio'?'A place for<br><em>ideas.</em>':'Under the<br><em>canopy.</em>';$('scene-subtitle').textContent=kind==='studio'?'Nic’s Studio · Tallahassee':'Public places. Shared histories.';clearTimeout(this.titleTimer);this.titleTimer=setTimeout(()=>$('scene-title').classList.add('faded'),2400);}
   prompt(edge){const b=$('edge-prompt');if(!edge){b.hidden=true;return;}b.hidden=false;const r=ROOMS[edge.to];b.innerHTML=`${icon[edge.result.type]} &nbsp; ${escapeHTML(roomTitle(r,this.api.state().lens))}<small>${edge.result.reasons.length?escapeHTML(edge.result.reasons[0]):edge.result.type==='seamless'?'Walk through · tap to read':edge.result.type==='window'?'Look through · viewing only':'Tap to preview the crossing'} &nbsp; ↗</small>`;b.onclick=()=>this.edge(edge);}
   lens(keepScroll=false){
+    if(this.api.state().lens.preview){this.api.openBuild();return;}
     const scroll=keepScroll?this.content.scrollTop:0,l=this.api.state().lens;
     if(!keepScroll)this.open('lens','The world, through your eyes','Your lens');
     const access=accessSettings(l),simulated=`${identityBadge(l)} · Age ${l.age}. ${access.cap?`${access.cap} ceiling applies; self-reported age cannot grant verified access.`:'Verified backing is simulated in this prototype.'}`;
@@ -51,7 +55,8 @@ export class UI {
       <button id="advanced-toggle" class="secondary" aria-expanded="${this.advanced??false}">Advanced · six dimensions ${this.advanced?'−':'＋'}</button>
       <div id="advanced" ${this.advanced?'':'hidden'}>${DIMENSIONS.map(([k,label])=>`<div class="advanced-row"><label for="limit-${k}">${label}</label><output id="value-${k}">${l.limits[k]}</output><input id="limit-${k}" data-limit="${k}" aria-label="${label} limit" type="range" min="0" max="3" step="1" value="${l.limits[k]}"><button data-lock="${k}" class="lock-button ${l.hard[k]!==null?'active':''}" aria-pressed="${l.hard[k]!==null}">${l.hard[k]!==null?'Locked at '+l.hard[k]:'Soft limit'}<br>${l.hard[k]!==null?'Unlock':'Lock here'}</button></div>`).join('')}<p class="muted">Above a soft limit: a preview door. Above a locked limit: no connection. A lock stays at its own value until you unlock it.</p></div>
       <span class="section-label">Show me</span><div class="chips">${[['real','Real names'],['pseudonym','Pseudonyms'],['anonymous','Anonymous'],['agent','Agents']].map(([k,t])=>`<button data-show="${k}" class="${l.show[k]?'active':''}" aria-pressed="${l.show[k]}">${t}${k==='agent'?`<small>${l.show.agent?'Visible':'Dimmed'}</small>`:''}</button>`).join('')}</div><p class="muted">Agents are always visible. Their switch only dims them.</p>
-      <span class="section-label">Saved preferences</span><div class="settings-form form-columns"><label>Depth<select data-preference="depth">${['Glance','Standard','Deep'].map(v=>`<option ${l.depth===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Trust from<select data-preference="trustFrom">${['Author','Vouched','Academic','Community'].map(v=>`<option ${l.trustFrom===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Preferred form<select data-preference="form">${[['3d','3D'],['card','Cards'],['page','Page'],['narration','Narrate'],['text','Text']].map(([v,t])=>`<option value="${v}" ${l.form===v?'selected':''}>${t}</option>`).join('')}</select></label><label>Style preference<select data-preference="stylePreset">${['Studio','Documentary','Gallery','Kids'].map(v=>`<option ${l.stylePreset===v?'selected':''}>${v}</option>`).join('')}</select></label></div><p class="muted">Preferences travel with this profile. 3D, cards and Page use the same content. Narration and style controls remain queued.</p><button id="lens-done" class="primary">Walk this version of the world ↗</button>`;
+      <span class="section-label">Saved preferences</span><div class="settings-form form-columns"><label>Depth<select data-preference="depth">${['Glance','Standard','Deep'].map(v=>`<option ${l.depth===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Trust from<select data-preference="trustFrom">${['Author','Vouched','Academic','Community'].map(v=>`<option ${l.trustFrom===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Preferred form<select data-preference="form">${[['3d','3D'],['card','Cards'],['page','Page'],['narration','Narrate'],['text','Text']].map(([v,t])=>`<option value="${v}" ${l.form===v?'selected':''}>${t}</option>`).join('')}</select></label><label>Style preference<select data-preference="stylePreset">${['Studio','Documentary','Gallery','Kids'].map(v=>`<option ${l.stylePreset===v?'selected':''}>${v}</option>`).join('')}</select></label></div><p class="muted">Preferences travel with this profile. 3D, cards and Page use the same content. Narration remains queued. Style and layer choices affect only this profile.</p><section class="settings-form">${layerSettings(l)}</section><button id="lens-done" class="primary">Walk this version of the world ↗</button>`;
+    bindLayerSettings(this.content,l,()=>this.lensChange());
     $('lens-profiles').onclick=()=>this.api.openProfiles();
     this.content.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{setPreset(l,b.dataset.preset);this.lensChange();});
     this.content.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{l.show[b.dataset.show]=!l.show[b.dataset.show];this.lensChange();});
@@ -63,7 +68,7 @@ export class UI {
   lensChange(){const old=this.content.scrollTop;this.api.lensChanged();$('lens-badge').textContent=appliedPreset(this.api.state().lens);this.lens(true);this.content.scrollTop=old;}
   info(id,preserve=false){
     const oldScroll=this.content.scrollTop;if(!preserve)this.softApproved.clear();this.infoId=id;
-    const r=ROOMS[id];if(!r)return;
+    const source=ROOMS[id],r=source&&viewRoom(source,this.api.state().lens);if(!r)return;
     if(r.visibility==='private'||!permission(r,this.api.state().lens).canLook){if(!permission(r,this.api.state().lens).visible){this.close();return;}this.open('info','Boundary','Private space');this.content.innerHTML=`<p>Private space, something is here.</p><p class="address">${escapeHTML(r.address)}</p><button id="boundary-access">Knock / manage access</button>`;$('boundary-access').onclick=()=>this.api.accessRoom(id);return;}
     if(!roomVisible(id,this.api.state().lens)){this.close();return;}
     this.open('info',DISTRICTS[r.district].name,r.title);
@@ -71,9 +76,10 @@ export class UI {
     this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<span>${escapeHTML(authorName(a))}</span><span class="badge ${a.isAgent?'agent':''}">${escapeHTML(identityBadge(a))}</span>`).join('')}</div>${r.author.isAgent?`<p class="muted">Operated by a verified person: ${r.author.verifiedHuman?'yes':'no'}. Simulated identity.</p>`:''}
       ${articleHTML(id,this.api.state().lens,{approved:this.api.state().approvedRooms?.includes(id),softApproved:this.softApproved})}<div class="chips">${chips||'<span class="score-chip">All six dimensions · 0</span>'}</div>
       ${id==='market'?'<p class="reason">Night Market reads louder than it says: Sensory 2, declared 1.</p>':''}
-      <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions.substance]}</div><div class="info-box"><small>Style</small>${r.permissions.style==='open'?'Restyle your own view':'Author-controlled style'}</div></div>
+      <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions.substance]}</div><div class="info-box"><small>Style</small>${escapeHTML(styleLabel(r))}</div></div>
       <p class="muted">${r.forks.length?`${r.forks.length} seeded fork · `:''}Available now: 3D · this card · Page.<br>Ratings: ${r.district==='history'?'Academic: not reviewed. ':''}Author: sample account · Community: sample · No vouches.</p>
-      <button id="info-access" class="secondary">Access & room receipts</button><button id="info-page" class="secondary">Read in Page form</button><button id="info-close" class="primary">Back to the walk</button>`;
+      ${experienceHTML(id,this.api.state().lens)}<button id="info-access" class="secondary">Access & room receipts</button><button id="info-page" class="secondary">Read in Page form</button><button id="info-close" class="primary">Back to the walk</button>`;
+    bindExperience(this.content,id,this.api.state().lens,{peek:(room,layer)=>this.api.peekLayer(room,layer),changed:next=>{this.api.experienceChanged(next);this.info(id,true);},message:text=>this.toast(text)});
     $('info-access').onclick=()=>this.api.accessRoom(id);$('info-close').onclick=()=>this.close();$('info-page').onclick=()=>this.api.openPage(id);
     bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:block=>{this.softApproved.add(block);this.info(id,true);}});if(preserve)this.content.scrollTop=oldScroll;
   }

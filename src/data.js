@@ -1,3 +1,4 @@
+import {addAudienceData} from './audience-data.js';
 import {enrichRooms} from './content-data.js';
 export const DIMENSIONS = [
   ['violence', 'Violence'], ['sexual', 'Sexual content'], ['language', 'Language'],
@@ -48,7 +49,7 @@ export const ROOMS = {
   boycott:room('tallahassee/1956','The 1956 bus boycott','history','A community’s campaign against segregated public transport. This sample discusses racial injustice.',{content:scores({disturbing:2,viewpoint:1}),measured:scores({disturbing:2,viewpoint:1}),aliases:['tlh/tallahassee/boycott'],substance:sample('A community’s campaign against segregated public transport. This sample discusses racial injustice.','https://www.floridamemory.com/'),authors:[nic,named('Archive contributor (sample)'),anonymous]}),
   cascades:room('tallahassee/cascades','Cascades Park','history','Water, open sky, and a place to gather.',{substance:sample('Water, open sky, and a place to gather.','https://www.talgov.com/'),authors:[nic,anonymous]}),
 };
-enrichRooms(ROOMS);
+enrichRooms(ROOMS);addAudienceData(ROOMS);
 export const EDGES = [
   {id:'studio-writing',from:'studio',to:'writing',type:'door',scene:'studio',position:[-7,10.4],before:[-7,11.3],after:[-7,9.1],zone:{x:[-9.6,-4.4],z:[5.3,10.3]}},
   {id:'commons-archive',from:'commons',to:'archive',type:'door',scene:'studio',position:[20,8],before:[20,9.4],after:[20,7.2],zone:{x:[17.5,22.5],z:[4,7.9]}},

@@ -18,3 +18,6 @@ Anything unclear or wrong in docs/shared/.
 
 - 2026-11-12 / Tier B — With no backend, an invite cannot transfer a trusted grant to another browser. This prototype demonstrates recipient matching and revocation in the same local browser; cross-device delivery remains unimplemented by design.
 - 2026-11-12 / Tier B — The brief does not define an explicit deny grant. A local individual Blocked override is included so a person can be excluded from a group baseline without altering the group; revocation removes that override.
+
+- 2026-11-12 / Tier C — “Deep automatically includes Expert” and “preview before integrating” could conflict. Deep enables Expert pins/previews, but text enters the main view only after Integrate; an explicit type filter still excludes it.
+- 2026-11-12 / Tier C — The brief does not specify which audience version receives an author merge. The owner selects one; a merge is rejected if its scores exceed that version’s audience ceiling. This keeps a later contribution from silently changing the Kids version.

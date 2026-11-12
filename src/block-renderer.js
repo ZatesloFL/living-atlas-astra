@@ -1,3 +1,6 @@
+import {roomVisible} from './rules.js';
+import {viewRoom,versionLabel} from './audience.js';
+import {layerSelection,mergedLayers,layerBlock,layerConsentKey} from './layers.js';
 import {permission} from './permissions.js';
 import {ROOMS,DIMENSIONS} from './data.js';
 import {blockAccess,selectContent,contentStore} from './content.js';
@@ -36,12 +39,14 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  case 'image':case 'video':case 'audio':case 'model':html+=media(block);break;
  default:html+=`<p>${esc(block.reps?.text??block.reps?.alt??'Content representation not yet available.')}</p>`;
  }
- return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">${html}${sourceHTML(block)}</section>`;
+ return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">${html}${block.contribution?`<p class="contributor-credit">${block.contribution.merged?'Official contribution':'Integrated layer'} · ${esc(block.contribution.type)} · credited to ${esc(block.contribution.name)}</p>`:''}${sourceHTML(block)}</section>`;
 }
 export function articleHTML(id,lens,options={}){
- const room=ROOMS[id];if(!room||room.visibility==='private'||!permission(room,lens).canLook)return '<p>Private space, something is here.</p>';
- const view=selectContent(room,lens,contentStore.blocks(id));
- return `${view.omitted.trust?`<p class="reason">Trust from ${esc(lens.trustFrom)}: ${view.omitted.trust} supporting blocks lack that review and are omitted. Core author content remains visible; it is not independently verified.</p>`:''}${view.blocks.map(b=>blockHTML(b,room,lens,options)).join('')||'<p>No blocks match this Lens and Depth.</p>'}`;
+ const original=ROOMS[id],room=original&&viewRoom(original,lens);if(!room||room.visibility==='private'||!permission(room,lens).canLook)return '<p>Private space, something is here.</p>';if(!roomVisible(id,lens))return '<p>This room is outside your lens.</p>';
+ const merged=mergedLayers(room,lens),accepted=layerSelection(room,lens).filter(x=>x.accepted&&!merged.includes(x.layer)).map(x=>x.layer);
+ const softApproved=new Set([...(options.softApproved??[]),...accepted.filter(l=>lens.layerConsents?.[l.id]===layerConsentKey(lens)).map(l=>'layer-'+l.id)]);
+ const view=selectContent(room,lens,[...contentStore.blocks(id,room.blocks),...merged.map(l=>layerBlock(l,true)),...accepted.map(l=>layerBlock(l))]);
+ return `${versionLabel(room,lens)?`<p class="audience-label">${esc(versionLabel(room,lens))}</p>`:''}${view.omitted.trust?`<p class="reason">Trust from ${esc(lens.trustFrom)}: ${view.omitted.trust} supporting blocks lack that review and are omitted. Core author content remains visible; it is not independently verified.</p>`:''}${view.blocks.map(b=>blockHTML(b,room,lens,{...options,softApproved})).join('')||'<p>No blocks match this Lens and Depth.</p>'}`;
 }
 export function bindBlocks(root,{related,allow}={}){
  root.querySelectorAll('[data-related]').forEach(b=>b.onclick=()=>related?.(b.dataset.related));root.querySelectorAll('[data-allow-block]').forEach(b=>b.onclick=()=>allow?.(b.dataset.allowBlock));

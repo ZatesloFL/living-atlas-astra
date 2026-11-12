@@ -21,7 +21,7 @@ export class ProfileUI {
   }
   async run(fn){try{await fn();this.refresh();if(this.store.storageWarning)this.ui.toast(this.store.storageWarning);}catch(e){this.ui.toast(e.message);}}
   refresh(){
-    const l=this.api.state().lens,p=this.store.active();$('profile-chip').textContent=`Viewing as: ${p?.name??'New visitor'} · ${appliedPreset(l)}`;$('profile-chip').title=identityBadge(l);$('lens-badge').textContent=appliedPreset(l);
+    const l=this.api.state().lens,p=this.store.active();$('profile-chip').textContent=`${l.preview?'Preview as':'Viewing as'}: ${l.preview?l.profileName:p?.name??'New visitor'} · ${appliedPreset(l)}`;$('profile-chip').title=identityBadge(l);$('lens-badge').textContent=appliedPreset(l);
     const test=this.store.testActive()||l.testMode||this.ui.mode==='test';$('test-banner').hidden=!test;document.body.classList.toggle('test-active',test);$('test-banner').textContent=`TEST MODE · ${this.store.testActive()||l.testMode?'Simulated identity / access':'Developer panel open'} · Manage`;
   }
   setup(){

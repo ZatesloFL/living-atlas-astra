@@ -29,12 +29,12 @@ export function roomEntry(id,lens,edges){
 }
 export class ContentStore {
  constructor(rooms=ROOMS){this.rooms=rooms;this.overrides=new Map();this.listeners=new Set();this.tokens=new Map();}
- blocks(id){return this.rooms[id]?.blocks?.map(b=>({...b,...this.overrides.get(id+':'+b.id)}))??[];}
+ blocks(id,base=this.rooms[id]?.blocks){return base?.map(b=>({...b,...this.overrides.get(id+':'+b.id)}))??[];}
  subscribe(fn){this.listeners.add(fn);return()=>this.listeners.delete(fn);}
  emit(id){for(const fn of this.listeners)fn(id);}
  async load(id,blockId,loader){
   const key=id+':'+blockId,token=Symbol();this.tokens.set(key,token);this.overrides.set(key,{state:'pending'});this.emit(id);
-  try{const payload=await loader();if(this.tokens.get(key)!==token)return;const original=this.rooms[id]?.blocks?.find(b=>b.id===blockId);if(!original)throw new Error('Unknown content block');
+  try{const payload=await loader();if(this.tokens.get(key)!==token)return;const original=[...(this.rooms[id]?.blocks??[]),...(this.rooms[id]?.versions??[]).flatMap(v=>v.blocks??[])].find(b=>b.id===blockId);if(!original)throw new Error('Unknown content block');
    // Loader changes representations/body only. Authorship, type, importance and access
    // metadata remain in the catalog until a future source adapter validates them.
    this.overrides.set(key,{state:'ready',body:payload?.body??original.body,reps:{...original.reps,...payload?.reps}});
