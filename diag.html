@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Living Atlas diagnostics</title>
+<style>
+body{margin:0;background:#0E1320;color:#EEF1F6;font:15px/1.5 system-ui,sans-serif;padding:20px}
+h1{font-size:22px;margin:0 0 12px}
+pre{white-space:pre-wrap;word-break:break-word;background:#151C2C;border:1px solid #2E3B57;border-radius:10px;padding:12px;font-size:13px}
+button{min-height:48px;padding:0 18px;border-radius:12px;border:0;background:#4FD1C5;color:#0E1320;font-weight:700;font-size:15px}
+canvas{width:120px;height:80px;border:1px solid #2E3B57}
+</style>
+</head>
+<body>
+<h1>Living Atlas diagnostics</h1>
+<p>This page checks what your phone's browser supports and tries to start each part of the 3D engine. Tap Copy and paste the result to Nic's builder.</p>
+<p><button id="copy">Copy results</button></p>
+<pre id="out">Running checks…</pre>
+<canvas id="c"></canvas>
+<script type="module">
+const out=document.getElementById('out');const lines=[];
+const log=(k,v)=>{lines.push(k+': '+(typeof v==='string'?v:JSON.stringify(v)));out.textContent=lines.join('\n');};
+const err=e=>(e&&(e.stack||e.message))||String(e);
+document.getElementById('copy').onclick=()=>navigator.clipboard.writeText(lines.join('\n')).then(()=>alert('Copied'),()=>alert('Copy failed; select the text and copy it'));
+log('User agent',navigator.userAgent);
+log('Screen',`${screen.width}x${screen.height} @ DPR ${devicePixelRatio}`);
+log('Secure context',String(isSecureContext));
+log('crypto.subtle',String(!!(crypto&&crypto.subtle)));
+log('localStorage',(()=>{try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return 'ok';}catch(e){return 'blocked: '+err(e);}})());
+// Raw WebGL 2
+try{
+  const cv=document.createElement('canvas');
+  const gl=cv.getContext('webgl2',{powerPreference:'high-performance'});
+  if(!gl){log('WebGL 2 context','NOT AVAILABLE (getContext returned null)');
+    const gl1=cv.getContext('webgl');log('WebGL 1 context',gl1?'available':'NOT AVAILABLE');}
+  else{
+    log('WebGL 2 context','available');
+    const dbg=gl.getExtension('WEBGL_debug_renderer_info');
+    log('GPU vendor',dbg?gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR));
+    log('GPU renderer',dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));
+    log('Max texture size',gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    log('EXT_color_buffer_float',String(!!gl.getExtension('EXT_color_buffer_float')));
+    log('EXT_color_buffer_half_float',String(!!gl.getExtension('EXT_color_buffer_half_float')));
+    log('OES_texture_float_linear',String(!!gl.getExtension('OES_texture_float_linear')));
+    // Half-float render target completeness (the app's bloom buffers use this)
+    const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,4,4,0,gl.RGBA,gl.HALF_FLOAT,null);
+    const fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+    const st=gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    log('Half-float render target',st===gl.FRAMEBUFFER_COMPLETE?'complete':'INCOMPLETE (0x'+st.toString(16)+')');
+  }
+}catch(e){log('Raw WebGL check threw',err(e));}
+// Three.js renderer with the app's exact options
+try{
+  const THREE=await import('./vendor/three/three.module.min.js');
+  log('Three.js module','loaded r'+THREE.REVISION);
+  try{
+    const r=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false,alpha:false,powerPreference:'high-performance'});
+    log('Three.js renderer','created');
+    const rt=new THREE.WebGLRenderTarget(4,4,{type:THREE.HalfFloatType,depthBuffer:true});
+    r.setRenderTarget(rt);r.clear();r.setRenderTarget(null);
+    log('Three.js half-float target','ok');
+    r.dispose();
+  }catch(e){log('Three.js renderer FAILED',err(e));}
+}catch(e){log('Three.js module FAILED to load',err(e));}
+// Each app module parses and loads on this browser
+for(const m of ['data','rules','identity','profiles','ledger','labels','atlas-layout','renderer','world','controls','ui','profile-ui']){
+  try{await import('./src/'+m+'.js');log('Module '+m,'ok');}
+  catch(e){log('Module '+m+' FAILED',err(e));}
+}
+log('Done','all checks finished');
+</script>
+</body>
+</html>
