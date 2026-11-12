@@ -9,10 +9,10 @@ export const DISTRICTS = {
   history: { name: 'History Quarter', color: '#7aa7ff', max: scores({ violence:1, sexual:1, language:1, disturbing:2, viewpoint:2, sensory:1 }) },
   night: { name: 'After Dark', color: '#e58be8', max: scores({ violence:3, sexual:3, language:3, disturbing:3, viewpoint:3, sensory:3 }) },
 };
-const nic = { name: 'Nic', tier: 'verified', verifiedHuman: true, isAgent: false };
-const named = name => ({ name, tier: 'named', verifiedHuman: false, isAgent: false });
-const anonymous = { name:'Anonymous contributor', tier:'anonymous', verifiedHuman:false, isAgent:false };
-const agent = { name:'Silver', tier:'agent', verifiedHuman:true, isAgent:true };
+const nic = { name: 'Nic', tier: 'verified', verifiedHuman: true, isAgent: false, identity:{display:'real',backing:'verified'} };
+const named = name => ({ name, tier: 'named', verifiedHuman: false, isAgent: false, identity:{display:'pseudonym',backing:'none'} });
+const anonymous = { name:'Anonymous contributor', tier:'anonymous', verifiedHuman:false, isAgent:false, identity:{display:'anonymous',backing:'none'} };
+const agent = { name:'Silver', tier:'agent', verifiedHuman:true, isAgent:true, identity:{display:'pseudonym',backing:'verified'} };
 function room(id, title, district, summary, extra = {}) {
   return { id, address:`tlh/${id}`, title, district, author:nic,
     substance:{summary, body:summary, claims:[]}, style:{preset:'Studio', palette:'dusk', shape:'pavilion', scale:1},
@@ -70,5 +70,5 @@ export const PRESETS = {
   Everything:{limits:scores({violence:3,sexual:3,language:3,disturbing:3,viewpoint:3,sensory:3}),hard:Object.fromEntries(DIMENSIONS.map(([k])=>[k,null]))},
 };
 export function createLens() {
-  return {viewAs:'me',preset:'Adult',limits:{...PRESETS.Adult.limits},hard:{...PRESETS.Adult.hard},show:{verified:true,named:true,anonymous:true,agent:true}};
+  return {viewAs:'me',identity:{display:'real',backing:'none'},age:25,isAgent:false,preset:'Adult',limits:{...PRESETS.Adult.limits},hard:{...PRESETS.Adult.hard},show:{real:true,pseudonym:true,anonymous:true,agent:true}};
 }

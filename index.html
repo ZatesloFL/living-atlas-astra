@@ -13,9 +13,12 @@
   <canvas id="world" aria-label="Living Atlas 3D campus. Left joystick to walk; drag the scene to look; tap an object to read." tabindex="0"></canvas>
   <div id="world-labels" aria-hidden="true"></div>
   <div id="loading"><div class="atlas-mark">△<span>•</span></div><small>A PLACE FOR IDEAS</small><h1>Living Atlas</h1><p id="load-status">Growing your corner of the world…</p><div class="loading-line"></div></div>
+  <button id="test-banner" hidden>TEST MODE</button>
   <header id="topbar">
+    <div class="location-stack">
     <button id="location" class="location glass" aria-label="Current location and walking guide"><span class="district-dot"></span><span><small id="district-name">MAKERS ROW</small><strong id="breadcrumb">tlh / studio</strong></span></button>
-    <div class="top-actions"><button id="fullscreen" class="icon-button glass" aria-label="Enter fullscreen">⛶</button><button id="atlas-button" class="glass"> <span aria-hidden="true">⌘</span> Atlas</button></div>
+    <button id="profile-chip" class="glass" aria-label="Switch saved profile">Viewing as: New visitor</button></div>
+    <div class="top-actions"><button id="test-button" class="icon-button glass" aria-label="Open developer test panel">⌁</button><button id="fullscreen" class="icon-button glass" aria-label="Enter fullscreen">⛶</button><button id="atlas-button" class="glass"> <span aria-hidden="true">⌘</span> Atlas</button></div>
   </header>
   <div id="scene-title"><p id="scene-kicker">01 / MAKERS ROW</p><h1 id="scene-heading">A place for<br><em>ideas.</em></h1><p id="scene-subtitle">Nic’s Studio · Tallahassee</p></div>
   <div id="toast" role="status" aria-live="polite"></div>

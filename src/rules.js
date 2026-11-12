@@ -1,18 +1,15 @@
+import {accessSettings,identityOf} from './identity.js';
 import { DIMENSIONS, PRESETS, ROOMS } from './data.js';
 export function setPreset(lens, name) {
   lens.preset=name; lens.limits={...PRESETS[name].limits}; lens.hard={...PRESETS[name].hard};
 }
-export function effectiveIdentity(lens) {
-  if (lens.viewAs==='child') return {age:10,verified:false};
-  if (lens.viewAs==='verified') return {age:25,verified:true};
-  return {age:25,verified:false};
-}
+export function effectiveIdentity(lens) {const a=accessSettings(lens);return {age:a.age,verified:a.verified};}
 export function contentScore(room,key) { return Math.max(room.content?.[key]??0,room.measured?.[key]??0); }
 export function crossing(edge,lens,rooms=ROOMS) {
   const target=rooms[edge.to];
   if(!target) return {state:'hidden',type:null,reasons:['Missing room'],oddness:[]};
   if(target.visibility==='private') return {state:'private',type:'door',reasons:['Private space'],oddness:[]};
-  const identity=effectiveIdentity(lens);
+  const identity=effectiveIdentity(lens),access=accessSettings(lens);
   const reasons=[],over=[],oddness=[];
   if(identity.age<target.minAge) reasons.push(`Minimum age ${target.minAge}`);
   if(target.visibility==='verified-only'&&!identity.verified) reasons.push('Verified adults only');
@@ -20,8 +17,8 @@ export function crossing(edge,lens,rooms=ROOMS) {
   for(const [key,label] of DIMENSIONS) {
     const score=contentScore(target,key),effective=host?Math.max(score,contentScore(host,key)):score;
     if(host&&score>contentScore(host,key)) reasons.push(`${label} exceeds the host’s score`);
-    if(lens.hard[key]!==null&&effective>lens.hard[key]) reasons.push(`${label}: ${effective}, hard limit ${lens.hard[key]}`);
-    if(effective>lens.limits[key]) over.push(`${label}: ${effective}, your limit ${lens.limits[key]}`);
+    if(access.hard[key]!==null&&effective>access.hard[key]) reasons.push(`${label}: ${effective}, hard limit ${access.hard[key]}`);
+    if(effective>access.limits[key]) over.push(`${label}: ${effective}, your limit ${access.limits[key]}`);
     if((target.measured?.[key]??0)>(target.content?.[key]??0)) oddness.push(`${label} ${target.measured[key]} (declared ${target.content[key]})`);
   }
   if(reasons.length) return {state:'hidden',type:null,reasons,oddness};
@@ -35,7 +32,7 @@ export function roomVisible(key,lens) {
   const room=ROOMS[key];
   if(!room) return false;
   if(!crossing({to:key,type:'seamless'},lens).type) return false;
-  return room.author.isAgent||lens.show[room.author.tier]!==false;
+  return room.author.isAgent||lens.show[identityOf(room.author).display]!==false;
 }
 export function visibleEdge(edge,lens) {
   const result=crossing(edge,lens);
@@ -47,6 +44,8 @@ export function visibleEdge(edge,lens) {
 }
 export function presetForIdentity(lens,identity) {
   lens.viewAs=identity;
+  lens.identity={display:identity==='child'||identity==='visitor'?'anonymous':'real',backing:identity==='verified'||identity==='me'||identity==='agent'?'verified':'none'};
+  lens.age=identity==='child'?10:25;lens.isAgent=identity==='agent';lens.testMode=true;
   // Explicit simulation shortcuts; these do not establish a product default or real verification.
   setPreset(lens,identity==='child'?'Kids':identity==='visitor'?'Teen':'Adult');
 }

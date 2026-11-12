@@ -13,7 +13,7 @@ export class WorldLabels {
         this.root.append(el);return {...label,el,width:parseFloat(el.style.width),height:72};
       });
     }
-    const w=innerWidth,h=innerHeight,top=h<w?88:132;this.visible=[];
+    const w=innerWidth,h=innerHeight,top=(h<w?88:136)+(document.body.classList.contains('test-active')?28:0);this.visible=[];
     const blocked=[{x:0,y:0,w,h:top},{x:0,y:h-240,w:150,h:240},{x:0,y:h-80,w,h:80}];
     const overlaps=(a,b)=>a.x<b.x+b.w+6&&a.x+a.w>b.x-6&&a.y<b.y+b.h+6&&a.y+a.h>b.y-6;
     camera.updateMatrixWorld();

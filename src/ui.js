@@ -1,10 +1,10 @@
+import {identityBadge,authorName,accessSettings,appliedPreset} from './identity.js';
 import {positions,mapTitles,layoutAtlasLabels} from './atlas-layout.js';
 import { ROOMS, EDGES, DISTRICTS, DIMENSIONS, PRESETS } from './data.js';
-import { visibleEdge, crossing, roomVisible, contentScore, presetForIdentity, setPreset } from './rules.js';
+import { visibleEdge, roomVisible, contentScore, setPreset } from './rules.js';
 const $=id=>document.getElementById(id);
 export const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon={seamless:'≈',door:'∩',embedded:'◎',window:'▧'};
-const tierText={verified:'✓ Verified person',named:'Named',anonymous:'Anonymous',agent:'◇ Agent'};
 const substanceText={none:'View only · substance locked',suggest:'Suggest changes · author decides',branch:'Fork allowed · original stays intact',open:'Open to substance edits'};
 const atlasLabels=layoutAtlasLabels();
 const internal=[{id:'map-workbench',from:'studio',to:'workbench',type:'seamless'},{id:'map-family',from:'studio',to:'family',type:'door'}];
@@ -13,7 +13,7 @@ export class UI {
     this.api=api;this.mode=null;this.sheet=$('sheet');this.content=$('sheet-content');this.lastFocus=null;this.showOthers=false;
     $('sheet-close').onclick=()=>this.close();$('veil').onclick=()=>this.close();
     $('lens-button').onclick=()=>this.lens();$('atlas-button').onclick=()=>this.atlas();$('location').onclick=()=>this.guide();
-    $('build-button').onclick=()=>{this.open('build','A work in progress','Build');this.content.innerHTML='<p>First, get to know the place.</p><p>Tier 1 is about walking, looking, and choosing your lens. Style, substance edits, and connection proposals arrive in tier 2, after the walk feels right.</p><button class="primary" id="explore-again">Keep exploring</button>';$('explore-again').onclick=()=>this.close();};
+    $('build-button').onclick=()=>{this.open('build','A work in progress','Build');this.content.innerHTML='<p>First, get to know the place.</p><p>This is a place to explore through your saved lens. Round 2a starts with profiles. Travel and access come in Tier B; audience versions, style controls, and layers come in Tier C.</p><button class="primary" id="explore-again">Keep exploring</button>';$('explore-again').onclick=()=>this.close();};
     $('perf-toggle').onclick=()=>{$('performance').hidden=!$('performance').hidden;};
     $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else this.toast('Fullscreen is unavailable in this browser.');}catch{this.toast('Fullscreen was not granted. You can keep exploring.');}};
     document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen':'Enter fullscreen');});
@@ -21,48 +21,48 @@ export class UI {
   }
   open(mode,eyebrow,title){
     if(!this.mode)this.lastFocus=document.activeElement;
-    this.api.pause();this.mode=mode;$('sheet-title').textContent=title;$('sheet-eyebrow').textContent=eyebrow;this.sheet.hidden=false;$('veil').hidden=false;document.body.classList.add('panel-open');
+    this.api.pause();this.mode=mode;$('sheet-close').hidden=mode==='setup';$('sheet-title').textContent=title;$('sheet-eyebrow').textContent=eyebrow;this.sheet.hidden=false;$('veil').hidden=false;document.body.classList.add('panel-open');
     for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=true;
-    this.content.scrollTop=0;$('sheet-close').focus({preventScroll:true});
+    this.content.scrollTop=0;$('sheet-close').focus({preventScroll:true});this.api.panelChanged?.();
   }
-  close(){this.mode=null;this.sheet.hidden=true;$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();}
+  close(){if(this.mode==='setup'&&!this.api.state().profiles.completed)return;this.mode=null;this.sheet.hidden=true;$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();}
   toast(message){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4500);}
   location(context){
     const r=ROOMS[context.room]??ROOMS.studio,d=DISTRICTS[r.district];$('district-name').textContent=context.inside?`Inside: ${context.inside}`:d.name.toUpperCase();$('district-name').style.color=d.color;$('breadcrumb').textContent=r.address.replaceAll('/',' / ');document.querySelector('.district-dot').style.background=d.color;
   }
-  title(kind){$('scene-title').classList.remove('faded');$('scene-kicker').textContent=kind==='studio'?'01 / MAKERS ROW':'02 / HISTORY QUARTER';$('scene-heading').innerHTML=kind==='studio'?'A place for<br><em>ideas.</em>':'Under the<br><em>canopy.</em>';$('scene-subtitle').textContent=kind==='studio'?'Nic’s Studio · Tallahassee':'Public places. Shared histories.';clearTimeout(this.titleTimer);this.titleTimer=setTimeout(()=>$('scene-title').classList.add('faded'),10000);}
+  title(kind){$('scene-title').classList.remove('faded');$('scene-kicker').textContent=kind==='studio'?'01 / MAKERS ROW':'02 / HISTORY QUARTER';$('scene-heading').innerHTML=kind==='studio'?'A place for<br><em>ideas.</em>':'Under the<br><em>canopy.</em>';$('scene-subtitle').textContent=kind==='studio'?'Nic’s Studio · Tallahassee':'Public places. Shared histories.';clearTimeout(this.titleTimer);this.titleTimer=setTimeout(()=>$('scene-title').classList.add('faded'),5500);}
   prompt(edge){const b=$('edge-prompt');if(!edge){b.hidden=true;return;}b.hidden=false;const r=ROOMS[edge.to];b.innerHTML=`${icon[edge.result.type]} &nbsp; ${escapeHTML(r.title)}<small>${edge.result.reasons.length?escapeHTML(edge.result.reasons[0]):edge.result.type==='seamless'?'Walk through · tap to read':edge.result.type==='window'?'Look through · viewing only':'Tap to preview the crossing'} &nbsp; ↗</small>`;b.onclick=()=>this.edge(edge);}
   lens(keepScroll=false){
     const scroll=keepScroll?this.content.scrollTop:0,l=this.api.state().lens;
     if(!keepScroll)this.open('lens','The world, through your eyes','Your lens');
-    const viewChoices=[['me','Me'],['verified','Verified adult'],['visitor','Unverified visitor'],['child','Child'],['agent','An agent']];
-    const simulated=l.viewAs==='me'?'Me is an unverified adult in this prototype. No identity is checked.':l.viewAs==='verified'?'Simulated verified adult · not real identity verification.':l.viewAs==='child'?'Simulated age 10 · Kids preset. Age rules still apply if you change content settings.':l.viewAs==='agent'?'Structured room and crossing records below show what an AI visitor reads.':'Simulated unverified adult · Teen content preset.';
+    const access=accessSettings(l),simulated=`${identityBadge(l)} · Age ${l.age}. ${access.cap?`${access.cap} ceiling applies; self-reported age cannot grant verified access.`:'Verified backing is simulated in this prototype.'}`;
     const results=EDGES.map(e=>visibleEdge(e,l)),hidden=results.filter(r=>r.state==='hidden').length,doors=results.filter(r=>r.type==='door').length;
     this.content.innerHTML=`
-      <span class="section-label">View as</span><div class="chips">${viewChoices.map(([k,t])=>`<button data-view="${k}" class="${l.viewAs===k?'active':''}" aria-pressed="${l.viewAs===k}">${t}</button>`).join('')}</div>
+      <button id="lens-profiles" class="secondary">Viewing as: ${escapeHTML(l.profileName)} · Switch profile ↗</button>
       <p class="muted">${simulated}</p><p class="summary" aria-live="polite">${hidden} connection${hidden===1?'':'s'} hidden · ${doors} doors in your Atlas.<br>Change the lens. The place changes around you.</p>
-      ${l.viewAs==='agent'?`<span class="section-label">An agent’s view · read-only</span><pre id="agent-view">${escapeHTML(JSON.stringify({visitor:{identity:'agent',preset:l.preset,limits:l.limits,hardLimits:l.hard},rooms:Object.entries(ROOMS).filter(([id,r])=>r.visibility!=='private'&&roomVisible(id,l)).map(([id,r])=>({id:r.id,address:r.address,author:r.author,summary:r.substance.summary,content:r.content,measured:r.measured,permissions:r.permissions})),crossings:EDGES.filter(e=>visibleEdge(e,l).state!=='hidden').map(e=>({from:ROOMS[e.from].id,to:ROOMS[e.to].id,...visibleEdge(e,l)}))},null,2))}</pre>`:''}
+      ${l.isAgent?`<span class="section-label">An agent’s view · read-only</span><pre id="agent-view">${escapeHTML(JSON.stringify({visitor:{identity:'agent',preset:l.preset,limits:access.limits,hardLimits:access.hard},rooms:Object.entries(ROOMS).filter(([id,r])=>r.visibility!=='private'&&roomVisible(id,l)).map(([id,r])=>({id:r.id,address:r.address,author:r.author,summary:r.substance.summary,content:r.content,measured:r.measured,permissions:r.permissions})),crossings:EDGES.filter(e=>visibleEdge(e,l).state!=='hidden').map(e=>({from:ROOMS[e.from].id,to:ROOMS[e.to].id,...visibleEdge(e,l)}))},null,2))}</pre>`:''}
       <span class="section-label">Content</span><div class="chips">${Object.keys(PRESETS).map(k=>`<button data-preset="${k}" class="${l.preset===k?'active':''}" aria-pressed="${l.preset===k}">${k}</button>`).join('')}</div>
       <p class="muted">The higher of declared and measured scores governs each crossing.</p>
       <button id="advanced-toggle" class="secondary" aria-expanded="${this.advanced??false}">Advanced · six dimensions ${this.advanced?'−':'＋'}</button>
       <div id="advanced" ${this.advanced?'':'hidden'}>${DIMENSIONS.map(([k,label])=>`<div class="advanced-row"><label for="limit-${k}">${label}</label><output id="value-${k}">${l.limits[k]}</output><input id="limit-${k}" data-limit="${k}" aria-label="${label} limit" type="range" min="0" max="3" step="1" value="${l.limits[k]}"><button data-lock="${k}" class="lock-button ${l.hard[k]!==null?'active':''}" aria-pressed="${l.hard[k]!==null}">${l.hard[k]!==null?'Locked at '+l.hard[k]:'Soft limit'}<br>${l.hard[k]!==null?'Unlock':'Lock here'}</button></div>`).join('')}<p class="muted">Above a soft limit: a preview door. Above a locked limit: no connection. A lock stays at its own value until you unlock it.</p></div>
-      <span class="section-label">Show me</span><div class="chips">${[['verified','Verified'],['named','Named'],['anonymous','Anonymous'],['agent','Agents']].map(([k,t])=>`<button data-show="${k}" class="${l.show[k]?'active':''}" aria-pressed="${l.show[k]}">${t}${k==='agent'?`<small>${l.show.agent?'Visible':'Dimmed'}</small>`:''}</button>`).join('')}</div><p class="muted">Agents are always visible. Their switch only dims them.</p>
-      <button id="lens-done" class="primary">Walk this version of the world ↗</button>`;
-    this.content.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{presetForIdentity(l,b.dataset.view);this.lensChange();});
+      <span class="section-label">Show me</span><div class="chips">${[['real','Real names'],['pseudonym','Pseudonyms'],['anonymous','Anonymous'],['agent','Agents']].map(([k,t])=>`<button data-show="${k}" class="${l.show[k]?'active':''}" aria-pressed="${l.show[k]}">${t}${k==='agent'?`<small>${l.show.agent?'Visible':'Dimmed'}</small>`:''}</button>`).join('')}</div><p class="muted">Agents are always visible. Their switch only dims them.</p>
+      <span class="section-label">Saved preferences</span><div class="settings-form form-columns"><label>Depth<select data-preference="depth">${['Glance','Standard','Deep'].map(v=>`<option ${l.depth===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Trust from<select data-preference="trustFrom">${['Author','Vouched','Academic','Community'].map(v=>`<option ${l.trustFrom===v?'selected':''}>${v}</option>`).join('')}</select></label><label>Preferred form<select data-preference="form">${[['3d','3D'],['card','Cards'],['narration','Narrate'],['text','Text']].map(([v,t])=>`<option value="${v}" ${l.form===v?'selected':''}>${t}</option>`).join('')}</select></label><label>Style preference<select data-preference="stylePreset">${['Studio','Documentary','Gallery','Kids'].map(v=>`<option ${l.stylePreset===v?'selected':''}>${v}</option>`).join('')}</select></label></div><p class="muted">Preferences travel with this profile. 3D and cards are available now; later forms and style controls will use your saved choices.</p><button id="lens-done" class="primary">Walk this version of the world ↗</button>`;
+    $('lens-profiles').onclick=()=>this.api.openProfiles();
     this.content.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{setPreset(l,b.dataset.preset);this.lensChange();});
     this.content.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{l.show[b.dataset.show]=!l.show[b.dataset.show];this.lensChange();});
     this.content.querySelectorAll('[data-lock]').forEach(b=>b.onclick=()=>{const k=b.dataset.lock;l.hard[k]=l.hard[k]===null?l.limits[k]:null;l.preset='Custom';this.lensChange();});
     this.content.querySelectorAll('[data-limit]').forEach(i=>{i.oninput=()=>{$('value-'+i.dataset.limit).textContent=i.value;};i.onchange=()=>{l.limits[i.dataset.limit]=+i.value;l.preset='Custom';this.lensChange();};});
+    this.content.querySelectorAll('[data-preference]').forEach(input=>input.onchange=()=>{l[input.dataset.preference]=input.value;this.lensChange();});
     $('advanced-toggle').onclick=()=>{this.advanced=!this.advanced;this.lens(true);};$('lens-done').onclick=()=>this.close();this.content.scrollTop=scroll;
   }
-  lensChange(){const old=this.content.scrollTop;this.api.lensChanged();$('lens-badge').textContent=this.api.state().lens.preset;this.lens(true);this.content.scrollTop=old;}
+  lensChange(){const old=this.content.scrollTop;this.api.lensChanged();$('lens-badge').textContent=appliedPreset(this.api.state().lens);this.lens(true);this.content.scrollTop=old;}
   info(id){
     const r=ROOMS[id];if(!r)return;
     if(r.visibility==='private'){this.open('info','Boundary','Private space');this.content.innerHTML='<p>Private space, something is here.</p><p class="address">tlh/studio/family</p>';return;}
     if(!roomVisible(id,this.api.state().lens))return;
     this.open('info',DISTRICTS[r.district].name,r.title);
     const authors=r.authors??[r.author];const chips=DIMENSIONS.filter(([k])=>contentScore(r,k)>0).map(([k,t])=>`<span class="score-chip">${t} ${contentScore(r,k)}${(r.measured[k]??0)>(r.content[k]??0)?` · declared ${r.content[k]}`:''}</span>`).join('');
-    this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<span>${escapeHTML(a.name)}</span><span class="badge ${a.isAgent?'agent':''}">${tierText[a.tier]}</span>`).join('')}</div>${r.author.isAgent?`<p class="muted">Operated by a verified person: ${r.author.verifiedHuman?'yes':'no'}. Simulated identity.</p>`:''}
+    this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<span>${escapeHTML(authorName(a))}</span><span class="badge ${a.isAgent?'agent':''}">${escapeHTML(identityBadge(a))}</span>`).join('')}</div>${r.author.isAgent?`<p class="muted">Operated by a verified person: ${r.author.verifiedHuman?'yes':'no'}. Simulated identity.</p>`:''}
       <p>${escapeHTML(r.substance.summary)}</p><div class="chips">${chips||'<span class="score-chip">All six dimensions · 0</span>'}</div>
       ${id==='market'?'<p class="reason">Night Market reads louder than it says: Sensory 2, declared 1.</p>':''}
       <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions.substance]}</div><div class="info-box"><small>Style</small>${r.permissions.style==='open'?'Restyle your own view':'Author-controlled style'}</div></div>
@@ -106,7 +106,7 @@ export class UI {
     this.content.querySelectorAll('[data-map-node]').forEach(el=>{const select=()=>{const id=el.dataset.mapNode,e=all.find(e=>e.to===id);if(e)selectEdge(e);else $('map-detail').textContent=ROOMS[id].title+' · Your homestead root';};el.onclick=select;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}};});
   }
   guide(){
-    this.open('guide','The first walk','Welcome to the studio');this.content.innerHTML=`<p>Left thumb to walk. Drag the scene with your right thumb to look. Tap an object or a glowing threshold to explore.</p><div class="info-box"><small>Find your way</small>Straight ahead: the amber door to Tallahassee.<br>Left: Silver and the workbench.<br>Right: the view-only lab window.<br>Along the left side: the blue listening booth.<br>Follow the green path right to the Commons and Night Market.</div><p class="muted">Try Teen, then Child in Your lens. Open the Atlas to see which connections changed. The small ◈ button below reveals frame rate and draw calls.</p><button class="primary" id="guide-close">Let’s walk</button><button class="secondary" id="return-home">Return to studio entrance</button>`;$('guide-close').onclick=()=>this.close();$('return-home').onclick=()=>{this.close();this.api.home();};
+    this.open('guide','The first walk','Welcome to the studio');this.content.innerHTML=`<p>Left thumb to walk. Drag the scene with your right thumb to look. Tap an object or a glowing threshold to explore.</p><div class="info-box"><small>Find your way</small>Straight ahead: the amber door to Tallahassee.<br>Left: Silver and the workbench.<br>Right: the view-only lab window.<br>Along the left side: the blue listening booth.<br>Follow the green path right to the Commons and Night Market.</div><p class="muted">Try Unverified visitor, then Child in the profile switcher. Built-in profiles show TEST MODE. Open the Atlas to see which connections changed. The small ◈ button below reveals frame rate and draw calls.</p><button class="primary" id="guide-close">Let’s walk</button><button class="secondary" id="return-home">Return to studio entrance</button>`;$('guide-close').onclick=()=>this.close();$('return-home').onclick=()=>{this.close();this.api.home();};
   }
   performance({fps,calls,ratio,kind}){if($('performance').hidden)return;$('performance').textContent=`${Math.round(fps)} fps  ·  ${calls} draws\n${kind==='studio'?'Studio':'Tallahassee'} · DPR ${ratio.toFixed(2)}\n60 fps target · measured here`;}
 }
