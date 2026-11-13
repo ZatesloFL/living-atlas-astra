@@ -14,6 +14,7 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 7. `docs/shared/07-brief-round-4-connected-sources-queued.md`: **queued.** Don't build it yet, but A6's block model must already support its source pointers (see its last section).
 9. `docs/shared/09-brief-builder-gus-queued.md`: **queued** (Build mode and Atlas Gus). Don't build it yet, but round 2c's exhibits must be reusable components with behaviors as data (see its section "What round 2c must already do").
 10. `docs/shared/10-ai-and-server-plan-queued.md`: **next after round 2c, before round 3** (Supabase, AI proxy, model routing, voice). Nic has created the Supabase project and added the provider keys as Edge Function secrets. **One part applies now:** every AI-touching feature goes through the single `ai.request` interface with a `simulated` provider (see its "Do this now" section).
+11. `docs/shared/11-round-2b-proxy-approval-checklist.md`: **the approval gate for round 2b.** When you propose the round 2b proxy plan, answer its checks 1-11 in order in a lane report, each with evidence, then stop for Nic's approval. No schema changes or deployments before his go.
 
 `docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
 
