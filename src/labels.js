@@ -13,8 +13,8 @@ export class WorldLabels {
         this.root.append(el);return {...label,el,width:parseFloat(el.style.width),height:this.compact?46:72};
       });
     }
-    const w=innerWidth,h=innerHeight,top=(h<w?88:136)+(document.body.classList.contains('test-active')?28:0)+(document.getElementById('preview-hud')&&!document.getElementById('preview-hud').hidden?52:0);this.visible=[];const anchors=[];
-    const blocked=[{x:0,y:0,w,h:top+(document.getElementById('compass')&&!document.getElementById('compass').hidden?40:0)},{x:0,y:h-240,w:150,h:240},{x:0,y:h-80,w,h:80}];
+    const w=innerWidth,h=innerHeight,top=10;this.visible=[];const anchors=[];
+    const blocked=[...(window.atlasHud?.rects??[{x:0,y:0,w,h:140},{x:0,y:h-150,w,h:150}])];
     const overlaps=(a,b)=>a.x<b.x+b.w+6&&a.x+a.w>b.x-6&&a.y<b.y+b.h+6&&a.y+a.h>b.y-6;
     camera.updateMatrixWorld();
     const candidates=this.entries.map(e=>({e,d:e.position.distanceTo(camera.position)})).sort((a,b)=>a.d-b.d);

@@ -5,6 +5,7 @@ const {Renderer}=await diag.asyncRun('renderer module',()=>import('./renderer.js
 const {Controls,SPAWN_Z}=await diag.asyncRun('controls module',()=>import('./controls.js'));
 const {World}=await diag.asyncRun('world module',()=>import('./world.js'));
 const {WorldLabels}=await diag.asyncRun('labels module',()=>import('./labels.js'));
+const {HUD}=await import('./hud.js');const hud=window.atlasHud??new HUD();
 const {UI}=await diag.asyncRun('UI module',()=>import('./ui.js'));
 const {ProfileStore}=await diag.asyncRun('profiles module',()=>import('./profiles.js'));
 const {ProfileUI}=await diag.asyncRun('profile UI module',()=>import('./profile-ui.js'));
@@ -69,7 +70,7 @@ function select(x,y){
   }
 }
 function updateContext(){
-  if(place&&(place.scene!==kind||Math.hypot(place.x-controls.position.x,place.z-controls.position.z)>1.8||!permission(ROOMS[place.id],lens).canEnter))place=null;context=place?{room:place.id}:world.context(controls.position.x,controls.position.z);ui.location(context);const label=versionLabel(ROOMS[context.room],lens),badge=document.getElementById('audience-hud');if(badge){badge.hidden=!label||!!previewState;badge.textContent=label;}
+  if(place&&(place.scene!==kind||Math.hypot(place.x-controls.position.x,place.z-controls.position.z)>1.8||!permission(ROOMS[place.id],lens).canEnter))place=null;context=place?{room:place.id}:world.context(controls.position.x,controls.position.z);ui.location(context);const label=versionLabel(ROOMS[context.room],lens),badge=document.getElementById('audience-hud');if(badge){const hideBadge=!label||!!previewState;if(badge.hidden!==hideBadge)badge.hidden=hideBadge;if(badge.textContent!==label)badge.textContent=label;}
   if(context.room!==contextKey){contextKey=context.room;const name=ROOMS[context.room].title;if(!lens.preview&&!travel?.active&&!document.body.classList.contains('page-mode')&&permission(ROOMS[context.room],lens).canEnter){access.use(context.room,'enter',lens).catch(error=>ui.toast(error.message));access.recent(context.room,lens);}
     if(context.room==='market')ui.toast('Night Market reads louder than it says: Sensory 2.');else if(context.inside)ui.toast('Inside: Broadcast booth · host rules apply');else ui.toast(`Entered ${DISTRICT_NAME(context.room)}`);
   }
@@ -118,21 +119,21 @@ graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
-ui=diag.run('UI',()=>new UI({state,openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
 rebuild();controls.apply();
 accessUI=new AccessUI(ui,access,{state,changed:refreshAccess});
 layerUI=new LayerUI(ui,access,{state,changed:experienceChanged});
-buildUI=new BuildUI(ui,profiles,{apply:applyPreview,exit:exitPreview,split:value=>{if(previewState)previewState.fraction=value;if(graphics.comparison)graphics.comparison.split=value;},lenses:()=>({left:currentLens(),right:previewLens(previewState?.right??'seed-child')})});
+buildUI=new BuildUI(ui,profiles,{hud,apply:applyPreview,exit:exitPreview,split:value=>{if(previewState)previewState.fraction=value;if(graphics.comparison)graphics.comparison.split=value;},lenses:()=>({left:currentLens(),right:previewLens(previewState?.right??'seed-child')})});
 for(const [id,open] of [['profile-chip',()=>profileUI.switcher()],['test-button',()=>profileUI.testPanel()],['test-banner',()=>profileUI.testPanel()]])$(id).onclick=()=>{if(previewState)buildUI.exit();open();};
-const audienceBadge=document.createElement('aside');audienceBadge.id='audience-hud';audienceBadge.hidden=true;document.body.append(audienceBadge);
+const audienceBadge=document.createElement('aside');audienceBadge.id='audience-hud';audienceBadge.hidden=true;hud.mount(audienceBadge,30);
 function experienceChanged(next){if(next.preview){ui.toast('Exit Preview as to save changes.');return;}profiles.preferences(next);lens=currentLens();rebuild();profileUI.refresh();}
 function applyPreview(config){travel?.cancel();place=null;waypoint=null;previewState=config;lens=currentLens();if(config.split){if(previewRatio===null)previewRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}else if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
 function exitPreview(){previewState=null;place=null;lens=currentLens();if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
 travel=new Travel({lens:()=>lens,room:()=>context.room,world:()=>world,controls:()=>controls,message:text=>ui.toast(text),preview:e=>ui.edge(e),use:id=>lens.preview?Promise.resolve():access.use(id,'enter',lens),arrived:id=>{place={id,scene:kind,x:controls.position.x,z:controls.position.z};access.recent(id,lens);updateContext();},scene:next=>new Promise(resolve=>fadeTo(()=>{controls.teleport(0,SPAWN_Z);place=null;rebuild(next);ui.title(next);resolve();})),changed:()=>updateWaypoint()});
-const compass=document.createElement('aside');compass.id='compass';compass.hidden=true;compass.innerHTML='<span data-bearing>↑</span><button data-status></button><button data-cancel>Clear</button>';document.body.append(compass);compass.querySelector('[data-cancel]').onclick=()=>{travel.cancel();waypoint=null;world.setWaypoint(null);compass.hidden=true;ui.close();};compass.querySelector('[data-status]').onclick=()=>{if(travel.waiting)ui.edge({...travel.edge,travel:true});};
+const compass=document.createElement('aside');compass.id='compass';compass.hidden=true;compass.innerHTML='<span data-bearing>↑</span><button data-status></button><button data-cancel>Clear</button>';hud.mount(compass,60);compass.querySelector('[data-cancel]').onclick=()=>{travel.cancel();waypoint=null;world.setWaypoint(null);compass.hidden=true;ui.close();};compass.querySelector('[data-status]').onclick=()=>{if(travel.waiting)ui.edge({...travel.edge,travel:true});};
 let expiryState=expirySignature();expiryTimer=setInterval(()=>{const next=expirySignature();if(next!==expiryState){expiryState=next;refreshAccess();ui.toast('Access changed or expired; the scene has been checked again.');}},1000);
 function expirySignature(){return access.data.grants.map(g=>g.id+':'+!!g.revokedAt+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|');}
 function refreshAccess({preserveAccess=false}={}){travel?.cancel();place=null;lens=currentLens();if(world)rebuild();if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
@@ -141,11 +142,11 @@ function startTravel(id){ui.close();if(page){page.close();resume3D(pageOrigin);}
 function goAddress(value){const id=resolveAddress(value,lens);if(!id||roomEntry(id,lens,EDGES).state==='hidden'){ui.toast('No accessible room at that address.');return;}if(graphRoute(context.room,id,lens)===null){accessUI.open(id);return;}startTravel(id);}
 function updateWaypoint(){
  const panel=document.getElementById('compass');if(!panel||!world)return;const target=travel?.active?travel.target:waypoint;
- if(!target||!permission(ROOMS[target],lens).visible||roomEntry(target,lens,EDGES).state==='hidden'){panel.hidden=true;world.setWaypoint(null);return;}
- const route=graphRoute(context.room,target,lens);if(route===null){panel.hidden=true;world.setWaypoint(null);waypoint=null;return;}
+ if(!target||!permission(ROOMS[target],lens).visible||roomEntry(target,lens,EDGES).state==='hidden'){if(!panel.hidden)panel.hidden=true;world.setWaypoint(null);return;}
+ const route=graphRoute(context.room,target,lens);if(route===null){if(!panel.hidden)panel.hidden=true;world.setWaypoint(null);waypoint=null;return;}
  let point=approach(ROOMS[target]),via='';if(ROOMS[target].layout.scene!==kind){const door=route.find(e=>e.destination);if(door){point=beforeDoor(door);via=' · next doorway';}}
  if(travel?.active&&travel.door){point=beforeDoor(travel.edge);via=' · doorway';}
- world.setWaypoint(point);const dx=point[0]-controls.position.x,dz=point[1]-controls.position.z,bearing=Math.atan2(-dx,-dz)-controls.smoothYaw;panel.hidden=false;panel.querySelector('[data-bearing]').style.transform=`rotate(${-bearing*180/Math.PI}deg)`;panel.querySelector('[data-status]').textContent=`${travel?.waiting?'At door · tap to continue':travel?.active?'Travelling':'Waypoint'} · ${roomTitle(ROOMS[target],lens)} · ${Math.round(Math.hypot(dx,dz))} m${via}`;panel.querySelector('[data-cancel]').textContent=travel?.active?'Cancel':'Clear';
+ world.setWaypoint(point);const dx=point[0]-controls.position.x,dz=point[1]-controls.position.z,bearing=Math.atan2(-dx,-dz)-controls.smoothYaw;if(panel.hidden)panel.hidden=false;panel.querySelector('[data-bearing]').style.transform=`rotate(${-bearing*180/Math.PI}deg)`;const statusText=`${travel?.waiting?'At door · tap to continue':travel?.active?'Travelling':'Waypoint'} · ${roomTitle(ROOMS[target],lens)} · ${Math.round(Math.hypot(dx,dz))} m${via}`;const status=panel.querySelector('[data-status]');if(status.textContent!==statusText)status.textContent=statusText;const cancelText=travel?.active?'Cancel':'Clear',cancel=panel.querySelector('[data-cancel]');if(cancel.textContent!==cancelText)cancel.textContent=cancelText;
 }
 
 diag.run('first scene update',()=>world.update(0));
@@ -160,7 +161,6 @@ $('loading').classList.add('done');requestAnimationFrame(loop);
 await diag.asyncRun('profile initialization',()=>profiles.ready);if(diag.threeFailed)return;
 if(!profiles.completed)diag.run('first-run UI',()=>profileUI.setup());else profileUI.refresh();
 diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);
-const pageButton=document.createElement('button');pageButton.id='page-form-button';pageButton.textContent='Page';pageButton.onclick=()=>openPage(context.room);document.body.append(pageButton);
 window.atlasStatus=()=>({mode:document.body.classList.contains('page-mode')?'page':'3d',renderMode:graphics.mode,shadows:graphics.renderer.shadowMap.enabled,safe:diag.safe,scene:kind,room:page?.room??context.room,fps:Math.round(fps),drawCalls:graphics.calls,dpr:graphics.ratio,triangles:graphics.renderer.info.render.triangles,position:{x:controls.position.x,z:controls.position.z},reducedMotion:reducedQuery.matches});
 if(diag.params.get('form')==='3d'){lens.form='3d';profiles.preferences(lens);}
 if(profiles.completed&&lens.form==='page')openPage(context.room);

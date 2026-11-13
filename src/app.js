@@ -19,6 +19,7 @@ diagnostics.fallback=async(step,error)=>{
 window.addEventListener('error',event=>{if(event.error)diagnostics.fallback(`uncaught error (${diagnostics.current})`,event.error);});
 window.addEventListener('unhandledrejection',event=>diagnostics.fallback(`unhandled rejection (${diagnostics.current})`,event.reason));
 try{
+  const {HUD}=await import('./hud.js');if(!window.atlasHud)new HUD();
   if(diagnostics.params.has('page')){
     try{
       const {ProfileStore}=await diagnostics.asyncRun('Page profiles module',()=>import('./profiles.js'));const profiles=diagnostics.run('Page profiles',()=>new ProfileStore());await profiles.ready;const {AccessStore}=await import('./access-store.js');const access=new AccessStore();await access.ready;
