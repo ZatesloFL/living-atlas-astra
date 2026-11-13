@@ -21,6 +21,7 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 
 `docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
 14. `docs/shared/14-database-operator-silver.md`: **standing rule from round 2b on.** Silver, not you, applies migrations and deploys to Supabase. Your job is to hand Silver complete, reviewable files and a model-check endpoint it can run.
+15. `docs/shared/15-round-2d-live-ai-docent-fix-and-client-wiring.md`: **round 2d work order (current round).** Stages A and B are complete and the proxy is live (receipts in `lane/ops/`). Item 1: diagnose and fix the Docent's rejected answers without weakening evidence validation. Item 2: wire the client to the live proxy with honest live/simulated provenance. File 14 boundaries stand; anything needing a redeploy or a live retest stops in your report for Silver.
 
 ## Where things go
 
