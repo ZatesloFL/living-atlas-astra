@@ -89,3 +89,8 @@ One line per call the brief did not settle, with the reason.
 - G1: keep waiting trips per profile for the current open session; pending knocks remain in the existing local access store, and Leave withdraws the trip's pending request.
 - G1: consider the trip complete at the atomic arrival; Cancel remains available throughout pre-flight and departure, and is removed only while the final arrival fade clears.
 - Scope: main gained AGENTS scheduling live AI/server round 2b after 2c; this chat explicitly authorizes simulated D/E and a server-work hard stop, so retain the chat's order and simulated provider. No schema or deployment changes are needed for these goals.
+- G3: use five reusable component schemas and a bounded self-targeting behavior interpreter; authored sample content is static data, with no runtime AI generation or kit editor.
+- G3: generate a silent four-slide film lazily through canvas capture, with an HTML video player, custom seek control, always-visible captions and transcript; device speech reads separately labeled sample narration.
+- G3: bake the photo wall's spotlight gradients into one shared atlas and instance its frames; keep the scene's one sun instead of adding six real-time lights.
+- G3: share the rough wood/stone fixture batches, retaining per-instance colors, to make room for the media atlas within the draw budget; the tested History view uses 18 draws with bloom and shadows.
+- G3: use speech start/end events for highlighted transcript cues; when the device has no available voice, explicitly show speech unavailable and retain the text.

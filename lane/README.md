@@ -6,13 +6,13 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [521612f](https://github.com/ZatesloFL/living-atlas-astra/commit/521612f). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [7fd678d](https://github.com/ZatesloFL/living-atlas-astra/commit/7fd678d). The session report is committed afterward as documentation.
 
 ## Run and verify
 
 No installation or compilation is needed for the static app. From the repository root, `npm start` serves `index.html` on port 8000. All runtime imports are local, including Three.js. Live processes do not survive environment restarts; restart this command when needed. Use this existing checkout; do not create a worktree for routine tasks.
 
-- `npm test`: 54 Node tests for typed content, late-loading fallbacks, crossing rules, independent identity settings, content ceilings, profile storage, hash-chained receipts, and Atlas label separation.
+- `npm test`: 57 Node tests for typed content, late-loading fallbacks, crossing rules, independent identity settings, content ceilings, profile storage, hash-chained receipts, and Atlas label separation.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/browser-smoke.cjs`: 22 functional checks using the cloud machine’s existing Chromium and Playwright. Start the local server first. In another environment, provide the path to its installed Playwright module and optionally `ATLAS_CHROMIUM`.
 - The ◈ button in the app toggles fps, draw calls, scene, and rendering resolution. The display uses actual elapsed time; a software renderer’s numbers do not predict Pixel performance.
 - Profiles, preferences, the last-used profile, and receipts persist in localStorage when allowed. Unsaved developer overrides, position, and temporary door confirmations reset on reload. Blocked storage falls back to an explicitly labeled in-memory session. There is no login or backend.
@@ -91,3 +91,5 @@ What you'd do next with one more session.
 - Current work: round 2c G2 → G1 → G3 → G4, then authorized simulated round 3 D/E. Reports continue at `2026-11-12-06`. `tests/hud-browser.cjs` checks both Pixel orientations for HUD intersections; default local test URL is port 8003. Brief 08 records Nic’s Level 1 baseline: 60 fps, DPR 1.65, 17–22 draws.
 
 - `tests/fast-travel-browser.cjs`: five pre-flight/fade/arrival/cancel/waystation/window checks. Default local URL port 8003; same Playwright module variable. Report `2026-11-12-07`.
+
+- `tests/kit-browser.cjs`: five exhibit/player/budget checks (port 8003 by default). Report `2026-11-12-08`; sample assets generated locally, no archival media connected.
