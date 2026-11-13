@@ -6,7 +6,7 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [a034b26](https://github.com/ZatesloFL/living-atlas-astra/commit/a034b26). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [38cfe11](https://github.com/ZatesloFL/living-atlas-astra/commit/38cfe11). The session report is committed afterward as documentation.
 
 ## Run and verify
 
