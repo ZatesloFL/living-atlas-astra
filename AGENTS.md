@@ -8,7 +8,8 @@ You are one of two builders working on the same prototype in parallel. The other
 2. `docs/shared/02-build-brief.md`: what to build (v3). Read for exact requirements.
 3. `docs/shared/03-vision-board.md`: visual direction and screen-by-screen UI.
 4. `docs/shared/04-decisions-and-open-questions.md`: what's settled, what isn't, what's out of scope.
-5. `docs/shared/05-brief-v4-round-2a.md`: **the current round.** v4 builds on v3; where they differ, v4 wins. Its tiers (A, B, C) replace v3's tiers 2 and 3.
+5. `docs/shared/05-brief-v4-round-2a.md`: round 2a (done). v4 builds on v3; where they differ, v4 wins.
+8. `docs/shared/08-brief-round-2c-arrival-and-presentation.md`: **the current round** (fast travel with pre-flight and fade, HUD zones, bus boycott exhibit, designed Page). Do it before rounds 3 and 4.
 6. `docs/shared/06-brief-round-3-queued.md`: **queued.** Read it for direction so your 2a work doesn't block it, but don't start it until Nic says go.
 7. `docs/shared/07-brief-round-4-connected-sources-queued.md`: **queued.** Don't build it yet, but A6's block model must already support its source pointers (see its last section).
 
@@ -26,7 +27,7 @@ You are one of two builders working on the same prototype in parallel. The other
 ## Rules
 
 1. Target: Chrome on a Google Pixel phone, portrait first, landscape working. 3D-game visual quality, stable 60 fps.
-2. Work the current round's tiers in order (round 2a: A, then B, then C). Make each solid before starting the next.
+2. Work the current round's goals in order (round 2c: G2 HUD zones first, then G1, G3, G4). Make each solid before starting the next.
 3. Push commits directly to `main` with clear messages so GitHub Pages updates. If you can't push to main, open a PR and tell Nic.
 4. No backend, login or live AI. Visitors view and make permitted edits; no creating new rooms from scratch.
 5. You can't see the app running. After each tier, tell Nic exactly what to check on his phone. His feedback is the source of truth for visuals, feel and frame rate. Anything you couldn't verify yourself is Partial until he confirms it.
@@ -35,4 +36,4 @@ You are one of two builders working on the same prototype in parallel. The other
 
 ## Done for this round
 
-The tier checklists at the end of the current brief (round 2a: `05-brief-v4-round-2a.md`), each item reported Pass / Partial / Fail in your report, with the live Pages URL.
+The checklist at the end of the current brief (round 2c: `08-brief-round-2c-arrival-and-presentation.md`), each item reported Pass / Partial / Fail in your report, with the live Pages URL.
