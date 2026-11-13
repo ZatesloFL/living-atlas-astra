@@ -5,5 +5,5 @@ export const SEED_HELPERS=[
  {id:'maintainer-archive',name:'Archive Maintainer',role:'Maintainer',places:['boycott'],capabilities:['note']},
  {id:'steward-market',name:'Market Steward',role:'Steward',places:['market'],capabilities:['flag','contest']}
 ];
-export const operator={name:'Nic',backing:'verified',simulated:true};
-export function helperRecord({id,name,role,places,capabilities},expires){return {primitive:'Thing',kind:'helper',id,name,role,places,declaredCapabilities:capabilities,measuredCapabilities:[],identity:{display:'pseudonym',backing:'verified'},badge:'Agent',isAgent:true,operator:{...operator},expires,revokedAt:null};}
+export const operator={name:'Nic',backing:'verified',backing_ref:null,simulated:true};
+export function helperRecord({id,name,role,places,capabilities},expires){return {primitive:'Thing',backing_ref:null,kind:'helper',id,name,role,places,declaredCapabilities:capabilities,measuredCapabilities:[],identity:{display:'pseudonym',backing:'verified'},badge:'Agent',isAgent:true,operator:{...operator},expires,revokedAt:null};}
