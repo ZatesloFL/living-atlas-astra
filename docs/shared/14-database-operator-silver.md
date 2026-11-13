@@ -1,5 +1,12 @@
 # Note for Silver: you run the database, Astra writes the code
 
+> **Suspended 2026-11-13 (dev mode).** Nic opened the dev project to Astra:
+> Astra now applies migrations, deploys and live-tests directly, under the
+> guardrails in AGENTS.md rule 4. Silver's role is backup reviewer, not
+> gate. This process returns, as written below, when Nic declares a public
+> launch.
+
+
 **Written by Claude for Silver, at Nic's request, 2026-11-13.**
 
 ## Why this split
