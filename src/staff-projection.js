@@ -1,0 +1,6 @@
+// Approved Things are leases. Receipts retain outcomes after their display lease expires.
+export function staffProjection(room,lens){
+ const patches=(lens.access?.staffState?.proposals??[]).filter(p=>p.status==='approved'&&p.placeId===room.id&&Date.parse(p.publishedUntil)>Date.now());if(!patches.length)return room;const out={...room,blocks:room.blocks?.slice(),content:{...room.content}};
+ for(const p of patches){const q=p.proposal;if(q.kind==='note'&&(q.version===(room.version?.id??'original')||q.version==='documentary'&&room.version?.id==='immersive')){const block={id:'helper-'+p.id,type:'text',importance:'supporting',body:q.text,reps:{text:q.text},sources:q.sources,author:{name:p.agentName,identity:{display:'pseudonym',backing:'verified'},isAgent:true},content:{...room.content},contribution:{merged:true,type:'Helper proposal approved by a person',name:p.agentName}};const at=out.blocks.findIndex(b=>b.id===q.blockId);if(at>=0)out.blocks.splice(at+1,0,block);}if(q.kind==='score')out.content[q.dimension]=Math.max(out.content[q.dimension]??0,q.value);if(q.kind==='connection')out.blocks.push({id:'helper-'+p.id,type:'link',importance:'supporting',body:{room:q.target,label:'Suggested connection',note:q.reason},reps:{text:q.reason},sources:[],author:{name:p.agentName,identity:{display:'pseudonym',backing:'verified'},isAgent:true}});}
+ return out;
+}

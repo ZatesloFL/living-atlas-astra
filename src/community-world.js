@@ -1,5 +1,6 @@
 import {ROOMS,EDGES} from './data.js';
 import {visiblePeople,memberOf} from './discovery.js';
+import {permission} from './permissions.js';
 import {identityBadge} from './identity.js';
 export function drawSquare(w){
  w.floor(0,0,25,27,'#526d61');w.path(0,-1,3.6,25);w.path(0,-2,23,3.2);w.path(0,4,15,2.6);
@@ -13,8 +14,9 @@ export function drawSquare(w){
  if(w.lens.identity?.backing==='verified'&&memberOf('tallahassee-resident',w.lens)){w.box(-9,1.5,4,1.7,2.5,.18,'#587b71','wood','neighborhood-board');w.block(-9,4,1.8,.3);w.label('NEIGHBORS','VERIFIED RESIDENT BOARD',-9,3,4,'neighborhood-board');}
 }
 export function drawPresence(w){
- for(const [i,p] of visiblePeople(w.lens,{located:true}).entries()){
+ const helpers=(w.lens.access?.staffState?.helpers??[]).filter(a=>a.id!=='docent-silver'&&!a.revokedAt&&Date.parse(a.expires)>Date.now()).map((a,i)=>({id:a.id,name:a.name,author:{...a,verifiedHuman:true},room:a.places[0],offset:[2.8+(i%2)*.4,2.8],staff:true})).filter(a=>{const r=ROOMS[a.room];return r&&permission(r,{...w.lens,profileId:a.id,playAs:'visitor',isAgent:true}).grant&&w.gate({to:a.room,type:'seamless'}).state!=='hidden';});
+ for(const [i,p] of [...visiblePeople(w.lens,{located:true}),...helpers].entries()){
   const room=ROOMS[p.room];if(room.layout.scene!==w.kind||p.room==='guide')continue;const pos=p.offset??[1.5,2],x=room.layout.slot[0]+pos[0],z=room.layout.slot[1]+pos[1];if(!w.canStand(x,z))continue;
-  w.add('orb','leaf',x,1.2,z,.16,.22,.16,p.author.isAgent&&!w.lens.show.agent?'#697c77':'#acc8b6','person:'+p.id);w.label(p.author.isAgent?'◇ '+p.name:p.name,identityBadge(p.author)+' · SIMULATED',x,1.85,z,'person:'+p.id,2.3,'#a3c7ba');
+  w.add('orb','leaf',x,1.2,z,.16,.22,.16,p.author.isAgent&&!w.lens.show.agent?'#697c77':'#acc8b6',p.staff?'staff:'+p.room+':'+p.id:'person:'+p.id);w.label(p.author.isAgent?'◇ '+p.name:p.name,identityBadge(p.author)+' · SIMULATED',x,1.85,z,p.staff?'staff:'+p.room+':'+p.id:'person:'+p.id,2.3,'#a3c7ba');
  }
 }

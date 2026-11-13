@@ -1,4 +1,6 @@
 import {drawSquare,drawPresence} from './community-world.js';
+import {flushCrossingSurfaces} from './crossing-surfaces.js';
+import {flushGlowBatch} from './glow-batch.js';
 import {drawKit,flushKit} from './kit-world.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {itemStyle} from './item-style.js';
@@ -34,12 +36,12 @@ export class World {
   constructor(kind,lens,reduced=false,diffLens=null){
     this.diffLens=diffLens;
     this.kind=kind;this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
-    this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;
+    this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;this.portalSurfaces=[];this.groundBands=[];
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
     const sun=new THREE.DirectionalLight(0xffdfad,2.2);sun.position.set(-13,23,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=29;sun.shadow.camera.bottom=-29;sun.shadow.camera.near=1;sun.shadow.camera.far=80;sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;this.scene.add(sun);this.sun=sun;
     this.ground();
     this.gate=e=>visibleEdge(e,this.lens);if(kind==='studio')this.studio();else if(kind==='square')drawSquare(this);else this.history();
-    this.renderRooms();drawPresence(this);this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);
+    this.renderRooms();drawPresence(this);this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);flushCrossingSurfaces(this,stoneTexture);
     this.scene.userData.view={profile:lens.profileId,rooms:this.renderedRooms};this.scene.updateMatrixWorld(true);
   }
   add(shape,mat,x,y,z,sx=1,sy=1,sz=1,color='#ffffff',id=null,rotation=[0,0,0]){
@@ -80,14 +82,16 @@ export class World {
     }
   }
   flush(){
+    const glowBatches=[];
     for(const batch of this.batches.values()){
+      if(['teal','amber','blue','pink'].includes(batch.mat)&&!(batch.shape==='diamond'&&batch.mat==='teal')){glowBatches.push(batch);continue;}
       const mesh=new THREE.InstancedMesh(geo[batch.shape],material[batch.mat],batch.items.length);
       mesh.castShadow=['stone','wood','leaf','metal'].includes(batch.mat);mesh.receiveShadow=!['glass','teal','amber','blue','pink'].includes(batch.mat);
       mesh.userData.ids=[];
       batch.items.forEach((p,i)=>{pose.position.set(p.x,p.y,p.z);pose.scale.set(p.sx,p.sy,p.sz);pose.rotation.set(...p.rotation);pose.updateMatrix();mesh.setMatrixAt(i,pose.matrix);mesh.setColorAt(i,new THREE.Color(p.color));mesh.userData.ids[i]=p.id;});
       if(batch.shape==='diamond'&&batch.mat==='teal'){this.markerBatch=mesh;mesh.frustumCulled=false;}mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();this.scene.add(mesh);if(batch.items.some(x=>x.id))this.pickables.push(mesh);
     }
-    this.batches.clear();
+    flushGlowBatch(this,glowBatches,geo,material);this.batches.clear();
   }
   label(title,sub,x,y,z,id=null,width=3.1,color){this.labels.push({title,sub,position:new THREE.Vector3(x,y,z),id,color});}
   tree(x,z,size=1,seed=1){
@@ -122,11 +126,7 @@ export class World {
     part(-1.55,1.65,.25,3.3,.42,'stone');part(1.55,1.65,.25,3.3,.42,'stone');part(0,3.25,3.36,.25,.45,'stone');
     part(-1.39,1.65,.055,3,.12,color);part(1.39,1.65,.055,3,.12,color);part(0,3.08,2.8,.055,.12,color);
     for(const dx of [-1.55,1.55]){part(dx,.22,.65,.45,.8,'stone');part(dx,3.53,.24,.22,.3,color);}
-    const uniforms={time:{value:0},tint:{value:new THREE.Color(color==='blue'?'#729bee':color==='pink'?'#b483ca':'#cfbd83')},opacity:{value:result.type==='window'?.16:.42}};
-    const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms,
-      vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader:`varying vec2 vUv;uniform float time,opacity;uniform vec3 tint;void main(){float rim=pow(abs(vUv.x-.5)*2.,9.);float line=pow(.5+.5*sin(vUv.y*36.-time*.65),18.);float center=(1.-vUv.y)*.13;gl_FragColor=vec4(tint*(.22+rim*2.8+line*.12),opacity+rim*.4+center);}`});
-    const plane=new THREE.Mesh(new THREE.PlaneGeometry(2.8,3),mat);plane.position.set(x,1.55,z);plane.rotation.y=rot;plane.userData.id='edge:'+edge.id;this.scene.add(plane);this.pickables.push(plane);this.dynamicResources.push(plane.geometry,mat);this.animated.push({type:'portal',object:plane});
+    this.portalSurfaces.push({id:edge.id,x,z,rotation:rot,tint:color==='blue'?'#729bee':color==='pink'?'#b483ca':'#cfbd83',opacity:result.type==='window'?.16:.42});
     const room=ROOMS[edge.to],title=roomTitle(room,this.lens);this.label(title,`${result.type} · ${result.reasons.length?'LENS PREVIEW':'TAP TO EXPLORE'}`,x,3.99,z,'edge:'+edge.id,3.75);
   }
   edge(edge){
@@ -139,8 +139,7 @@ export class World {
       const a=new THREE.Color(this.kind==='studio'?'#425e56':'#4b665b'),b=new THREE.Color(edge.to==='capitol'?'#748c88':'#3d6153');
       for(let i=0;i<p.count;i++){const t=THREE.MathUtils.smoothstep((across?p.getX(i):p.getY(i)),-3.5,3.5),c=a.clone().lerp(b,t);colors.push(c.r,c.g,c.b);}
       ground.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-      const groundMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.96,map:stoneTexture});
-      const band=new THREE.Mesh(ground,groundMat);band.rotation.x=-Math.PI/2;band.position.set(x,.052,z);band.receiveShadow=true;this.scene.add(band);this.dynamicResources.push(ground,groundMat);
+      const band=ground.toNonIndexed();ground.dispose();band.rotateX(-Math.PI/2);band.translate(x,.052,z);this.groundBands.push(band);
       for(const side of [-1,1]){this.box(x+(across?0:side*1.8),.033,z+(across?side*1.8:0),across?6.8:.045,.015,across?.045:6.8,'#659b91');}
     }else this.arch(edge,result);
     return true;
