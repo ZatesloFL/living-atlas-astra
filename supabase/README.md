@@ -1,21 +1,31 @@
-# Round 2b: files for Silver
+# Atlas AI: development and operator reference
 
-Astra writes; Silver applies the implementation commit Nic names (latest handoff:
-`lane/reports/2026-11-13-05.md`). This directory has no linked project, credentials,
-deployment workflow, live URL or auto-activation. Do not run these files against
-Second Look or another project. The shipped browser singleton remains simulated.
+**Dev mode is active.** [AGENTS.md rule 4](../AGENTS.md) and the opening note in
+[file 14](../docs/shared/14-database-operator-silver.md) authorize Astra to deploy
+and test directly on `living-atlas-astra`. Provider keys remain only in function
+secrets; never read or log them. Schema changes require a committed timestamped
+migration and rollback before application. Use synthetic questions only, change
+no models, prices, caps or secrets, and record every live action and receipt ID
+in the lane report. Other projects remain out of scope. Silver's gate returns
+when Nic declares a public launch; the completed historical procedures below
+are reference, not a current requirement to stop for Silver.
 
-Round 2d's current provider-envelope fix is
-[`lane/reports/2026-11-13-05.md`](../lane/reports/2026-11-13-05.md). Silver's
-[receipt 04](../lane/ops/2026-11-13-04.md) confirms both migrations are applied
-and the v3 retest failed at `provider_content_invalid`, before answer validation.
-This handoff handles documented Anthropic thinking metadata and needs a
-**function-only redeploy and one approved retest; no SQL application**.
-The dropped live payload's exact block type remains unobserved.
-The Stage A sequence below records the completed initial deployment from
-`1ff544b`, as documented in `lane/ops/`. Neither Stage A nor the diagnostics
-migration should be repeated on that installation. Client wiring waits for an
-accepted live answer in Silver's operator receipt.
+Silver's [receipt 05](../lane/ops/2026-11-13-05.md) confirms the complete
+`f6f4ee3` bundle is live as **v4**, with the first accepted grounded Docent answer
+(`99449d22-4ef1-480e-870c-2b28c315f301`). Thinking used 287 of 348 output tokens
+within the existing cap. Both migrations are applied. No repeat deployment,
+migration or thinking-setting change is needed to begin client wiring.
+
+The browser now configures the public proxy only on the shipped Pages origin,
+and only Boycott/Docent Silver answer requests are eligible. Other helpers,
+local previews and `?ai=local` stay simulated without a session request. A live
+answer carries its server receipt ID and a **Live** label. Off, unreachable,
+rejected or invalid responses yield **Simulated · live helper unavailable**;
+quota responses yield **Simulated · live limit reached**, including during the
+bounded retry cooldown. No automatic generation retry. Closing a panel or
+changing the Place, profile, Lens, visible blocks or grant discards a pending
+reply before it can become a local offer. Server accounting may still record a
+call already dispatched before cancellation.
 
 ## Files
 
@@ -49,7 +59,10 @@ accepted live answer in Silver's operator receipt.
 - `operators/revoke-model-check.mjs`: offline SQL generator to revoke that grant,
   its sessions and its private holder, preserving receipts and counters.
 
-## Round 2d thinking-envelope fix (Silver)
+## Round 2d thinking-envelope fix (completed; reference)
+
+Silver completed this deployment and accepted retest in receipt 05. The following
+records that handoff's behavior and rollback, not another deployment request.
 
 After Nic approves report 05's implementation commit and one retest, redeploy
 the complete 12-file `functions/ai-proxy/` bundle with the existing settings.
@@ -381,14 +394,25 @@ no private Place or real backing is bundled. Local generation is never called.
 The CLI failed while trying to create its home configuration directory, so the
 migration filename was created directly; no CLI project link/push/deploy was run.
 
-The dormant `createProxyTransport` and `createAI` factories allow future wiring
-without UI/rules changes. `ai=createAI()` remains the shipped local-only singleton.
-An eligible configured transport sends IDs and a narrowed Lens only; off/failed/
-quota responses return validated simulation, with bounded reason metadata and a
-60-second-or-longer circuit. Cancellation/staleness drops the result. A future
-activation must supply current-view cancellation/revalidation and expose the
-existing provenance to users; this commit does not connect the browser to a
-project or introduce the public live-question UI.
+`createBrowserTransport` configures the fixed public function URL on Pages;
+`createAI()` without a transport remains local-only. The transport sends IDs,
+a narrowed Lens and one selected synthetic question, never local block bodies
+or profile identity. It translates the local `show.agent` flag to the server's
+`show.agents` field and selects a small question-relevant subset of already
+visible authored block IDs, keeping the existing 6,000-token input envelope.
+Only an anonymous holder token is persisted; the session
+bearer stays in memory. The host checks proposal shape, current cited blocks and
+exact visible text before showing a live result. Staff rechecks the current
+profile, Lens and helper grant again before writing a local offer and preserves
+its source/receipt ID. Page and 3D share this same path and explicit provenance.
+
+`tests/live-docent-browser.cjs` runs the shipped-origin UI with local assets and
+intercepted proxy responses; it makes **zero live calls**. It covers live success,
+off, quota, rejection, offline, malformed evidence, local-only mode, persistent
+provenance, mobile layouts and stale replies after navigation/reopening/Lens
+changes. `tests/staff-browser.cjs` retains the local staff and Page/3D regression
+flow. The Postgres suite also crosses actual Staff → transport → handler →
+reservation → validation → both receipts with an injected provider.
 
 ## Public documentation consulted
 

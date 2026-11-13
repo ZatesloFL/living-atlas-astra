@@ -14,6 +14,11 @@ import {modelCheck,normalizeUsage,generate} from '../supabase/functions/ai-proxy
 import {prepareModelCheck} from '../supabase/operators/prepare-model-check.mjs';
 import {runModelCheck} from '../supabase/operators/run-model-check.mjs';
 import {revokeModelCheck} from '../supabase/operators/revoke-model-check.mjs';
+import {Staff} from '../src/staff.js';
+import {AccessStore} from '../src/access-store.js';
+import {seedProfiles} from '../src/profiles.js';
+import {createAI} from '../src/ai.js';
+import {createProxyTransport} from '../src/ai-proxy.js';
 let pg,sql,store,dir;
 const migration=await readFile(new URL('../supabase/migrations/20261113120000_atlas_ai.sql',import.meta.url),'utf8');
 const rollback=await readFile(new URL('../supabase/migrations/rollback/20261113120000_atlas_ai.rollback.sql',import.meta.url),'utf8');
@@ -284,6 +289,29 @@ test('Docent grounded provider fixtures traverse reserved spend, dispatch, valid
   assert.equal((await h(req('/request',spec,s.session))).status,409);assert.equal(calls,1);
  }
  assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
+});
+test('shipped Staff context crosses the real client transport and handler with one session, accepted evidence and linked receipts',async()=>{
+ await enabled();
+ for(const profileId of ['seed-visitor','seed-child'])for(const question of ['overview','sources','rules']){
+  const storage=new Map(),local=new AccessStore(()=>({getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}));
+  let providerCalls=0,expected;const paths=[],outcomes=[];
+  const h=handler(async(url,options)=>{
+   providerCalls++;const prompt=JSON.parse(JSON.parse(options.body).messages[0].content),b=prompt.blocks.find(b=>b.blockId===(profileId==='seed-child'?'kids-lead':'lead'))??prompt.blocks[0];
+   const value={excerpts:question==='rules'?[]:[{blockId:b.blockId,quote:b.body.slice(0,100)}]};expected=value.excerpts;
+   return Response.json({...docentThinkingFixture,content:[docentThinkingFixture.content[0],{type:'text',text:JSON.stringify(value)}]});
+  });
+  const client=createAI({transport:createProxyTransport({endpoint:'https://example.test/functions/v1/ai-proxy',fetchImpl:async(url,options)=>{
+   paths.push(new URL(url).pathname);const response=await h(new Request(url,{...options,headers:{...options.headers,Origin:ORIGIN}}));
+   outcomes.push(response.ok?{status:response.status}:{status:response.status,...await response.clone().json()});return response;
+  }})});
+  const staff=new Staff(local,{aiClient:client}),profile=seedProfiles().find(p=>p.id===profileId),lens={...profile,profileId:profile.id};
+  const offer=await staff.request('docent-silver','boycott','answer',lens,{question});
+  assert.equal(offer.provenance.provider,'proxy',profileId+'/'+question+': '+JSON.stringify(outcomes));assert.equal(providerCalls,1);assert.deepEqual(paths,['/functions/v1/ai-proxy/session','/functions/v1/ai-proxy/request']);
+  if(expected.length)assert.equal(offer.proposal.text,expected[0].quote);else assert.match(offer.proposal.text,/I don't know/);
+  assert.deepEqual(offer.proposal.citations,expected.map(e=>e.blockId));
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${offer.provenance.receiptId}`;assert.equal(r.result,'accepted');assert.equal(r.failure_class,null);
+  assert.equal(local.data.ledgers[offer.placeId].at(-1).diff.receiptId,r.id);
+ }
 });
 test('Docent thinking envelopes accept only grounded answer text and bill total output once without persisting metadata',async()=>{
  await enabled();await sql`UPDATE atlas_ai.routing_config SET model_id=${docentThinkingFixture.model} WHERE route_key='guide'`;

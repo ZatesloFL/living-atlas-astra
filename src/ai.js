@@ -1,5 +1,5 @@
-// One provider boundary. The shipped singleton is local-only; an explicit
-// transport can be supplied after separate activation approval.
+// One provider boundary with validated simulation when live help is unavailable.
+import {createBrowserTransport} from './ai-proxy.js';
 export const PROPOSAL_SCHEMA={name:'atlas-crossing-proposal-v1',required:['kind','room','reason'],kinds:['answer','tour','note','score','curation','connection']};
 export function validateProposal(value,schema=PROPOSAL_SCHEMA){
  if(!value||typeof value!=='object'||Array.isArray(value)||schema.name!==PROPOSAL_SCHEMA.name)throw new Error('Invalid proposal schema');if(schema.required.some(k=>typeof value[k]!=='string')||!schema.kinds.includes(value.kind)||value.reason.length>2000)throw new Error('Malformed proposal');
@@ -25,10 +25,18 @@ export function createAI({transport=null}={}){return {provider:transport?'proxy'
  if(transport?.eligible({job,agentId,context:copy})){
   try{const result=await transport.request({job,agentId,context:copy,signal});current();validateProposal(result.proposal,schema);
    if(result.agentId!==agentId||result.proposal.kind!=='answer'||result.proposal.room!==copy.place.key||result.proposal.citations.some(id=>!copy.blocks.some(b=>b.id===id))||typeof result.model!=='string'||result.model.length>200||typeof result.receiptData?.receiptId!=='string'||!/^[a-f0-9-]{36}$/.test(result.receiptData.receiptId))throw new Error('Invalid live proposal');
+   const cited=copy.blocks.filter(b=>result.proposal.citations.includes(b.id));
+   if(cited.length?!result.proposal.text.split('\n\n').every(part=>part.trim()&&cited.some(b=>typeof b.body==='string'&&b.body.includes(part))):result.proposal.text!=="I don't know from the blocks available in this view.")throw new Error('Live answer no longer matches visible Things');
    return {proposal:result.proposal,model:result.model,agentId,receiptData:{provider:'proxy',job,model:result.model,agentId,result:'proposed',receiptId:result.receiptData.receiptId}};
   }catch(error){current();transport.failed?.();fallback=error.code==='LIVE_LIMIT_REACHED'?'LIVE_LIMIT_REACHED':'LIVE_UNAVAILABLE';}
  }
  current();const proposal=simulated(copy);validateProposal(proposal,schema);
  return {proposal,model:'simulated-v1',agentId,receiptData:{provider:'simulated',job,model:'simulated-v1',agentId,result:'proposed',...(fallback?{fallbackReason:fallback}:{})}};
 }};}
-export const ai=createAI();
+export function provenanceLabel(data){
+ if(data?.provider==='proxy')return 'Live · grounded answer';
+ if(data?.fallbackReason==='LIVE_LIMIT_REACHED')return 'Simulated · live limit reached';
+ if(data?.fallbackReason==='LIVE_UNAVAILABLE')return 'Simulated · live helper unavailable';
+ return 'Simulated · local helper';
+}
+export const ai=createAI({transport:createBrowserTransport()});
