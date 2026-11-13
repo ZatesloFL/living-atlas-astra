@@ -10,13 +10,18 @@ import {Store} from '../supabase/functions/ai-proxy/store.js';
 import {createHandler} from '../supabase/functions/ai-proxy/handler.js';
 import {ORIGIN,GUIDE_SCHEMA,MODEL_SCHEMA,BUILDER_SCHEMA,id,token,digest,envelope} from '../supabase/functions/ai-proxy/core.js';
 import {catalog,builderSchema,prepare,validateBuilder,validateAnswer,allowedBlocks} from '../supabase/functions/ai-proxy/protocol.js';
-import {modelCheck,normalizeUsage} from '../supabase/functions/ai-proxy/providers.js';
+import {modelCheck,normalizeUsage,generate} from '../supabase/functions/ai-proxy/providers.js';
 import {prepareModelCheck} from '../supabase/operators/prepare-model-check.mjs';
 import {runModelCheck} from '../supabase/operators/run-model-check.mjs';
 import {revokeModelCheck} from '../supabase/operators/revoke-model-check.mjs';
 let pg,sql,store,dir;
 const migration=await readFile(new URL('../supabase/migrations/20261113120000_atlas_ai.sql',import.meta.url),'utf8');
 const rollback=await readFile(new URL('../supabase/migrations/rollback/20261113120000_atlas_ai.rollback.sql',import.meta.url),'utf8');
+// Hand-authored Anthropic-shaped fixture using public catalog text, never a
+// capture of Silver's deleted live response. Token counts are synthetic.
+const docentFixture=JSON.parse(await readFile(new URL('./fixtures/docent-haiku-response.json',import.meta.url),'utf8'));
+const docentJSON=docentFixture.content[0].text.slice('```json\n'.length,-'\n```'.length);
+const docentAnswer=JSON.parse(docentJSON);
 const validateBuilderSchema=new Ajv2020({strict:false}).compile(builderSchema);
 const dimensions=['violence','sexual','language','disturbing','viewpoint','sensory'];
 const lens=()=>({limits:Object.fromEntries(dimensions.map(d=>[d,1])),hard:Object.fromEntries(dimensions.map(d=>[d,2])),depth:'Deep',trustFrom:'Author',show:{real:true,pseudonym:true,anonymous:true,agents:true},audience:'teen'});
@@ -208,6 +213,94 @@ test('grounded answer accepts exact scoped excerpts, rejects fabricated quotes, 
  const b=allowedBlocks(request().context);assert(b.length);const good={excerpts:[{blockId:b[0].id,quote:b[0].body.slice(0,100)}]};
  assert.equal(validateAnswer(good,b).kind,'answer');assert.throws(()=>validateAnswer({excerpts:[{blockId:'private',quote:'fabrication'}]},b));
  assert.throws(()=>validateAnswer({excerpts:[{blockId:b[0].id,quote:'unsupported assertion'}]},b));assert.match(validateAnswer({excerpts:[]},b).text,/I don't know/);
+});
+test('Docent grounded provider fixtures traverse reserved spend, dispatch, validation and one accepted receipt',async()=>{
+ await enabled();await sql`UPDATE atlas_ai.routing_config SET model_id=${docentFixture.model} WHERE route_key='guide'`;
+ const variants=[['bare',docentJSON],['json-fence',docentFixture.content[0].text],['unlabelled-fence','```\r\n'+docentJSON+'\r\n```']];
+ for(const [name,text] of variants){
+  const s=await store.bootstrap(),spec=request();let calls=0,attemptId;
+  const h=handler(async(url,options)=>{
+   calls++;assert.equal(String(url),'https://api.anthropic.com/v1/messages');assert.equal(options.method,'POST');
+   const outgoing=JSON.parse(options.body),prompt=JSON.parse(outgoing.messages[0].content);
+   assert.equal(outgoing.model,docentFixture.model);assert.equal(outgoing.max_tokens,512);
+   assert.deepEqual(prompt.blocks.map(b=>b.blockId),['lead']);assert(prompt.blocks[0].body.includes(docentAnswer.excerpts[0].quote));
+   assert(!('id' in prompt.blocks[0]));
+   const [a]=await sql`SELECT * FROM atlas_ai.call_leases WHERE state='dispatched'`;
+   assert(a);attemptId=a.id;assert(Number(a.reserved_microusd)>0);
+   assert((await sql`SELECT * FROM atlas_ai.quota_windows WHERE reserved_microusd>0`).length>=5);
+   assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${a.id}`).length,0);
+   return Response.json({...docentFixture,content:[{type:'text',text}]});
+  });
+  const response=await h(req('/request',spec,s.session)),json=await response.json();assert.equal(response.status,200,name);assert.equal(calls,1);
+  assert.equal(json.proposal.text,docentAnswer.excerpts[0].quote);assert.deepEqual(json.proposal.citations,['lead']);
+  assert.equal(json.model,'anthropic/'+docentFixture.model);assert.equal(json.receiptData.receiptId,attemptId);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${attemptId}`;
+  assert.equal(r.result,'accepted');assert.equal(r.validation_passed,true);assert.equal(r.cost_basis,'measured');
+  assert.equal(r.input_tokens,600);assert.equal(r.output_tokens,96);assert.equal(Number(r.cost_microusd),792);
+  assert(!JSON.stringify(r).includes(spec.context.question));assert(!JSON.stringify(r).includes(docentAnswer.excerpts[0].quote));
+  assert.equal((await sql`SELECT state FROM atlas_ai.call_leases WHERE id=${attemptId}`)[0].state,'completed');
+  assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
+  assert.equal((await h(req('/request',spec,s.session))).status,409);assert.equal(calls,1);
+ }
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
+});
+test('Docent fence handling preserves schema, exact-quote, length and visible-evidence rejections',async()=>{
+ await enabled();
+ const quote=docentAnswer.excerpts[0].quote,withQuote=quote=>({excerpts:[{blockId:'lead',quote}]});
+ const variants=[
+  ['paraphrase',withQuote('This Place tells the story of the Tallahassee bus boycott.')],
+  ['invented claim',withQuote(quote+' Everyone in the city participated.')],
+  ['normalized punctuation',withQuote(quote.replace('city’s',"city's"))],
+  ['non-visible block',{excerpts:[{blockId:'timeline',quote}]}],
+  ['source label',withQuote('Florida Memory: civil-rights collections')],
+  ['wrong ID field',{excerpts:[{id:'lead',quote}]}],
+  ['extra assertion',{...docentAnswer,answer:'An ungrounded explanation.'}],
+  ['extra citation field',{excerpts:[{blockId:'lead',quote,citation:'outside-source'}]}],
+  ['too many excerpts',{excerpts:Array(4).fill({blockId:'lead',quote})}],
+  ['overlong quote',withQuote('x'.repeat(801))],
+  ['empty quote',withQuote('')],
+  ['not an excerpts array',{excerpts:quote}]
+ ];
+ for(const [name,value] of variants){
+  const s=await store.bootstrap();let calls=0;
+  const response=await handler(async()=>{calls++;return Response.json({...docentFixture,content:[{type:'text',text:'```json\n'+JSON.stringify(value)+'\n```'}]});})(req('/request',request(),s.session));
+  const json=await response.json();assert.equal(response.status,502,name);assert.equal(json.code,'BAD_PROPOSAL');assert.equal(calls,1);
+  assert.deepEqual(Object.keys(json).sort(),['code','receiptId']);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
+  assert.equal(r.result,'rejected');assert.equal(r.validation_passed,false);assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),792);
+ }
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
+ assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
+ // Length remains a separate rejection even if the long text is an exact match.
+ assert.throws(()=>validateAnswer({excerpts:[{blockId:'long',quote:'x'.repeat(801)}]},[{id:'long',body:'x'.repeat(802)}]));
+});
+test('Docent parsing never extracts JSON from prose, multiple documents, invalid fences or incomplete provider output',async()=>{
+ await enabled();
+ const variants=[
+  ['preamble','Here is the answer:\n'+docentFixture.content[0].text],
+  ['trailing prose',docentFixture.content[0].text+'\nSome extra explanation.'],
+  ['two JSON objects','```json\n'+docentJSON+'\n'+docentJSON+'\n```'],
+  ['two fences',docentFixture.content[0].text+'\n'+docentFixture.content[0].text],
+  ['wrong language','```javascript\n'+docentJSON+'\n```'],
+  ['invalid JSON','```json\n{"excerpts":\n```'],
+  ['unclosed fence','```json\n'+docentJSON],
+  ['truncated provider',docentJSON,{stop_reason:'max_tokens'}],
+  ['non-text provider block',docentJSON,{content:[{type:'tool_use',id:'local_fixture',name:'unrequested',input:{}}]}]
+ ];
+ for(const [name,text,patch={}] of variants){
+  const s=await store.bootstrap();let calls=0;
+  const response=await handler(async()=>{calls++;return Response.json({...docentFixture,content:[{type:'text',text}],...patch});})(req('/request',request(),s.session));
+  const json=await response.json();assert.equal(response.status,502,name);assert.equal(json.code,'BAD_PROPOSAL');assert.equal(calls,1);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
+  assert.equal(r.result,'rejected');assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),792);
+ }
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
+});
+test('provider fence support is limited to guide and does not change the builder output contract',async()=>{
+ const deps={getSecret:secrets,fetchImpl:async()=>Response.json(docentFixture)};
+ const route={provider:'anthropic',model_id:docentFixture.model,output_token_cap:512};
+ assert.deepEqual((await generate(deps,{...route,route_key:'guide'},'local fixture')).value,docentAnswer);
+ assert.equal((await generate(deps,{...route,route_key:'builder'},'local fixture')).value,null);
 });
 test('handler success, replay, invalid provider JSON and provider failure never echo visitor text or raw errors',async()=>{
  await enabled();const s=await store.bootstrap(),r=request();r.context.question='VISITOR_CANARY';let calls=0;

@@ -60,6 +60,15 @@ export async function generate({fetchImpl=fetch,getSecret},route,prompt){
   if(anthropic?data.stop_reason!=='end_turn':data.status!=='completed')return {usage,value:null};
   const chunks=anthropic?data.content:data.output?.flatMap(o=>o.type==='message'?o.content:[]);
   if(!Array.isArray(chunks)||chunks.some(c=>!['text','output_text'].includes(c.type)||typeof c.text!=='string'))return {usage,value:null};
-  try{return {usage,value:JSON.parse(chunks.map(c=>c.text).join(''))};}catch{return {usage,value:null};}
+  let text=chunks.map(c=>c.text).join('');
+  // A guide may wrap its otherwise valid JSON in one Markdown code fence.
+  // Unwrap only that entire document, never extract JSON from surrounding prose.
+  // The same strict schema, scope and verbatim-evidence validator still runs.
+  if(route.route_key==='guide'){
+   text=text.trim();
+   const fenced=/^```(?:json)?\r?\n([\s\S]*?)\r?\n```$/i.exec(text);
+   if(fenced)text=fenced[1];
+  }
+  try{return {usage,value:JSON.parse(text)};}catch{return {usage,value:null};}
  }catch{return {usage:null,value:null};}
 }

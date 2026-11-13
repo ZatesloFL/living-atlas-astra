@@ -5,6 +5,12 @@ Astra writes; Silver applies the implementation commit Nic names (latest handoff
 deployment workflow, live URL or auto-activation. Do not run these files against
 Second Look or another project. The shipped browser singleton remains simulated.
 
+Round 2d's function-only Docent patch is handed off in
+[`lane/reports/2026-11-13-03.md`](../lane/reports/2026-11-13-03.md). Silver handles
+its redeploy and approved live retest before client wiring. The Stage A sequence
+below describes first installation; its migrations are already applied according
+to the operator receipts in `lane/ops/`.
+
 ## Files
 
 - `migrations/20261113120000_atlas_ai.sql`: atomic additive forward migration.
