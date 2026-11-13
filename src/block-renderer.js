@@ -36,7 +36,7 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  case 'data':html+=`<div class="article-table"><table>${(Array.isArray(body)?body:[]).map(row=>`<tr>${(Array.isArray(row)?row:Object.values(row)).map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</table></div>`;break;
  case 'map':html+=`<div class="article-map"><span aria-hidden="true">⌖</span><strong>${esc(body?.label)}</strong><p>${esc(body?.lat)}, ${esc(body?.lng)} · ${esc(body?.status??'to verify')}</p><p>${esc(body?.note??block.reps?.text)}</p></div>`;break;
  case 'link':html+=body?.room?`<button class="related-room" data-related="${esc(body.room)}">${esc(body.label??ROOMS[body.room]?.title)} ↗</button><p class="muted">${esc(body.note)}</p>`:link(body?.label,body?.url);break;
- case 'citation':html+=`<p class="article-citation">${link(body?.label,body?.url)} · ${esc(body?.status??'to verify')}<br>${esc(body?.note??'Source to verify')}</p>`;break;
+ case 'citation':html+=`<p class="article-citation">${link(body?.label,body?.url)} · <span class="citation-status">${esc(body?.status??'to verify')}</span><br>${esc(body?.note??'Source to verify')}</p>`;break;
  case 'image':case 'video':case 'audio':case 'model':html+=media(block);break;
  default:html+=`<p>${esc(block.reps?.text??block.reps?.alt??'Content representation not yet available.')}</p>`;
  }
