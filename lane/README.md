@@ -6,18 +6,18 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [1dbc160](https://github.com/ZatesloFL/living-atlas-astra/commit/1dbc160). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [a034b26](https://github.com/ZatesloFL/living-atlas-astra/commit/a034b26). The session report is committed afterward as documentation.
 
 ## Run and verify
 
 No installation or compilation is needed for the static app. From the repository root, `npm start` serves `index.html` on port 8000. All runtime imports are local, including Three.js. Live processes do not survive environment restarts; restart this command when needed. Use this existing checkout; do not create a worktree for routine tasks.
 
-- `npm test`: 60 Node tests for typed content, late-loading fallbacks, crossing rules, independent identity settings, content ceilings, profile storage, hash-chained receipts, and Atlas label separation.
+- `npm test`: 64 Node tests for typed content, late-loading fallbacks, crossing rules, independent identity settings, content ceilings, profile storage, hash-chained receipts, and Atlas label separation.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/browser-smoke.cjs`: 22 functional checks using the cloud machine’s existing Chromium and Playwright. Start the local server first. In another environment, provide the path to its installed Playwright module and optionally `ATLAS_CHROMIUM`.
 - The ◈ button in the app toggles fps, draw calls, scene, and rendering resolution. The display uses actual elapsed time; a software renderer’s numbers do not predict Pixel performance.
 - Profiles, preferences, the last-used profile, and receipts persist in localStorage when allowed. Unsaved developer overrides, position, and temporary door confirmations reset on reload. Blocked storage falls back to an explicitly labeled in-memory session. There is no login or backend.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/tier-a-browser.cjs`: 16 round-2a checks, including native long-press touch events and first-run/reload behavior. Both browser suites accept `ATLAS_URL` if the server uses a different port.
-- Current round: A0 and Tiers A, B and C are implemented. Nic confirmed Pixel startup and Deep Page. New phone checks are in `reports/2026-11-12-04.md` (B) and `reports/2026-11-12-05.md` (C); visual quality and fps remain Partial. Rounds 3 and 4 are queued. Earlier reports remain as history.
+- Completed: A0, Tiers A/B/C, round 2c G2/G1/G3/G4, and authorized simulated round 3 D/E. Nic confirmed the pre-2c Pixel baseline; new physical visual/fps results remain Partial. Full completion report: [2026-11-12-11](reports/2026-11-12-11.md). Hard stop after round 3; server work and rounds 4/5 remain queued. Earlier reports remain as history.
 
 ## Report template
 
@@ -88,7 +88,7 @@ What you'd do next with one more session.
 
 - `tests/tier-c-browser.cjs`: nine audience/style/layer/creator checks, including a native touch divider drag, reload persistence, owner merge and split full-bloom validation. Same Playwright and ATLAS_URL variables. Layer merges are browser-local and credited in the room ledger; creator preview does not switch the saved profile.
 
-- Current work: round 2c G2 → G1 → G3 → G4, then authorized simulated round 3 D/E. Reports continue at `2026-11-12-06`. `tests/hud-browser.cjs` checks both Pixel orientations for HUD intersections; default local test URL is port 8003. Brief 08 records Nic’s Level 1 baseline: 60 fps, DPR 1.65, 17–22 draws.
+- Completed order: round 2c G2 → G1 → G3 → G4, then authorized simulated round 3 D/E. Reports `2026-11-12-06` through `2026-11-12-11` cover each goal/tier. `tests/hud-browser.cjs` checks both Pixel orientations for HUD intersections; default local test URL is port 8003. Brief 08 records Nic’s Level 1 baseline: 60 fps, DPR 1.65, 17–22 draws.
 
 - `tests/fast-travel-browser.cjs`: five pre-flight/fade/arrival/cancel/waystation/window checks. Default local URL port 8003; same Playwright module variable. Report `2026-11-12-07`.
 
@@ -97,3 +97,5 @@ What you'd do next with one more session.
 - `tests/page-design-browser.cjs`: four Page-only presentation, sticky bar, layer and responsive checks. Report `2026-11-12-09`. Current Page controls are behind Places/Settings; older scripts with visible dropdowns or the retired floating Page button document earlier UI checkpoints.
 
 - `tests/community-browser.cjs`: five Town Square/discovery/trail/event/privacy/persistence checks. Report `2026-11-12-10`. Discovery opens from the location chip, physical kiosks or Page → Discover.
+
+- `tests/staff-browser.cjs`: four simulated staff, proposal, hiring and Page/receipt checks. `tests/render-budget-browser.cjs`: three full-bloom/shadow scene-budget and picking checks, covering Square/History/Studio plus Commons/Night Market/After Dark views. Same Playwright module and URL variables; port 8003 default. Report `2026-11-12-11`.
