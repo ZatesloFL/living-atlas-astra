@@ -1,6 +1,6 @@
 import test,{before,after,beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,mkdir,mkdtemp,rm} from 'node:fs/promises';
+import {readFile,writeFile,stat,mkdir,mkdtemp,rm} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {createServer} from 'node:net';
 import EmbeddedPostgres from 'embedded-postgres';
@@ -11,6 +11,9 @@ import {createHandler} from '../supabase/functions/ai-proxy/handler.js';
 import {ORIGIN,GUIDE_SCHEMA,MODEL_SCHEMA,BUILDER_SCHEMA,id,token,digest,envelope} from '../supabase/functions/ai-proxy/core.js';
 import {catalog,builderSchema,prepare,validateBuilder,validateAnswer,allowedBlocks} from '../supabase/functions/ai-proxy/protocol.js';
 import {modelCheck,normalizeUsage} from '../supabase/functions/ai-proxy/providers.js';
+import {prepareModelCheck} from '../supabase/operators/prepare-model-check.mjs';
+import {runModelCheck} from '../supabase/operators/run-model-check.mjs';
+import {revokeModelCheck} from '../supabase/operators/revoke-model-check.mjs';
 let pg,sql,store,dir;
 const migration=await readFile(new URL('../supabase/migrations/20261113120000_atlas_ai.sql',import.meta.url),'utf8');
 const rollback=await readFile(new URL('../supabase/migrations/rollback/20261113120000_atlas_ai.rollback.sql',import.meta.url),'utf8');
@@ -28,6 +31,30 @@ async function enabled(){
  await sql`UPDATE atlas_ai.routing_config SET model_id='mock-model',model_verified_at=now(),pricing_source_url='https://example.test/pricing',input_microusd_per_million=1000000,output_microusd_per_million=2000000,cache_read_microusd_per_million=1000000,cache_write_microusd_per_million=1000000,billing_contract=${sql.json({api:'anthropic-messages',input_tokens_per_byte:1,overhead_tokens:50,evidence_url:'https://example.test/bounds',output_includes_reasoning:true})},enabled=true WHERE provider='anthropic'`;
 }
 async function paid(s,r=request()){const a=await reserve(s,r);assert.equal(await store.dispatch(a.id),true);await store.settle(a.id,{usage,accepted:true});return a;}
+// Independent benchmark fixture: never repurpose a metadata grant or its template.
+async function benchmarkGrant(){
+ const session=token(),hid=id(),gid=id();
+ await sql.begin(async tx=>{
+  await tx`INSERT INTO atlas_ai.holder_leases(id,token_sha256,created_at,expires_at) VALUES(${hid},${await digest(token())},now(),now()+interval '24 hours')`;
+  const [g]=await tx`INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at) VALUES(${gid},${hid},'suggest',ARRAY['builder'],ARRAY['gus-benchmark'],ARRAY['boycott'],ARRAY[${BUILDER_SCHEMA}],40,10000000,now(),now()+interval '24 hours') RETURNING *`;
+  await tx`INSERT INTO atlas_ai.session_leases(id,holder_id,grant_id,token_sha256,created_at,expires_at) VALUES(${id()},${hid},${gid},${await digest(session)},now(),now()+interval '30 minutes')`;
+  await store.grantReceipt(tx,g,'issued',Date.now(),'owner-approved-benchmark');
+ });
+ return {session,grantId:gid,holderId:hid};
+}
+async function preparedModelGrant(){
+ const folder=await mkdtemp(dir+'/operator-');await prepareModelCheck(folder);
+ const g=JSON.parse(await readFile(folder+'/grant.json','utf8'));
+ const grantSQL=await readFile(folder+'/issue-model-check.sql','utf8');
+ await sql.unsafe(grantSQL);return {folder,g,grantSQL};
+}
+async function assertModelGrant(grantId){
+ const [g]=grantId?await sql`SELECT * FROM atlas_ai.grants WHERE id=${grantId}`:await sql`SELECT * FROM atlas_ai.grants`;
+ assert.equal(g.scope,'look');assert.deepEqual(g.jobs,['model-check']);assert.deepEqual(g.agent_ids,['operator-model-check']);
+ assert.deepEqual(g.place_ids,['ai-proxy']);assert.deepEqual(g.schema_ids,[MODEL_SCHEMA]);assert.equal(g.max_calls,4);assert.equal(Number(g.max_microusd),0);
+ const [r]=await sql`SELECT * FROM atlas_ai.grant_receipts WHERE grant_id=${g.id} AND action='issued'`;
+ assert.equal(r.authority,'operator-model-check');assert.equal(r.scope,'look');assert.deepEqual(r.jobs,['model-check']);
+}
 const expectCode=code=>e=>e.code===code;
 before(async()=>{
  await mkdir('work',{recursive:true});dir=await mkdtemp(resolve('work/ai-proxy-pg-'));
@@ -53,7 +80,7 @@ test('migration creates exactly nine private RLS tables, disabled null routes; c
 });
 test('off state returns clean AI_OFF for session and request without a provider call or new lease',async()=>{
  for(const path of ['/request','/session']){const r=await handler()(req(path));assert.equal(r.status,503);assert.equal((await r.json()).message,'AI is off');}
- assert.equal((await sql`SELECT * FROM atlas_ai.holder_leases`).length,0);
+ for(const table of ['holder_leases','session_leases','grants','call_leases','call_receipts','grant_receipts','quota_windows'])assert.equal((await sql`SELECT count(*)::int AS n FROM atlas_ai.${sql(table)}`)[0].n,0);
 });
 test('origin lock rejects missing, null, suffix, subdomain, multiple and malformed origins before store/provider work',async()=>{
  const h=createHandler({store:{config(){throw new Error('must not touch DB');}},getSecret:secrets});
@@ -193,11 +220,39 @@ test('handler success, replay, invalid provider JSON and provider failure never 
 });
 test('operator model check works with generation disabled; public bootstrap cannot mint its grant',async()=>{
  const t=token();await store.issueModelCheck(await digest(token()),await digest(t));let calls=[];
+ await assertModelGrant();
  const h=handler(async(url,options)=>{calls.push([String(url),options.method]);return Response.json({data:[{id:String(url).includes('anthropic')?'claude-opus-5-5':'gpt-6.1-test-sol'}],has_more:false});});
  const r=await h(req('/models',{},t));assert.equal(r.status,200);const json=await r.json();assert(json.models.every(m=>Object.keys(m).join(',')==='name,availability'));
  assert(calls.every(([u,m])=>u.includes('/v1/models')&&m==='GET'));assert.equal(calls.length,2);
  assert.equal((await h(req('/request',request(),t))).status,503);assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,0);
  await sql`UPDATE atlas_ai.grants SET revoked_at=now()`;assert.equal((await h(req('/models',{},t))).status,401);
+});
+test('metadata quota is atomic and limited to four checks across every session of the grant with zero spend',async()=>{
+ const t=token(),second=token();await store.issueModelCheck(await digest(token()),await digest(t));
+ const [g]=await sql`SELECT * FROM atlas_ai.grants`;
+ await sql`INSERT INTO atlas_ai.session_leases(id,holder_id,grant_id,token_sha256,created_at,expires_at) VALUES(${id()},${g.holder_id},${g.id},${await digest(second)},now(),now()+interval '30 minutes')`;
+ const results=await Promise.allSettled(Array.from({length:12},(_,i)=>store.modelsAllowed(i%2?t:second)));
+ assert.equal(results.filter(r=>r.status==='fulfilled').length,4);
+ assert(results.filter(r=>r.status==='rejected').every(r=>r.reason.code==='RATE_LIMITED'));
+ const rows=await sql`SELECT * FROM atlas_ai.quota_windows`;assert.equal(rows.length,1);assert.equal(rows[0].bucket,'models:'+g.id);
+ assert.equal(rows[0].calls_used,4);assert.equal(Number(rows[0].reserved_microusd),0);assert.equal(Number(rows[0].spent_microusd),0);
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_leases`).length,0);assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,0);
+});
+test('metadata grant constraints reject generation capabilities and nonzero budgets; metadata cannot generate when enabled',async()=>{
+ const t=token();await store.issueModelCheck(await digest(token()),await digest(t));
+ for(const change of ["scope='suggest'","jobs=ARRAY['model-check','builder']","agent_ids=ARRAY['gus-benchmark']","place_ids=ARRAY['boycott']",`schema_ids=ARRAY['${MODEL_SCHEMA}','${BUILDER_SCHEMA}']`,'max_calls=5','max_microusd=1']){
+  await assert.rejects(sql.unsafe('UPDATE atlas_ai.grants SET '+change),e=>e.code==='23514');
+ }
+ await enabled();const h=handler();assert.equal((await h(req('/request',request(),t))).status,403);
+ const builder={requestId:id(),job:'builder',agentId:'gus-benchmark',schemaId:BUILDER_SCHEMA,context:{placeId:'boycott',catalogRevision:catalog.revision,caseId:'01-seat-narration',candidate:'primary'}};
+ assert.equal((await h(req('/request',builder,t))).status,403);
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_leases`).length,0);assert.equal((await sql`SELECT * FROM atlas_ai.quota_windows`).length,0);
+});
+test('benchmark grants cannot list models or borrow the metadata schema and zero-dollar budget',async()=>{
+ const b=await benchmarkGrant();await assert.rejects(store.modelsAllowed(b.session),expectCode('OUT_OF_SCOPE'));
+ await assert.rejects(sql`UPDATE atlas_ai.grants SET schema_ids=ARRAY[${BUILDER_SCHEMA},${MODEL_SCHEMA}]::text[]`,e=>e.code==='23514');
+ await assert.rejects(sql`UPDATE atlas_ai.grants SET max_microusd=0`,e=>e.code==='23514');
+ assert.equal((await sql`SELECT authority FROM atlas_ai.grant_receipts`)[0].authority,'owner-approved-benchmark');
 });
 test('model listing paginates, distinguishes absent from unknown, never guesses Sol ID or follows redirects',async()=>{
  let n=0;const rows=await modelCheck({getSecret:secrets,fetchImpl:async(url,opts)=>{
@@ -231,16 +286,46 @@ test('rollback is idempotent, disables routes and grants, preserves receipts, pe
 });
 
 test('operator preparation emits only digests in SQL and a private bearer file; issued grant works only for metadata',async()=>{
- const {prepareModelCheck}=await import('../supabase/operators/prepare-model-check.mjs');
- const {runModelCheck}=await import('../supabase/operators/run-model-check.mjs');
- const folder=dir+'/operator';await prepareModelCheck(folder);
- const g=JSON.parse(await readFile(folder+'/grant.json','utf8')),grantSQL=await readFile(folder+'/issue-model-check.sql','utf8');assert(!grantSQL.includes(g.session));
- await sql.unsafe(grantSQL);await store.modelsAllowed(g.session);
+ const {folder,g,grantSQL}=await preparedModelGrant();assert(!grantSQL.includes(g.session));assert(!/builder|benchmark/.test(grantSQL));
+ assert.equal((await stat(folder+'/grant.json')).mode&0o777,0o600);await assertModelGrant(g.grantId);await store.modelsAllowed(g.session);
  const models=await runModelCheck('https://example.test/functions/v1/ai-proxy',folder+'/grant.json',undefined,async(url,options)=>{
   assert.equal(new URL(url).pathname,'/functions/v1/ai-proxy/models');assert.equal(options.headers.Authorization,'Bearer '+g.session);
   return handler(async()=>Response.json({data:[],has_more:false}))(new Request(url,options));
  });assert(models.every(m=>Object.keys(m).length===2));
  await enabled();await assert.rejects(reserve({session:g.session}),expectCode('OUT_OF_SCOPE'));
+});
+test('generated revocation is targeted and idempotent, denies further checks and preserves receipts, counters and other grants',async()=>{
+ const {folder,g}=await preparedModelGrant();await store.modelsAllowed(g.session);
+ await enabled();const publicGrant=await store.bootstrap();await sql`UPDATE atlas_ai.runtime_config SET enabled=false`;
+ const config=await store.config(),counters=await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`;
+ await revokeModelCheck(folder+'/grant.json');const revokeSQL=await readFile(folder+'/revoke-model-check.sql','utf8');
+ assert(!revokeSQL.includes(g.session));assert(!/builder|benchmark/.test(revokeSQL));
+ await sql.unsafe(revokeSQL);await sql.unsafe(revokeSQL);
+ const receipts=await sql`SELECT action,authority FROM atlas_ai.grant_receipts WHERE grant_id=${g.grantId} ORDER BY time`;
+ assert.deepEqual(Array.from(receipts),[{action:'issued',authority:'operator-model-check'},{action:'revoked',authority:'operator-model-check'}]);
+ const [grant]=await sql`SELECT * FROM atlas_ai.grants WHERE id=${g.grantId}`;assert(grant.revoked_at);
+ assert((await sql`SELECT revoked_at FROM atlas_ai.holder_leases WHERE id=${grant.holder_id}`)[0].revoked_at);
+ assert((await sql`SELECT revoked_at FROM atlas_ai.session_leases WHERE grant_id=${g.grantId}`).every(s=>s.revoked_at));
+ assert.equal((await handler()(req('/models',{},g.session))).status,401);
+ const publicHash=await digest(publicGrant.session);await store.locked((tx,c,now)=>store.auth(tx,publicHash,now));
+ assert.deepEqual(await store.config(),config);assert.deepEqual(await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`,counters);
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,0);
+});
+test('revocation generator rejects injected references and generated SQL refuses a non-metadata grant without side effects',async()=>{
+ const folder=await mkdtemp(dir+'/revoke-'),file=folder+'/grant.json';
+ await writeFile(file,JSON.stringify({grantId:"'; DROP SCHEMA atlas_ai; --"}));await assert.rejects(revokeModelCheck(file),/Invalid model-check grant reference/);
+ const b=await benchmarkGrant();await writeFile(file,JSON.stringify({grantId:b.grantId}));await revokeModelCheck(file);
+ const revokeSQL=await readFile(folder+'/revoke-model-check.sql','utf8');
+ const conn=await sql.reserve();try{await assert.rejects(conn.unsafe(revokeSQL),/Refusing to revoke a non-model-check grant/);await conn.unsafe('ROLLBACK');}finally{conn.release();}
+ assert.equal((await sql`SELECT revoked_at FROM atlas_ai.grants`)[0].revoked_at,null);assert.equal((await sql`SELECT * FROM atlas_ai.grant_receipts`).length,1);
+});
+test('access-off rollback records the metadata authority once and still prevents full undo after grant receipts',async()=>{
+ await store.issueModelCheck(await digest(token()),await digest(token()));await sql.unsafe(rollback);await sql.unsafe(rollback);
+ const rows=await sql`SELECT action,authority FROM atlas_ai.grant_receipts ORDER BY time`;
+ assert.deepEqual(Array.from(rows),[{action:'issued',authority:'operator-model-check'},{action:'revoked',authority:'operator-model-check'}]);
+ const undo=await readFile(new URL('../supabase/migrations/rollback/20261113120000_atlas_ai.full-undo.sql',import.meta.url),'utf8');
+ const conn=await sql.reserve();try{await assert.rejects(conn.unsafe(undo),/permanent Receipts exist/);await conn.unsafe('ROLLBACK');}finally{conn.release();}
+ assert.deepEqual(await sql`SELECT action,authority FROM atlas_ai.grant_receipts ORDER BY time`,rows);
 });
 test('all five unchanged components pass the frozen schema and host validation',async()=>{
  for(const c of catalog.components){const {position,facing,...component}=c;const proposal={schema_version:BUILDER_SCHEMA,place:'boycott',backing_ref:null,status:'proposed',reason:'Preserve sample Things.',changes:[{op:'replace_component',thing:c.id,component}],gaps:[]};
@@ -249,8 +334,7 @@ test('all five unchanged components pass the frozen schema and host validation',
  assert.equal(await readFile(new URL('../src/kit.js',import.meta.url),'utf8'),await readFile(new URL('../supabase/functions/ai-proxy/kit.js',import.meta.url),'utf8'));
 });
 test('benchmark attempts enforce grant total of 40, dollar ceiling and global concurrency one',async()=>{
- await enabled();const t=token();await sql`UPDATE atlas_ai.runtime_config SET enabled=false`;await store.issueModelCheck(await digest(token()),await digest(t));await enabled();
- await sql`UPDATE atlas_ai.grants SET schema_ids=ARRAY[${BUILDER_SCHEMA}]::text[]`;
+ await enabled();const {session:t}=await benchmarkGrant();
  const r={requestId:id(),job:'builder',agentId:'gus-benchmark',schemaId:BUILDER_SCHEMA,context:{placeId:'boycott',catalogRevision:catalog.revision,caseId:'01-seat-narration',candidate:'primary'}};
  const prompt=prepare(r).prompt,hash=Buffer.from(await digest(prompt)).toString('hex');const [route]=await sql`SELECT * FROM atlas_ai.routing_config WHERE route_key='builder'`;
  await sql`UPDATE atlas_ai.routing_config SET billing_contract=${sql.json({...route.billing_contract,synthetic_input_bounds:{[hash]:6000}})} WHERE route_key='builder'`;

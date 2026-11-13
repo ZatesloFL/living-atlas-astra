@@ -1,5 +1,5 @@
 // Offline preparation only. Silver runs this in a private workspace after Nic's
-// approval. Provider keys are neither needed nor read. Never upload grant.json.
+// Stage A approval. Provider keys are neither needed nor read. Never upload grant.json.
 import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -19,18 +19,18 @@ END $$;
 INSERT INTO atlas_ai.holder_leases(id,token_sha256,created_at,expires_at)
 VALUES('${hid}',decode('${hash(holder)}','hex'),now(),now()+interval '24 hours');
 INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at)
-VALUES('${gid}','${hid}','suggest',ARRAY['builder'],ARRAY['gus-benchmark'],ARRAY['boycott'],ARRAY['atlas-model-check-v1'],40,10000000,now(),now()+interval '24 hours');
+VALUES('${gid}','${hid}','look',ARRAY['model-check'],ARRAY['operator-model-check'],ARRAY['ai-proxy'],ARRAY['atlas-model-check-v1'],4,0,now(),now()+interval '24 hours');
 INSERT INTO atlas_ai.session_leases(id,holder_id,grant_id,token_sha256,created_at,expires_at)
 VALUES('${sid}','${hid}','${gid}',decode('${hash(bearer)}','hex'),now(),now()+interval '30 minutes');
 INSERT INTO atlas_ai.grant_receipts(id,time,grant_id,action,scope,jobs,place_ids,expires_at,authority)
-VALUES('${randomUUID()}',now(),'${gid}','issued','suggest',ARRAY['builder'],ARRAY['boycott'],now()+interval '24 hours','owner-approved-benchmark');
+VALUES('${randomUUID()}',now(),'${gid}','issued','look',ARRAY['model-check'],ARRAY['ai-proxy'],now()+interval '24 hours','operator-model-check');
 COMMIT;
 `;
- await writeFile(folder+'/grant.json',JSON.stringify({session:bearer}),{mode:0o600,flag:'wx'});
+ await writeFile(folder+'/grant.json',JSON.stringify({session:bearer,grantId:gid}),{mode:0o600,flag:'wx'});
  await writeFile(folder+'/issue-model-check.sql',sql,{mode:0o600,flag:'wx'});
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+resolve(process.argv[1])).href){
  if(process.argv.length!==3)throw new Error('Usage: node prepare-model-check.mjs <private-output-directory>');
  await prepareModelCheck(process.argv[2]);
- console.log('Prepared issue-model-check.sql and private grant.json. Apply only the SQL after approval.');
+ console.log('Prepared issue-model-check.sql and private grant.json. Silver applies only the SQL under Stage A approval.');
 }

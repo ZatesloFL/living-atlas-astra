@@ -6,7 +6,9 @@ UPDATE atlas_ai.runtime_config SET enabled=false, revision=revision+1;
 UPDATE atlas_ai.routing_config SET enabled=false, model_id=NULL;
 INSERT INTO atlas_ai.grant_receipts(id,time,grant_id,action,scope,jobs,place_ids,expires_at,authority)
 SELECT gen_random_uuid(),now(),id,'revoked',scope,jobs,place_ids,expires_at,
- CASE WHEN agent_ids=ARRAY['docent-silver']::text[] THEN 'approved-public-docent-policy' ELSE 'owner-approved-benchmark' END
+ CASE WHEN agent_ids=ARRAY['operator-model-check']::text[] THEN 'operator-model-check'
+      WHEN agent_ids=ARRAY['docent-silver']::text[] THEN 'approved-public-docent-policy'
+      ELSE 'owner-approved-benchmark' END
 FROM atlas_ai.grants WHERE revoked_at IS NULL;
 UPDATE atlas_ai.grants SET revoked_at=now() WHERE revoked_at IS NULL;
 UPDATE atlas_ai.session_leases SET revoked_at=now() WHERE revoked_at IS NULL;

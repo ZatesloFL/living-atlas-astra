@@ -56,20 +56,22 @@ export class Store {
   });
  }
  async grantReceipt(tx,g,action,now,authority){await tx`INSERT INTO atlas_ai.grant_receipts(id,time,grant_id,action,scope,jobs,place_ids,expires_at,authority) VALUES(${id()},${iso(now)},${g.id},${action},${g.scope},${g.jobs},${g.place_ids},${g.expires_at},${authority})`;}
- // Called only by Silver's private operator script, never from the HTTP handler.
+ // Internal issuance mirrors Silver's offline SQL; never exposed by the HTTP handler.
  async issueModelCheck(holderHash,sessionHash){return this.locked(async(tx,c,now)=>{
   this.ready(c,now,false);
   if(c.enabled)fail('AI_MUST_BE_OFF');
   const hid=id(),gid=id(),sid=id(),end=now+DAY;
   await tx`INSERT INTO atlas_ai.holder_leases(id,token_sha256,created_at,expires_at) VALUES(${hid},${holderHash},${iso(now)},${iso(end)})`;
-  const [g]=await tx`INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at) VALUES(${gid},${hid},'suggest',ARRAY['builder'],ARRAY['gus-benchmark'],ARRAY['boycott'],ARRAY[${MODEL_SCHEMA}],40,10000000,${iso(now)},${iso(end)}) RETURNING *`;
+  const [g]=await tx`INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at) VALUES(${gid},${hid},'look',ARRAY['model-check'],ARRAY['operator-model-check'],ARRAY['ai-proxy'],ARRAY[${MODEL_SCHEMA}],4,0,${iso(now)},${iso(end)}) RETURNING *`;
   await tx`INSERT INTO atlas_ai.session_leases(id,holder_id,grant_id,token_sha256,created_at,expires_at) VALUES(${sid},${hid},${gid},${sessionHash},${iso(now)},${iso(now+30*MIN)})`;
-  await this.grantReceipt(tx,g,'issued',now,'owner-approved-benchmark');
+  await this.grantReceipt(tx,g,'issued',now,'operator-model-check');
  });}
  async modelsAllowed(bearerToken){const hash=await digest(bearerToken);return this.locked(async(tx,c,now)=>{
-  this.ready(c,now,false);const {s,g}=await this.auth(tx,hash,now);
-  if(g.scope!=='suggest'||!g.jobs.includes('builder')||!g.agent_ids.includes('gus-benchmark')||!g.place_ids.includes('boycott')||!g.schema_ids.includes(MODEL_SCHEMA))fail('OUT_OF_SCOPE',403);
-  await this.bucket(tx,{key:'models:'+s.id,start:+new Date(s.created_at),end:+new Date(s.expires_at),calls:4,money:0},0);
+  this.ready(c,now,false);const {g}=await this.auth(tx,hash,now);
+  const only=(values,value)=>values.length===1&&values[0]===value;
+  if(g.scope!=='look'||!only(g.jobs,'model-check')||!only(g.agent_ids,'operator-model-check')||!only(g.place_ids,'ai-proxy')||!only(g.schema_ids,MODEL_SCHEMA)||g.max_calls!==4||num(g.max_microusd)!==0)fail('OUT_OF_SCOPE',403);
+  // All sessions share this grant's four-check limit; no generation spend is reserved.
+  await this.bucket(tx,{key:'models:'+g.id,start:+new Date(g.created_at),end:+new Date(g.expires_at),calls:g.max_calls,money:0},0);
  });}
  async reserve(bearerToken,spec,prompt){
   const hash=await digest(bearerToken);

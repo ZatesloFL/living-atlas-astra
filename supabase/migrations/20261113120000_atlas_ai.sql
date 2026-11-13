@@ -51,16 +51,25 @@ CREATE TABLE atlas_ai.grants (
   id uuid PRIMARY KEY,
   holder_id uuid NOT NULL REFERENCES atlas_ai.holder_leases(id),
   scope text NOT NULL CHECK (scope IN ('look','enter','suggest','edit')),
-  jobs text[] NOT NULL CHECK (jobs <@ ARRAY['builder','guide','background','heavy']::text[] AND cardinality(jobs) > 0),
+  jobs text[] NOT NULL CHECK (jobs <@ ARRAY['builder','guide','background','heavy','model-check']::text[] AND cardinality(jobs) > 0),
   agent_ids text[] NOT NULL CHECK (cardinality(agent_ids) BETWEEN 1 AND 4),
   place_ids text[] NOT NULL CHECK (cardinality(place_ids) BETWEEN 1 AND 4),
   schema_ids text[] NOT NULL CHECK (cardinality(schema_ids) BETWEEN 1 AND 4),
   max_calls integer NOT NULL CHECK (max_calls BETWEEN 1 AND 40),
-  max_microusd bigint NOT NULL CHECK (max_microusd BETWEEN 1 AND 10000000),
+  max_microusd bigint NOT NULL CHECK (max_microusd BETWEEN 0 AND 10000000),
   created_at timestamptz NOT NULL,
   expires_at timestamptz NOT NULL,
   revoked_at timestamptz,
-  CHECK (expires_at > created_at AND expires_at <= created_at + interval '24 hours')
+  CHECK (expires_at > created_at AND expires_at <= created_at + interval '24 hours'),
+  -- Metadata grants have their own capability and cannot carry generation scope.
+  CONSTRAINT model_check_only CHECK (
+    (scope='look' AND jobs=ARRAY['model-check']::text[]
+      AND agent_ids=ARRAY['operator-model-check']::text[] AND place_ids=ARRAY['ai-proxy']::text[]
+      AND schema_ids=ARRAY['atlas-model-check-v1']::text[] AND max_calls=4 AND max_microusd=0)
+    OR (max_microusd>=1 AND NOT (jobs && ARRAY['model-check']::text[])
+      AND NOT (agent_ids && ARRAY['operator-model-check']::text[])
+      AND NOT (schema_ids && ARRAY['atlas-model-check-v1']::text[]))
+  )
 );
 CREATE TABLE atlas_ai.session_leases (
   id uuid PRIMARY KEY,
@@ -127,7 +136,7 @@ CREATE TABLE atlas_ai.grant_receipts (
   jobs text[] NOT NULL,
   place_ids text[] NOT NULL,
   expires_at timestamptz NOT NULL,
-  authority text NOT NULL CHECK (authority IN ('approved-public-docent-policy','owner-approved-benchmark'))
+  authority text NOT NULL CHECK (authority IN ('approved-public-docent-policy','owner-approved-benchmark','operator-model-check'))
 );
 -- Receipt references deliberately have no FK to expiring records.
 CREATE INDEX holder_expiry ON atlas_ai.holder_leases(expires_at);

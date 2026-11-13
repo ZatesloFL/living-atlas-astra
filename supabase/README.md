@@ -1,7 +1,7 @@
 # Round 2b: files for Silver
 
-Astra writes; Silver applies after Nic names the implementation commit in
-`lane/reports/2026-11-13-01.md`. This directory has no linked project, credentials,
+Astra writes; Silver applies the implementation commit Nic names (latest handoff:
+`lane/reports/2026-11-13-02.md`). This directory has no linked project, credentials,
 deployment workflow, live URL or auto-activation. Do not run these files against
 Second Look or another project. The shipped browser singleton remains simulated.
 
@@ -27,8 +27,18 @@ Second Look or another project. The shipped browser singleton remains simulated.
 - `operators/prepare-model-check.mjs`: offline preparation of an operator lease.
 - `operators/run-model-check.mjs`: sends that lease only to `/models` and prints
   model names and availability. Never generates text or changes configuration.
+- `operators/revoke-model-check.mjs`: offline SQL generator to revoke that grant,
+  its sessions and its private holder, preserving receipts and counters.
 
 ## Stage A, in file 14's order
+
+[File 14](../docs/shared/14-database-operator-silver.md) governs this sequence.
+Nic's Stage A approval covers all seven steps, including creating and removing
+the short-lived operator grant. Silver runs every script in Silver's own private
+workspace and keeps `grant.json` there until deletion. No operator file or script
+is handed to Nic. Separate approval is still required for activation, generation,
+the builder comparison, quota/spending-limit changes, secret changes, or rollback
+after real call receipts exist.
 
 1. **Inventory and approval (Silver).** Record Nic's approval and the exact
    implementation SHA. In the Living Atlas project, inventory schemas, tables,
@@ -55,8 +65,23 @@ Second Look or another project. The shipped browser singleton remains simulated.
    is consumed only inside deployed code. The allowlist must be exactly
    `https://zateslofl.github.io`; an extra comma, slash, wildcard or origin causes
    the function to stay off. Verify with behavior; never read back its value.
-5. **Model check only. No new Edge Function secret is required.** The bearer is
-   a per-run lease, not a provider or function secret. After approval for the Stage A operator lease, run:
+5. **Off-state smoke test (no bearer needed).** POST `{}` with JSON content type
+   and the exact Pages Origin to `/request`: expect HTTP 503 and
+   `{"code":"AI_OFF","message":"AI is off"}`. Repeat `/session`: same off state.
+   Repeat with absent Origin, `null`, another origin, a subdomain or trailing
+   slash: expect 403 `ORIGIN_DENIED`. OPTIONS with exact Origin, requested method
+   POST and only authorization/content-type headers returns 204. A public or
+   forged bearer must never reach the model-list APIs. Open the static site and
+   check simulated Guide/Staff and Page still work; there is no configured proxy
+   URL or new public control in the shipped client. Confirm call/grant receipts,
+   leases and quota counters are still empty. Inspect platform logging/retention
+   settings without dumping bodies or keys; application code emits no request
+   logs. **Up through this step, failure uses full undo.** The next step creates
+   the first permanent grant receipt and closes that rollback path.
+6. **Model check (Silver, end to end).** If Silver's workspace cannot run Node or
+   reach the function URL, skip this step and record **"deferred to Stage B"**.
+   Stage A is proven without it. No new Edge Function secret is required: the
+   bearer is a per-run lease. Under the existing Stage A approval, Silver runs:
 
    ```sh
    node supabase/operators/prepare-model-check.mjs work/private-model-check
@@ -64,12 +89,13 @@ Second Look or another project. The shipped browser singleton remains simulated.
 
    This writes `issue-model-check.sql` (hashes only) and mode-0600 `grant.json`
    (a short-lived bearer). Silver applies **only the generated SQL** through the
-   authorized database operation. It grants `atlas-model-check-v1`, not any
-   generation schema, for a 30-minute session within a 24-hour grant. The
-   grant Receipt reuses the approved `owner-approved-benchmark` authority label;
-   the actual schema scope allows metadata only, so it cannot run the comparison. It works
-   while the master is off. Never paste/upload/commit the grant file or bearer.
-   Use a private operator terminal with normal approved network access:
+   authorized database operation. The dedicated grant has authority
+   `operator-model-check`, scope `look`, job `model-check`, agent
+   `operator-model-check`, Place `ai-proxy` and schema `atlas-model-check-v1`.
+   Its limits are **max_calls 4, max_microusd 0**, shared across all its sessions.
+   The session expires in 30 minutes within a 24-hour grant. It works while the
+   master is off and carries no generation capability. Never paste/upload/commit
+   the grant file or bearer. Silver then runs:
 
    ```sh
    node supabase/operators/run-model-check.mjs '<approved-function-url>' work/private-model-check/grant.json
@@ -81,7 +107,8 @@ Second Look or another project. The shipped browser singleton remains simulated.
    `https://api.anthropic.com/v1/models` and `https://api.openai.com/v1/models`.
    Anthropic pagination is followed, bounded to 20 pages; incomplete/error
    results are `unknown`, never falsely `unavailable`. Names are matched exactly.
-   Four metadata checks maximum per operator session prevent repeated polling.
+   Four metadata checks maximum per grant prevent repeated polling; each check
+   can list both providers, including bounded pagination.
 
    The Claude rows check `claude-opus-5-5`, `claude-haiku-5-5`,
    `claude-fable-5-2`. OpenAI's list is not a marketing-name directory: first
@@ -91,17 +118,27 @@ Second Look or another project. The shipped browser singleton remains simulated.
    record unverified and leave the route off. Never guess from this chat's model
    or choose a substitute. A listed model does not establish price, API features,
    account spending controls or generation permission.
-6. **Off-state smoke test (no bearer needed).** POST `{}` with JSON content type
-   and the exact Pages Origin to `/request`: expect HTTP 503 and
-   `{"code":"AI_OFF","message":"AI is off"}`. Repeat `/session`: same off state.
-   Repeat with absent Origin, `null`, another origin, a subdomain or trailing
-   slash: expect 403 `ORIGIN_DENIED`. OPTIONS with exact Origin, requested method
-   POST and only authorization/content-type headers returns 204. A public or
-   forged bearer must never reach the model-list APIs. Open the static site and
-   check simulated Guide/Staff and Page still work; there is no configured proxy
-   URL or new public control in the shipped client. Verify no call Receipt or
-   generation counters appeared. Inspect platform logging/retention settings
-   without dumping bodies or keys; application code emits no request logs.
+
+   Immediately after the check, including a failed check, Silver generates:
+
+   ```sh
+   node supabase/operators/revoke-model-check.mjs work/private-model-check/grant.json
+   ```
+
+   Silver applies **only** the generated `revoke-model-check.sql`. It validates
+   the dedicated grant, revokes its sessions and holder, and writes one
+   `operator-model-check` revocation receipt. Reapplying that SQL is safe; it
+   keeps the original receipt and counters. It never changes master/routes or
+   revokes another grant. Confirm revocation, then delete the private bearer:
+
+   ```sh
+   rm -- work/private-model-check/grant.json
+   ```
+
+   If revocation is unavailable, confirm expiry and record that fact before
+   deleting `grant.json`. If the check could not complete, record the reason
+   and "deferred to Stage B" after cleanup. Report only model names and
+   available / unavailable / unknown; retain no provider response bodies.
 7. **Receipt and stop.** Write `lane/ops/YYYY-MM-DD-NN.md`: implementation commit,
    Nic's approval/time, inventory, each check Pass/Fail, names/availability,
    unresolved facts, rollback if used, and state left **off**. Stage B and the
@@ -124,14 +161,17 @@ If the schema is already absent because the forward transaction rolled back, it
 is a no-op. It is intentionally stricter than simply finding zero model-call
 Receipts: a model-check grant already creates a permanent grant Receipt.
 
-After **any** Receipt exists, use `20261113120000_atlas_ai.rollback.sql`, the
-access-off rollback. It preserves data and receipts. With either rollback, Silver
+After **any** Receipt exists (including step 6's grant receipt), use
+`20261113120000_atlas_ai.rollback.sql`, the access-off rollback. It preserves
+data and receipts and records model-check revocations as `operator-model-check`.
+Rollback after real call receipts exist needs Nic's separate approval, per file 14.
+With either rollback, Silver
 also removes the newly deployed `ai-proxy` function. Since
 preflight forbids replacement of an existing function, no prior deployment is
 lost. Save a receipt and stop for Astra to fix files. The access-off rollback never drops
 permanent Receipts or the schema. Full undo drops only an unused empty schema;
 if Supabase recorded the forward migration, Silver must reconcile only that
-migration history entry via the supported tool after approval, receipt it, and
+migration history entry via the supported tool under the Stage A approval, receipt it, and
 never modify the platform history tables with ad-hoc SQL. Unknown provider billing stays reserved/spent;
 removing a function cannot undo an already dispatched request. Stage A itself
 makes no generation request.
