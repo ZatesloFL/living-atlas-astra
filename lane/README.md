@@ -17,7 +17,7 @@ No installation or compilation is needed for the static app. From the repository
 - The ◈ button in the app toggles fps, draw calls, scene, and rendering resolution. The display uses actual elapsed time; a software renderer’s numbers do not predict Pixel performance.
 - Profiles, preferences, the last-used profile, and receipts persist in localStorage when allowed. Unsaved developer overrides, position, and temporary door confirmations reset on reload. Blocked storage falls back to an explicitly labeled in-memory session. There is no login or backend.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/tier-a-browser.cjs`: 16 round-2a checks, including native long-press touch events and first-run/reload behavior. Both browser suites accept `ATLAS_URL` if the server uses a different port.
-- Completed: A0, Tiers A/B/C, round 2c G2/G1/G3/G4, and authorized simulated round 3 D/E. Nic confirmed the pre-2c Pixel baseline; new physical visual/fps results remain Partial. Full completion report: [2026-11-12-11](reports/2026-11-12-11.md). Hard stop after round 3; server work and rounds 4/5 remain queued. Earlier reports remain as history.
+- Completed: A0, Tiers A/B/C, round 2c G2/G1/G3/G4, and authorized simulated round 3 D/E. Nic confirmed the pre-2c Pixel baseline; new physical visual/fps results remain Partial. Full completion report: [2026-11-12-11](reports/2026-11-12-11.md). The latest chat changes the next step to round 2b proposal/approval, benchmark and live Docent; further round 3 work and rounds 4/5 wait. Earlier reports remain as history.
 
 ## Report template
 
@@ -99,3 +99,5 @@ What you'd do next with one more session.
 - `tests/community-browser.cjs`: five Town Square/discovery/trail/event/privacy/persistence checks. Report `2026-11-12-10`. Discovery opens from the location chip, physical kiosks or Page → Discover.
 
 - `tests/staff-browser.cjs`: four simulated staff, proposal, hiring and Page/receipt checks. `tests/render-budget-browser.cjs`: three full-bloom/shadow scene-budget and picking checks, covering Square/History/Studio plus Commons/Night Market/After Dark views. Same Playwright module and URL variables; port 8003 default. Report `2026-11-12-11`.
+
+- Current next step: [round 2b proxy proposal, report -12](reports/2026-11-12-12.md). No backend/app change has been applied. The proposed SQL, common builder schema and ten synthetic requests are in `lane/proposals/`, outside migration/deployment paths. Waiting for Nic’s approval and verified Supabase/model/billing prerequisites.

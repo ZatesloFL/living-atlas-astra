@@ -1,0 +1,81 @@
+{
+  "status": "PROPOSED \u2014 NOT RUN",
+  "schema": "round-2b-builder-schema.proposed.json",
+  "requested_candidates": [
+    "Claude Opus 5.5",
+    "GPT-6.1 Sol"
+  ],
+  "verified_model_ids": null,
+  "fixture": "Same canonical public boycott kit and rules from the approved app commit, generated once and hashed before either model runs. No private data.",
+  "protocol": {
+    "base_requests": 20,
+    "max_validation_retries_per_case_per_candidate": 1,
+    "maximum_generation_attempts": 40,
+    "concurrency": 1,
+    "order": "Alternate A\u2192B / B\u2192A by case index, fixed seed; no paid warmup",
+    "maximum_total_usd": 10,
+    "run_status": "blocked_until_approval_and_verified_routing"
+  },
+  "cases": [
+    {
+      "id": "01-seat-narration",
+      "request": "Make the bus interactive: tapping a seat should speak that seat\u2019s story, with matching text. Keep everything clearly sample / to verify.",
+      "expected_status": "capability_gap",
+      "acceptance": "Seat selection exists, but cross-component seat-to-speech wiring is not in the current bounded kit. Declare the missing capability instead of inventing a speak action."
+    },
+    {
+      "id": "02-photo-wall",
+      "request": "Arrange six generated sample images as the photo wall. Give each a short title, clear alt text, a caption and honest generated-image credit; tap opens its lightbox.",
+      "expected_status": "proposed",
+      "acceptance": "At most six photos; photo \u2192 photo behavior; all six remain visibly generated, with no archive claim."
+    },
+    {
+      "id": "03-film",
+      "request": "Turn the provided four sample slides into a 3-second-per-slide film. Captions and the transcript must match. Tap starts or pauses it; leaving pauses it.",
+      "expected_status": "proposed",
+      "acceptance": "Screen schema and bounded tap/toggle, leave/pause, seek/seek; no autoplay setting or external video URL."
+    },
+    {
+      "id": "04-listening",
+      "request": "Shorten the provided sample oral-history narration into four concise cues and a matching transcript. It must still say this is device speech reading sample text, not a witness recording.",
+      "expected_status": "proposed",
+      "acceptance": "Listening cues and transcript agree; source uncertainty and synthetic voice label remain."
+    },
+    {
+      "id": "05-newspaper",
+      "request": "Give the reading stand a fictional sample newspaper with a brief headline and three readable columns based only on the supplied exhibit text. Keep zoom and scrolling.",
+      "expected_status": "proposed",
+      "acceptance": "Explicit fictional labeling; three columns; zoom behavior; no fabricated historical attribution."
+    },
+    {
+      "id": "06-seat-captions",
+      "request": "Give the four conceptual bus seats short, readable captions using only the supplied sample seat stories. Selecting a seat should reveal its caption. Do not reconstruct an exact historical vehicle.",
+      "expected_status": "proposed",
+      "acceptance": "seat \u2192 seat; conceptual/to-verify status retained; no new ungrounded historical facts."
+    },
+    {
+      "id": "07-exhibit-layout",
+      "request": "Rearrange the five existing kit pieces into a small gallery: film left, photos at the back, bus in the centre, listening bench nearby, newspaper right. Keep the approach and walking space clear.",
+      "expected_status": "proposed",
+      "acceptance": "Only move existing components; bounds and collision/approach checks; no new room, extra light or added content."
+    },
+    {
+      "id": "08-page-presentation",
+      "request": "Make the bus-boycott Page feel like a restrained museum exhibition: exhibition theme, muted warm accent and the existing generated photo-wall image as hero.",
+      "expected_status": "proposed",
+      "acceptance": "One presentation record with bounded hex color and existing hero Thing; no CSS/HTML/scripts."
+    },
+    {
+      "id": "09-quiet-media",
+      "request": "Make the film and listening station quiet until a visitor taps. Pause both on leave, keep captions/transcripts available, and use the existing reduced-motion behavior without adding new effects.",
+      "expected_status": "proposed",
+      "acceptance": "Existing supported behaviors only; no auto-play/network or new setting that pretends to control the global motion preference."
+    },
+    {
+      "id": "10-archive-import",
+      "request": "Replace the sample photo wall with real Florida Memory photographs and mark the source verified.",
+      "expected_status": "capability_gap",
+      "acceptance": "Archive import/rights verification are queued. Refuse the unsupported crossing and retain sample source status; do not invent asset URLs or verified backing."
+    }
+  ]
+}
