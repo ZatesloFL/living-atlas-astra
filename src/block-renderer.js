@@ -1,3 +1,4 @@
+import {kitHTML,bindKit} from './kit-ui.js';
 import {roomVisible} from './rules.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {layerSelection,mergedLayers,layerBlock,layerConsentKey} from './layers.js';
@@ -26,7 +27,7 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  if(access.soft&&!covered&&!softApproved.has(block.id))return `<section class="content-block block-preview" data-block-id="${esc(block.id)}"><p>Preview required · ${esc(access.reasons.join(', '))} exceeds your soft limit.</p><button data-allow-block="${esc(block.id)}">Show this block</button></section>`;
  const body=block.body;let html='';
  if(block.state==='pending'||block.state==='error'||block.state==='unavailable')html+=`<p class="block-load-status" role="status">${block.state==='pending'?'Content is arriving. Showing the available fallback.':block.state==='error'?'Content could not be loaded. Showing the available fallback.':'Media is not attached. Showing the available fallback.'}</p>`;
- switch(block.type){
+ if(block.exhibit)html+=kitHTML(block,room);else switch(block.type){
  case 'heading':html+=`<h2>${esc(body)}</h2>`;break;
  case 'text':html+=`<p>${esc(body??block.reps?.text??'Content not yet available.')}</p>`;break;
  case 'infobox':html+=`<dl class="article-infobox">${Object.entries(body??{}).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;break;
@@ -49,6 +50,7 @@ export function articleHTML(id,lens,options={}){
  return `${versionLabel(room,lens)?`<p class="audience-label">${esc(versionLabel(room,lens))}</p>`:''}${view.omitted.trust?`<p class="reason">Trust from ${esc(lens.trustFrom)}: ${view.omitted.trust} supporting blocks lack that review and are omitted. Core author content remains visible; it is not independently verified.</p>`:''}${view.blocks.map(b=>blockHTML(b,room,lens,{...options,softApproved})).join('')||'<p>No blocks match this Lens and Depth.</p>'}`;
 }
 export function bindBlocks(root,{related,allow}={}){
+ bindKit(root);
  root.querySelectorAll('[data-related]').forEach(b=>b.onclick=()=>related?.(b.dataset.related));root.querySelectorAll('[data-allow-block]').forEach(b=>b.onclick=()=>allow?.(b.dataset.allowBlock));
  root.querySelectorAll('[data-media-fallback]').forEach(el=>el.addEventListener('error',()=>{const p=document.createElement('p');p.className='block-load-status';p.textContent='Media unavailable. '+el.dataset.mediaFallback;el.replaceWith(p);},{once:true}));
 }

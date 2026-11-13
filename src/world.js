@@ -1,3 +1,4 @@
+import {drawKit,flushKit} from './kit-world.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {itemStyle} from './item-style.js';
 import {layerSelection} from './layers.js';
@@ -37,7 +38,7 @@ export class World {
     const sun=new THREE.DirectionalLight(0xffdfad,2.2);sun.position.set(-13,23,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=29;sun.shadow.camera.bottom=-29;sun.shadow.camera.near=1;sun.shadow.camera.far=80;sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;this.scene.add(sun);this.sun=sun;
     this.ground();
     if(kind==='studio')this.studio();else this.history();
-    this.renderRooms();this.particles();this.flush();
+    this.renderRooms();this.particles();this.flush();flushKit(this);
     this.scene.userData.view={profile:lens.profileId,rooms:this.renderedRooms};this.scene.updateMatrixWorld(true);
   }
   add(shape,mat,x,y,z,sx=1,sy=1,sz=1,color='#ffffff',id=null,rotation=[0,0,0]){
@@ -46,6 +47,7 @@ export class World {
       const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)).premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.placement.facing));const e=new THREE.Euler().setFromQuaternion(q);rotation=[e.x,e.y,e.z];
     }
     if(this.placement?.ghost){mat='ghost';color='#a0a8b4';id=null;}else if(this.placement?.style){const st=this.placement.style;color=new THREE.Color(color).lerp(new THREE.Color(st.accent),st.mix).getStyle();}
+    if(mat==='wood')mat='stone'; // shared rough fixture surface, retaining per-instance colors
     const key=shape+'|'+mat;let batch=this.batches.get(key);if(!batch){batch={shape,mat,items:[]};this.batches.set(key,batch);}
     batch.items.push({x,y,z,sx,sy,sz,color,id,rotation});
   }
@@ -64,6 +66,7 @@ export class World {
       const r=viewRoom(original,ghost?this.diffLens:this.lens),style=itemStyle(r,ghost?this.diffLens:this.lens);
       this.placement={scale:1,facing:0,...r.layout,style,ghost};if(rights.canLook)this.placement.scale*=style.scale;
       drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
+      if(rights.canLook&&!ghost&&r.layout.components)drawKit(this,r,id);
       this.renderedRooms.push({id,ghost:!!ghost,version:r.version?.id,style:rights.canLook?style:null});
       if(r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':versionLabel(r,this.lens)||sign[1],p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
       if(this.diffLens&&own&&rights.visibility==='public'&&(!other||viewRoom(original,this.diffLens).version?.id!==r.version?.id))this.add('ring','ghost',0,.15,0,2,2,2,'#aaa',null,[Math.PI/2,0,0]);

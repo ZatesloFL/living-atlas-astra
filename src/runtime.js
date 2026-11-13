@@ -3,6 +3,7 @@ const THREE=await diag.asyncRun('engine module',()=>import('../vendor/three/thre
 const {ROOMS,EDGES}=await diag.asyncRun('data module',()=>import('./data.js'));
 const {Renderer}=await diag.asyncRun('renderer module',()=>import('./renderer.js'));
 const {Controls,SPAWN_Z}=await diag.asyncRun('controls module',()=>import('./controls.js'));
+const {mediaContext,stopMedia}=await import('./kit-ui.js');
 const {World}=await diag.asyncRun('world module',()=>import('./world.js'));
 const {WorldLabels}=await diag.asyncRun('labels module',()=>import('./labels.js'));
 const {HUD}=await import('./hud.js');const hud=window.atlasHud??new HUD();
@@ -59,6 +60,8 @@ function enter(edge){
   ui.toast(result.oddness.length?`${ROOMS[edge.to].title} reads louder: ${result.oddness.join(', ')}`:`Entered ${ROOMS[edge.to].title}`);updateContext();
 }
 function selectId(id){
+  mediaContext({mode:'3d',lens,scene:kind,position:controls.position});
+  if(id?.startsWith('exhibit:')){const [,room,block,photo]=id.split(':');ui.info(room);const node=ui.content.querySelector('[data-block-id="'+block+'"]');node?.scrollIntoView({block:'start'});if(photo!==undefined)node?.querySelector('[data-value="'+photo+'"]')?.click();else node?.querySelector('[data-kit-event=tap]')?.click();return;}
   if(id?.startsWith('layer:')){const [,room,layer]=id.split(':');layerUI.peek(room,layer);return;}
   if(id?.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e)ui.edge(e);}
   else if(id){selectedRoom=id;ui.info(id);}
@@ -67,7 +70,7 @@ function select(x,y){
   const label=labels?.pick(x,y);if(label){selectId(label);return;}
   tapPoint.set(x/innerWidth*2-1,-y/innerHeight*2+1);raycaster.setFromCamera(tapPoint,camera);
   const hits=raycaster.intersectObjects(world.pickables,false);
-  for(const hit of hits){if(hit.distance>22)continue;const id=hit.object.userData.id??hit.object.userData.ids?.[hit.instanceId];if(!id)continue;
+  for(const hit of hits){if(hit.distance>22)continue;const id=hit.object.userData.id??hit.object.userData.faceIds?.[hit.faceIndex]??hit.object.userData.ids?.[hit.instanceId];if(!id)continue;
     selectId(id);return;
   }
 }
@@ -89,7 +92,7 @@ function loop(time){
   try{graphics.render(world.scene,camera,Math.max(0,fade));}catch(error){diag.fallback('frame render',error);return;}
   if(labels&&previewState?.split)labels.visible=[];else if(labels)try{labels.update(world,camera);}catch(error){diag.record('labels update',error,'Nameplates disabled; object selection and Page form remain available.');labels=null;$('world-labels')?.replaceChildren();}
   frames++;period+=elapsed;
-  if(frames%8===0){updateContext();const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
+  if(frames%8===0){mediaContext({mode:'3d',lens,scene:kind,position:controls.position});updateContext();const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
   if(period>=1){fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind,level:graphics.status().label});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}
 }
 function staticControls(){
@@ -111,6 +114,7 @@ function resume3D(id){
   active=true;lastTime=performance.now();cancelAnimationFrame(frame);frame=requestAnimationFrame(loop);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);
 }
 function openPage(id=context.room){
+  stopMedia();
   if(previewState)buildUI.exit();travel?.cancel();ui.close();controls.resetInput();active=false;cancelAnimationFrame(frame);transition=null;pageOrigin=context.room;page?.close();lens.form='page';profiles.preferences(lens);
   page=new PageRenderer({lens,room:id,originRoom:context.room,access,profiles,onAccessChange:refreshAccess,diagnostics:diag,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onVisit:next=>{selectedRoom=next;},onLensChange:next=>{lens=next;profiles.preferences(lens);rebuild();profileUI?.refresh();},on3D:resume3D});
   page.open(id);diag.setMode('Page form');if(diag.params.has('test'))window.__atlasPage=page;

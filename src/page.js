@@ -1,3 +1,4 @@
+import {mediaContext,stopMedia} from './kit-ui.js';
 import {itemStyle} from './item-style.js';
 import {LayerUI,experienceHTML,bindExperience,layerSettings,bindLayerSettings} from './experience-ui.js';
 import {permission,roomTitle} from './permissions.js';
@@ -19,11 +20,11 @@ export class PageRenderer {
   this.unsubscribe=contentStore.subscribe(id=>{if(id===this.room&&!this.root.hidden)this.render(true);});
  }
  open(room=this.initialRoom){document.body.classList.add('page-mode');this.root.hidden=false;document.getElementById('loading')?.classList.add('done');document.getElementById('sheet')?.setAttribute('hidden','');document.getElementById('veil')?.setAttribute('hidden','');document.body.classList.remove('panel-open');this.visit(ROOMS[room]?room:'studio');}
- close(){this.root.hidden=true;document.body.classList.remove('page-mode');this.unsubscribe?.();clearInterval(this.expiryTimer);this.accessUI?.ui.destroy?.();this.layerUI?.ui.destroy?.();this.root.replaceChildren();}
+ close(){stopMedia();this.root.hidden=true;document.body.classList.remove('page-mode');this.unsubscribe?.();clearInterval(this.expiryTimer);this.accessUI?.ui.destroy?.();this.layerUI?.ui.destroy?.();this.root.replaceChildren();}
  changed(){this.approved.clear();this.approved.add('studio');this.softApproved.clear();this.onLensChange?.(this.lens);this.visit(this.room);}
  experienceChanged(lens){this.lens=lens;this.onLensChange?.(lens);this.render(true);}
  render(preserve=false){
-  const scroll=window.scrollY;if(this.access)this.lens=this.access.lens(this.lens);if(!roomVisible(this.room,this.lens))this.room=Object.keys(ROOMS).find(id=>id!=='family'&&roomEntry(id,this.lens,EDGES).state!=='hidden')??'family';
+  const scroll=window.scrollY;mediaContext({mode:'page',room:this.room,lens:this.lens});if(this.access)this.lens=this.access.lens(this.lens);if(!roomVisible(this.room,this.lens))this.room=Object.keys(ROOMS).find(id=>id!=='family'&&roomEntry(id,this.lens,EDGES).state!=='hidden')??'family';
   const r=ROOMS[this.room],access=accessSettings(this.lens),privateRoom=r.visibility==='private'||!permission(r,this.lens).canLook;
   const destinations=Object.entries(ROOMS).filter(([id])=>roomEntry(id,this.lens,EDGES).state!=='hidden');
   const pending=this.pending,rights=permission(r,this.lens);this.accessSignature=rights.visible+':'+rights.scope;
