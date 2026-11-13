@@ -1,3 +1,4 @@
+import {drawSquare,drawPresence} from './community-world.js';
 import {drawKit,flushKit} from './kit-world.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {itemStyle} from './item-style.js';
@@ -37,8 +38,8 @@ export class World {
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
     const sun=new THREE.DirectionalLight(0xffdfad,2.2);sun.position.set(-13,23,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=29;sun.shadow.camera.bottom=-29;sun.shadow.camera.near=1;sun.shadow.camera.far=80;sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;this.scene.add(sun);this.sun=sun;
     this.ground();
-    if(kind==='studio')this.studio();else this.history();
-    this.renderRooms();this.particles();this.flush();flushKit(this);
+    this.gate=e=>visibleEdge(e,this.lens);if(kind==='studio')this.studio();else if(kind==='square')drawSquare(this);else this.history();
+    this.renderRooms();drawPresence(this);this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);
     this.scene.userData.view={profile:lens.profileId,rooms:this.renderedRooms};this.scene.updateMatrixWorld(true);
   }
   add(shape,mat,x,y,z,sx=1,sy=1,sz=1,color='#ffffff',id=null,rotation=[0,0,0]){
@@ -47,7 +48,8 @@ export class World {
       const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)).premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.placement.facing));const e=new THREE.Euler().setFromQuaternion(q);rotation=[e.x,e.y,e.z];
     }
     if(this.placement?.ghost){mat='ghost';color='#a0a8b4';id=null;}else if(this.placement?.style){const st=this.placement.style;color=new THREE.Color(color).lerp(new THREE.Color(st.accent),st.mix).getStyle();}
-    if(mat==='wood')mat='stone'; // shared rough fixture surface, retaining per-instance colors
+    if(shape==='cone'&&mat==='leaf')shape='orb';
+    if(mat==='wood'||shape==='cone'&&mat==='metal')mat='stone'; // shared rough fixture surface, retaining per-instance colors
     const key=shape+'|'+mat;let batch=this.batches.get(key);if(!batch){batch={shape,mat,items:[]};this.batches.set(key,batch);}
     batch.items.push({x,y,z,sx,sy,sz,color,id,rotation});
   }
@@ -72,9 +74,7 @@ export class World {
       if(this.diffLens&&own&&rights.visibility==='public'&&(!other||viewRoom(original,this.diffLens).version?.id!==r.version?.id))this.add('ring','ghost',0,.15,0,2,2,2,'#aaa',null,[Math.PI/2,0,0]);
       if(!ghost&&rights.canLook){
         for(const [i,{layer}] of layerSelection(original,this.lens).filter(x=>!x.accepted).entries())this.add('diamond','teal',-1+i*.9,2.2,1.9,.16,.25,.16,'#fff','layer:'+id+':'+layer.id);
-        for(const agent of (this.lens.access?.presence??[]).filter(p=>p.room===r.id&&p.agent)){
-          this.add('diamond','teal',1.4,1.7,0,.18,.3,.18,'#fff',id);const p=this.transform(1.4,2.4,0);this.label('◇ '+agent.name,'AGENT PRESENT · SIMULATED',p.x,p.y,p.z,id);
-        }
+
       }
       this.placement=null;
     }
@@ -85,7 +85,7 @@ export class World {
       mesh.castShadow=['stone','wood','leaf','metal'].includes(batch.mat);mesh.receiveShadow=!['glass','teal','amber','blue','pink'].includes(batch.mat);
       mesh.userData.ids=[];
       batch.items.forEach((p,i)=>{pose.position.set(p.x,p.y,p.z);pose.scale.set(p.sx,p.sy,p.sz);pose.rotation.set(...p.rotation);pose.updateMatrix();mesh.setMatrixAt(i,pose.matrix);mesh.setColorAt(i,new THREE.Color(p.color));mesh.userData.ids[i]=p.id;});
-      mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();this.scene.add(mesh);if(batch.items.some(x=>x.id))this.pickables.push(mesh);
+      if(batch.shape==='diamond'&&batch.mat==='teal'){this.markerBatch=mesh;mesh.frustumCulled=false;}mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();this.scene.add(mesh);if(batch.items.some(x=>x.id))this.pickables.push(mesh);
     }
     this.batches.clear();
   }
@@ -106,8 +106,7 @@ export class World {
     // A procedural night sky. No downloaded textures or models.
     const pts=[];for(let i=0;i<210;i++){const a=r()*Math.PI*2,el=r()*1.3+.1,rr=72;pts.push(Math.cos(a)*Math.cos(el)*rr,Math.sin(el)*rr,Math.sin(a)*Math.cos(el)*rr);}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));const m=new THREE.PointsMaterial({color:'#bed5dc',size:.1,transparent:true,opacity:.7,fog:false});this.scene.add(new THREE.Points(g,m));this.dynamicResources.push(g,m);
-    this.add('sphere','amber',-28,33,-52,1.25,1.25,1.25,'#c4d1d0');
-    const skyGeometry=new THREE.SphereGeometry(90,24,12),skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,vertexShader:'varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec3 p;void main(){float h=normalize(p).y;vec3 horizon=vec3(.035,.055,.07),zenith=vec3(.005,.01,.025);float a=pow(max(0.,h),.48);vec3 c=mix(horizon,zenith,a);gl_FragColor=vec4(c,1.);}'});const sky=new THREE.Mesh(skyGeometry,skyMaterial);this.scene.add(sky);this.dynamicResources.push(skyGeometry,skyMaterial);
+    const skyGeometry=new THREE.SphereGeometry(90,24,12),skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,vertexShader:'varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec3 p;void main(){float h=normalize(p).y;vec3 horizon=vec3(.035,.055,.07),zenith=vec3(.005,.01,.025);float a=pow(max(0.,h),.48);vec3 c=mix(horizon,zenith,a);float moon=smoothstep(.99972,.99983,dot(normalize(p),normalize(vec3(-28.,33.,-52.))));c+=vec3(3.6,3.4,2.8)*moon;gl_FragColor=vec4(c,1.);}'});const sky=new THREE.Mesh(skyGeometry,skyMaterial);this.scene.add(sky);this.dynamicResources.push(skyGeometry,skyMaterial);
   }
   floor(x,z,w,d,c){this.box(x,-.028,z,w,.1,d,c,'ground');}
   path(x,z,w,d){this.floor(x,z,w,d,'#536963');this.box(x,.025,z,w-.15,.015,d-.15,'#536963','ground');
@@ -172,7 +171,7 @@ export class World {
     this.floor(0,-2,26,33,'#4b665b');this.path(0,-2,4.4,32);this.path(0,1,23,3.5);this.path(6,7,12,3);
     for(let i=0;i<7;i++){this.tree(-4.3,8-i*3.8,1.25+(i%2)*.2,80+i);this.tree(4.3,8-i*3.8,1.35,90+i);}
     for(const [x,z] of [[-2.7,6],[2.7,6],[-2.7,-1],[2.7,-1],[-2.7,-9],[2.7,-9]])this.lamp(x,z,'blue');
-    for(const e of EDGES.filter(e=>e.scene==='history'))this.edge(e);
+    for(const e of EDGES.filter(e=>e.scene==='history')){if(e.render===false)this.edgeObjects.push({...e,result:visibleEdge(e,this.lens)});else this.edge(e);}
   }
   particles(){
     const r=random(this.kind==='studio'?33:71),count=this.kind==='studio'?95:130,p=new Float32Array(count*3),phase=new Float32Array(count);
@@ -187,12 +186,11 @@ export class World {
     }
   }
   setWaypoint(point){
-    if(!point){if(this.waypoint)this.waypoint.visible=false;return;}
-    if(!this.waypoint){this.waypoint=new THREE.Group();const marker=new THREE.Mesh(geo.diamond,material.teal);marker.scale.set(.18,.55,.18);this.waypoint.add(marker);const ring=new THREE.Mesh(geo.ring,material.teal);ring.scale.set(.4,.4,.4);ring.rotation.x=Math.PI/2;ring.position.y=-2.3;this.waypoint.add(ring);this.scene.add(this.waypoint);}
-    this.waypoint.visible=true;this.waypoint.position.set(point[0],2.5,point[1]);
+    const key=point?.join(',')??'';if(key===this.markerKey)return;this.markerKey=key;this.markerPoint=point?.slice();this.moveMarker(0);
   }
+  moveMarker(t){if(!this.markerBatch)return;const p=this.markerPoint;pose.position.set(p?.[0]??0,p?2.4+Math.sin(t*1.5)*.08:0,p?.[1]??0);pose.scale.set(p ? .18 : 0,p ? .55 : 0,p ? .18 : 0);pose.rotation.set(0,t*.35,0);pose.updateMatrix();this.markerBatch.setMatrixAt(this.markerIndex,pose.matrix);this.markerBatch.instanceMatrix.needsUpdate=true;}
   update(t,position){
-    if(this.waypoint?.visible){this.waypoint.rotation.y=t*.35;this.waypoint.position.y=2.5+Math.sin(t*1.5)*.08;}
+    if(this.markerPoint)this.moveMarker(this.reduced?0:t);
     if(position&&this.kind==='studio')this.sun.color.copy(makersSun).lerp(commonsSun,THREE.MathUtils.smoothstep(position.x,9,17));
     const time=this.reduced?0:t;
     for(const a of this.animated){
@@ -212,7 +210,7 @@ export class World {
     for(const e of this.edgeObjects){if(this.zone(e,x,z)&&(()=>{const r=visibleEdge(e,this.lens);return r.state==='hidden'||r.state==='private'||r.type==='window'||(r.type==='door'&&!this.granted.has(e.id));})())return false;}
     return true;
   }
-  nearest(x,z,yaw=0){let found=null,dist=Infinity;for(const e of this.edgeObjects){if(e.result.state==='hidden')continue;const dx=e.position[0]-x,dz=e.position[1]-z,d=Math.hypot(dx,dz);if(d>1.4&&(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)<.1)continue;if(d<4&&d<dist){dist=d;found=e;}}return found;}
+  nearest(x,z,yaw=0){let found=null,dist=Infinity;for(const e of this.edgeObjects){if(e.render===false)continue;if(e.result.state==='hidden')continue;const dx=e.position[0]-x,dz=e.position[1]-z,d=Math.hypot(dx,dz);if(d>1.4&&(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)<.1)continue;if(d<4&&d<dist){dist=d;found=e;}}return found;}
   context(x,z){
     const e=[...this.edgeObjects].filter(e=>e.contextPriority>=0).sort((a,b)=>a.contextPriority-b.contextPriority).find(e=>e.result.state!=='hidden'&&this.zone(e,x,z));
     if(e)return {room:e.to,...(e.host?{inside:ROOMS[e.host].title}:{})};

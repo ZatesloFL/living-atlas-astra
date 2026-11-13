@@ -1,6 +1,6 @@
 export class Diagnostics {
   constructor(){
-    this.build='2026-11-13-g4';this.events=[];this.errors=[];this.current='bootstrap';this.mode='starting';this.contextFailed=false;
+    this.build='2026-11-13-d';this.events=[];this.errors=[];this.current='bootstrap';this.mode='starting';this.contextFailed=false;
     this.params=new URLSearchParams(location.search);this.safe=this.params.has('safe');this.inject=new Set(this.params.has('test')?(this.params.get('fail')??'').split(','):[]);
     this.ensurePanel();
   }

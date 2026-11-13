@@ -1,5 +1,5 @@
-export const positions={studio:[130,360],commons:[330,360],market:[330,260],night:[330,475],broadcast:[130,475],listening:[130,580],lab:[260,570],tallahassee:[130,220],canopy:[130,125],capitol:[90,45],mission:[270,120],boycott:[355,190],cascades:[355,45],workbench:[45,290],family:[45,405]};
-export const mapTitles={studio:'Studio',tallahassee:'Tallahassee',canopy:'Canopy',capitol:'Capitols',mission:'San Luis',boycott:'1956',cascades:'Cascades',commons:'Commons',market:'Night Market',night:'After Dark',broadcast:'Broadcast',listening:'Listening',lab:'Lab window',workbench:'Workbench',family:'Private'};
+export const positions={square:[235,295],studio:[130,360],commons:[330,360],market:[330,260],night:[330,475],broadcast:[130,475],listening:[130,580],lab:[260,570],tallahassee:[130,220],canopy:[130,125],capitol:[90,45],mission:[270,120],boycott:[355,190],cascades:[355,45],workbench:[45,290],family:[45,405]};
+export const mapTitles={square:'Square',studio:'Studio',tallahassee:'Tallahassee',canopy:'Canopy',capitol:'Capitols',mission:'San Luis',boycott:'1956',cascades:'Cascades',commons:'Commons',market:'Night Market',night:'After Dark',broadcast:'Broadcast',listening:'Listening',lab:'Lab window',workbench:'Workbench',family:'Private'};
 export function layoutAtlasLabels(){
   const nodes=Object.entries(positions),used=[],result={};
   const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;

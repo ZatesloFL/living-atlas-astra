@@ -3,7 +3,7 @@ import {visibleEdge} from './rules.js';
 import {permission} from './permissions.js';
 export function graphEdges(){
  const all=[...EDGES];
- for(const [id,r] of Object.entries(ROOMS))if(!r.layout?.root&&!all.some(e=>e.to===id))all.push({id:'local-'+id,from:r.layout.scene==='history'?'tallahassee':r.district==='commons'?'commons':'studio',to:id,type:'seamless',scene:r.layout.scene,position:r.layout.approach??r.layout.slot});
+ for(const [id,r] of Object.entries(ROOMS))if(!r.layout?.root&&!all.some(e=>e.to===id))all.push({id:'local-'+id,from:r.layout.scene==='square'?'square':r.layout.scene==='history'?'tallahassee':r.district==='commons'?'commons':'studio',to:id,type:'seamless',scene:r.layout.scene,position:r.layout.approach??r.layout.slot});
  for(const e of [...all])if(!all.some(x=>x.from===e.to&&x.to===e.from)&&e.type!=='window')all.push({...e,id:'reverse-'+e.id,originalId:e.id,from:e.to,to:e.from,reversed:true,scene:ROOMS[e.to].layout.scene,destination:ROOMS[e.to].layout.scene!==ROOMS[e.from].layout.scene?ROOMS[e.from].layout.scene:undefined});
  return all;
 }

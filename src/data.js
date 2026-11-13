@@ -1,3 +1,4 @@
+import {addCommunityRooms} from './community-data.js';
 import {addExhibits} from './exhibit-data.js';
 import {addArrivals} from './arrivals.js';
 import {addAudienceData} from './audience-data.js';
@@ -69,6 +70,7 @@ export const EDGES = [
   {id:'city-boycott',from:'tallahassee',to:'boycott',type:'seamless',scene:'history',position:[8,-3]},
   {id:'city-cascades',from:'tallahassee',to:'cascades',type:'seamless',scene:'history',position:[8,7]},
 ];
+addCommunityRooms(ROOMS,EDGES,room,scores);
 const zones={
  'studio-city':{x:[-1.9,1.9],z:[-Infinity,-11.7]},'city-studio':{x:[-1.9,1.9],z:[10.7,Infinity]},
  'studio-commons':{x:[12.5,Infinity]},'commons-market':{x:[17,27],z:[-Infinity,-5.2]},'commons-night':{x:[29.1,Infinity],z:[-1.5,5.5]},
@@ -77,7 +79,7 @@ const zones={
 };
 EDGES.push({id:'city-studio',from:'tallahassee',to:'studio',type:'door',scene:'history',position:[0,11],before:[0,9.2],destination:'studio'});
 const contexts=['studio-writing','commons-archive','broadcast-listening','commons-night','commons-market','studio-commons','canopy-capitol','city-boycott','city-mission','city-cascades','studio-broadcast'];
-for(const edge of EDGES){edge.zone??=zones[edge.id];edge.contextPriority=contexts.indexOf(edge.id);}
+for(const edge of EDGES){edge.zone??=zones[edge.id];edge.contextPriority??=contexts.indexOf(edge.id);}
 
 addArrivals(ROOMS,EDGES);
 

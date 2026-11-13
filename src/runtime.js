@@ -17,6 +17,8 @@ const {AccessUI}=await diag.asyncRun('access UI module',()=>import('./access-ui.
 const {graphRoute,resolveAddress,beforeDoor,approach}=await diag.asyncRun('travel module',()=>import('./navigation.js'));
 const {FastTravel}=await import('./fast-travel.js');
 const {planRoute}=await import('./travel-plan.js');
+const {Discovery,reachable}=await import('./discovery.js');
+const {CommunityUI}=await import('./community-ui.js');
 const {permission,roomTitle}=await import('./permissions.js');
 const {versionLabel}=await import('./audience.js');
 const {LayerUI}=await import('./experience-ui.js');
@@ -26,11 +28,12 @@ const $=id=>document.getElementById(id);
 const reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const profiles=diag.run('profiles',()=>new ProfileStore());
 const access=diag.run('room access',()=>new AccessStore());await diag.asyncRun('room receipts',()=>access.ready);
-let previewState=null,compareWorld=null,previewRatio=null,buildUI,layerUI;
+let previewState=null,compareWorld=null,previewRatio=null,buildUI,layerUI,discovery,communityUI;const firstVisit=!profiles.completed;let firstArrivalPending=firstVisit;
 const previewLens=id=>access.lens({...structuredClone(profiles.profiles.find(p=>p.id===id)??profiles.active()),profileId:id,profileName:profiles.profiles.find(p=>p.id===id)?.name,preview:true,testMode:true});
 const currentLens=()=>previewState?previewLens(previewState.left):access.lens(profiles.current());
-let profileUI,page,pageOrigin,selectedRoom,accessUI,travel,waypoint=null,place=null,expiryTimer;
+let profileUI,page,pageOrigin,selectedRoom,accessUI,travel,waypoint=null,place=null,expiryTimer,waypointRouteCache=null;
 let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>currentLens()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,titlePosition=null,active=true,near=null,contextKey='studio';
+const startPrefs=lens.discovery??{},savedPlace=startPrefs.lastPlace;kind=firstVisit||startPrefs.startAt==='square'?'square':startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)?ROOMS[savedPlace.room].layout.scene:'studio';context={room:kind==='square'?'square':kind==='history'?'tallahassee':'studio'};
 const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110));
 let labels=null;
 const raycaster=new THREE.Raycaster(),tapPoint=new THREE.Vector2();
@@ -43,15 +46,16 @@ function rebuild(next=kind){
   near=null;updateContext();ui.prompt(null);
 }
 function fadeTo(action){if(reducedQuery.matches){action();return;}transition={start:performance.now(),action,done:false};controls.resetInput();}
-function changeScene(next){fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':'Makers Row'}`);});}
+function changeScene(next){stopMedia();fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':next==='square'?'Town Square':'Makers Row'}`);});}
 function lensChanged(){travel?.cancel();place=null;if(!previewState)profiles.preferences(lens);lens=currentLens();profileUI?.refresh();controls.resetInput();if(page&&!page.root.hidden)rebuild();else fadeTo(()=>rebuild());}
-async function applyProfile(){travel?.cancel();place=null;waypoint=null;lens=currentLens();controls?.resetInput();if(lens.form==='page'){rebuild();setTimeout(()=>openPage(context.room),0);}else fadeTo(()=>rebuild());profileUI?.refresh();}
+async function applyProfile(){travel?.cancel();place=null;waypoint=null;lens=currentLens();controls?.resetInput();if(firstArrivalPending&&profiles.completed){firstArrivalPending=false;controls.teleport(0,6);rebuild('square');ui.title('square');}if(lens.form==='page'){rebuild();setTimeout(()=>openPage(context.room),0);}else fadeTo(()=>rebuild());profileUI?.refresh();}
 async function switchProfile(id){if(previewState)buildUI.exit();await profiles.switchProfile(id);await applyProfile();}
 function enter(edge){
   const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window')return;
   if(edge.travel){travel.start(edge.to);return;}
   if(!result.rights?.canEnter)return;
   if(edge.readTarget){focusRoom(edge.readTarget,true);return;}
+  if(edge.portal){startTravel(edge.to);if(travel.session){travel.session.confirmed.add(edge.id);travel.render();}return;}
   if(edge.destination){changeScene(edge.destination);return;}
   world.granted.add(edge.id);
   const [x,z]=edge.position;
@@ -61,9 +65,10 @@ function enter(edge){
 }
 function selectId(id){
   mediaContext({mode:'3d',lens,scene:kind,position:controls.position});
+  if(id==='noticeboard'||id==='neighborhood-board'){communityUI.open('board');return;}if(id==='events-board'){communityUI.open('events');return;}if(id==='trails-kiosk'){communityUI.open('trails');return;}if(id==='guide'){communityUI.open('trails');return;}if(id?.startsWith('person:')){communityUI.open('people');return;}
   if(id?.startsWith('exhibit:')){const [,room,block,photo]=id.split(':');ui.info(room);const node=ui.content.querySelector('[data-block-id="'+block+'"]');node?.scrollIntoView({block:'start'});if(photo!==undefined)node?.querySelector('[data-value="'+photo+'"]')?.click();else node?.querySelector('[data-kit-event=tap]')?.click();return;}
   if(id?.startsWith('layer:')){const [,room,layer]=id.split(':');layerUI.peek(room,layer);return;}
-  if(id?.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e)ui.edge(e);}
+  if(id?.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e?.portal)startTravel(e.to);else if(e)ui.edge(e);}
   else if(id){selectedRoom=id;ui.info(id);}
 }
 function select(x,y){
@@ -76,11 +81,11 @@ function select(x,y){
 }
 function updateContext(){
   if(place&&(place.scene!==kind||Math.hypot(place.x-controls.position.x,place.z-controls.position.z)>1.8||!permission(ROOMS[place.id],lens).canEnter))place=null;context=place?{room:place.id}:world.context(controls.position.x,controls.position.z);ui.location(context);const label=versionLabel(ROOMS[context.room],lens),badge=document.getElementById('audience-hud');if(badge){const hideBadge=!label||!!previewState;if(badge.hidden!==hideBadge)badge.hidden=hideBadge;if(badge.textContent!==label)badge.textContent=label;}
-  if(context.room!==contextKey){contextKey=context.room;const name=ROOMS[context.room].title;if(!lens.preview&&!travel?.active&&!document.body.classList.contains('page-mode')&&permission(ROOMS[context.room],lens).canEnter){access.use(context.room,'enter',lens).catch(error=>ui.toast(error.message));access.recent(context.room,lens);}
+  if(context.room!==contextKey){contextKey=context.room;const name=ROOMS[context.room].title;if(profiles.completed&&!lens.preview&&!travel?.active&&!document.body.classList.contains('page-mode')&&permission(ROOMS[context.room],lens).canEnter){access.use(context.room,'enter',lens).catch(error=>ui.toast(error.message));access.recent(context.room,lens);}
     if(context.room==='market')ui.toast('Night Market reads louder than it says: Sensory 2.');else if(context.inside)ui.toast('Inside: Broadcast booth · host rules apply');else ui.toast(`Entered ${DISTRICT_NAME(context.room)}`);
   }
 }
-function DISTRICT_NAME(id){return {studio:'Makers Row',commons:'the Commons',night:'After Dark',tallahassee:'History Quarter',capitol:'the Capitol grounds'}[id]??ROOMS[id].title;}
+function DISTRICT_NAME(id){return {square:'Town Square',studio:'Makers Row',commons:'the Commons',night:'After Dark',tallahassee:'History Quarter',capitol:'the Capitol grounds'}[id]??ROOMS[id].title;}
 function loop(time){
   frame=requestAnimationFrame(loop);if(!active)return;
   const elapsed=(time-lastTime)/1000||.016,dt=Math.min(elapsed,.05);lastTime=time;
@@ -92,8 +97,8 @@ function loop(time){
   try{graphics.render(world.scene,camera,Math.max(0,fade));}catch(error){diag.fallback('frame render',error);return;}
   if(labels&&previewState?.split)labels.visible=[];else if(labels)try{labels.update(world,camera);}catch(error){diag.record('labels update',error,'Nameplates disabled; object selection and Page form remain available.');labels=null;$('world-labels')?.replaceChildren();}
   frames++;period+=elapsed;
-  if(frames%8===0){mediaContext({mode:'3d',lens,scene:kind,position:controls.position});updateContext();const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
-  if(period>=1){fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind,level:graphics.status().label});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}
+  if(frames%8===0){mediaContext({mode:'3d',lens,scene:kind,position:controls.position});updateContext();if(!travel?.active&&!previewState)discovery?.progress({room:context.room,scene:kind,position:controls.position});const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
+  if(period>=1){refreshReminders();rememberPlace();fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind,level:graphics.status().label});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}
 }
 function staticControls(){
   const position=new THREE.Vector3(0,1.88,SPAWN_Z);const fallback={position,smoothYaw:0,reduced:reducedQuery.matches,resetInput(){},update(){},apply(){camera.position.copy(position);camera.rotation.set(.065,0,0,'YXZ');},teleport(x,z,yaw=0){position.set(x,1.88,z);this.smoothYaw=yaw;camera.position.copy(position);camera.rotation.set(.065,yaw,0,'YXZ');}};fallback.apply();return fallback;
@@ -125,11 +130,12 @@ graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
-ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,discover:section=>communityUI.open(section),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
 rebuild();controls.apply();
+if(!firstVisit&&startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)&&Array.isArray(savedPlace.position)&&savedPlace.position.length===2&&savedPlace.position.every(Number.isFinite)&&world.canStand(...savedPlace.position)){controls.teleport(...savedPlace.position,Number(savedPlace.facing)||0);place={id:savedPlace.room,scene:kind,x:savedPlace.position[0],z:savedPlace.position[1]};updateContext();}
 accessUI=new AccessUI(ui,access,{state,changed:refreshAccess});
 layerUI=new LayerUI(ui,access,{state,changed:experienceChanged});
 buildUI=new BuildUI(ui,profiles,{hud,apply:applyPreview,exit:exitPreview,split:value=>{if(previewState)previewState.fraction=value;if(graphics.comparison)graphics.comparison.split=value;},lenses:()=>({left:currentLens(),right:previewLens(previewState?.right??'seed-child')})});
@@ -145,20 +151,26 @@ function landArrival(arrival,route,confirmed){
  if(!next.canStand(...arrival.position)){next.dispose();throw new Error('That landing point is obstructed. Choose Outside or Door.');}
  world.dispose();world=next;kind=arrival.scene;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.teleport(...arrival.position,arrival.facing);place={id:arrival.room,scene:kind,x:arrival.position[0],z:arrival.position[1]};near=null;ui.prompt(null);ui.fadeTitle();
 }
+discovery=new Discovery(profiles,access,{lens:()=>lens,changed:()=>{lens=currentLens();world.lens=lens;},waypoint:setWaypoint,clearWaypoint:()=>{waypoint=null;updateWaypoint();},message:(t)=>ui.toast(t)});
+communityUI=new CommunityUI(ui,discovery,{room:()=>context.room,travel:startTravel,waypoint:setWaypoint,page:openPage,layer:(room,id)=>layerUI.peek(room,id),reminders:refreshReminders});
+const eventChip=document.createElement('aside');eventChip.id='event-reminder';eventChip.hidden=true;hud.mount(eventChip,55);let reminderSignature='',lastRemember=0;
+function refreshReminders(){if(!discovery||!eventChip)return;const event=discovery.reminders()[0],sig=event?lens.profileId+':'+event.id:'';if(sig===reminderSignature)return;reminderSignature=sig;eventChip.hidden=!event;if(!event)return;eventChip.replaceChildren();const text=document.createElement('span');text.textContent='Event starting · '+event.title;const open=document.createElement('button');open.textContent='View';open.onclick=()=>communityUI.open('events');const dismiss=document.createElement('button');dismiss.textContent='Dismiss';dismiss.onclick=()=>{discovery.save({dismissed:[...discovery.prefs().dismissed,event.id]});refreshReminders();};eventChip.append(text,open,dismiss);if(!discovery.notified.has(sig)){discovery.notified.add(sig);ui.toast('Your sample event is starting soon.',{duration:6000,label:'View',action:()=>communityUI.open('events')});}}
+function rememberPlace(force=false){if(!profiles.completed||lens.preview||travel?.active||ui.mode&&!force||!force&&performance.now()-lastRemember<5000)return;lastRemember=performance.now();const previous=discovery?.prefs().lastPlace,position=[controls.position.x,controls.position.z];if(discovery&&(!previous||previous.room!==context.room||Math.hypot(previous.position?.[0]-position[0],previous.position?.[1]-position[1])>.2))discovery.remember({room:context.room,position,facing:controls.smoothYaw});}
+window.addEventListener('pagehide',()=>rememberPlace(true));
 const compass=document.createElement('aside');compass.id='compass';compass.hidden=true;compass.innerHTML='<span data-bearing>↑</span><button data-status></button><button data-cancel>Clear</button>';hud.mount(compass,60);compass.querySelector('[data-cancel]').onclick=()=>{travel.cancel();waypoint=null;world.setWaypoint(null);compass.hidden=true;ui.close();};compass.querySelector('[data-status]').onclick=()=>{if(waypoint)startTravel(waypoint);};
 let expiryState=expirySignature();expiryTimer=setInterval(()=>{const next=expirySignature();if(next!==expiryState){expiryState=next;refreshAccess();ui.toast('Access changed or expired; the scene has been checked again.');}},1000);
 function expirySignature(){return access.data.grants.map(g=>g.id+':'+!!g.revokedAt+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|');}
 function refreshAccess({preserveAccess=false}={}){place=null;lens=currentLens();if(world)rebuild();if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
-function setWaypoint(id){if(graphRoute(context.room,id,lens)===null){ui.toast('No permitted route for a waypoint.');return;}waypoint=id;ui.fadeTitle();updateWaypoint();}
+function setWaypoint(id){if(planRoute(context.room,id,lens)===null||!permission(ROOMS[id],lens).canLook){ui.toast('No permitted route for a waypoint.');return;}waypoint=id;ui.fadeTitle();updateWaypoint();}
 function startTravel(id){ui.close();if(previewState)buildUI.exit();if(page){page.close();resume3D(pageOrigin);}travel.start(id);}
 function goAddress(value){const id=resolveAddress(value,lens);if(!id||roomEntry(id,lens,EDGES).state==='hidden'){ui.toast('No accessible room at that address.');return;}if(planRoute(context.room,id,lens)===null){accessUI.open(id);return;}startTravel(id);}
 function updateWaypoint(){
  const panel=document.getElementById('compass');if(!panel||!world)return;const target=waypoint;
  if(!target||!permission(ROOMS[target],lens).visible||roomEntry(target,lens,EDGES).state==='hidden'){if(!panel.hidden)panel.hidden=true;world.setWaypoint(null);return;}
- const route=graphRoute(context.room,target,lens);if(route===null){if(!panel.hidden)panel.hidden=true;world.setWaypoint(null);waypoint=null;return;}
+ const cache=waypointRouteCache;const route=cache?.from===context.room&&cache?.to===target&&cache?.lens===lens?cache.route:planRoute(context.room,target,lens);waypointRouteCache={from:context.room,to:target,lens,route};if(route===null){if(!panel.hidden)panel.hidden=true;world.setWaypoint(null);waypoint=null;return;}
  let point=approach(ROOMS[target]),via='';if(ROOMS[target].layout.scene!==kind){const door=route.find(e=>e.destination);if(door){point=beforeDoor(door);via=' · next doorway';}}
 
- world.setWaypoint(point);const dx=point[0]-controls.position.x,dz=point[1]-controls.position.z,bearing=Math.atan2(-dx,-dz)-controls.smoothYaw;if(panel.hidden)panel.hidden=false;panel.querySelector('[data-bearing]').style.transform=`rotate(${-bearing*180/Math.PI}deg)`;const statusText=`${'Waypoint'} · ${roomTitle(ROOMS[target],lens)} · ${Math.round(Math.hypot(dx,dz))} m${via}`;const status=panel.querySelector('[data-status]');if(status.textContent!==statusText)status.textContent=statusText;const cancelText='Clear',cancel=panel.querySelector('[data-cancel]');if(cancel.textContent!==cancelText)cancel.textContent=cancelText;
+ world.setWaypoint(point);const dx=point[0]-controls.position.x,dz=point[1]-controls.position.z,bearing=Math.atan2(-dx,-dz)-controls.smoothYaw;if(panel.hidden)panel.hidden=false;panel.querySelector('[data-bearing]').style.transform=`rotate(${-bearing*180/Math.PI}deg)`;const trailProgress=discovery?.prefs().trail;const statusText=`${trailProgress?.active?'Trail '+(trailProgress.index+1):'Waypoint'} · ${roomTitle(ROOMS[target],lens)} · ${Math.round(Math.hypot(dx,dz))} m${via}`;const status=panel.querySelector('[data-status]');if(status.textContent!==statusText)status.textContent=statusText;const cancelText='Clear',cancel=panel.querySelector('[data-cancel]');if(cancel.textContent!==cancelText)cancel.textContent=cancelText;
 }
 
 diag.run('first scene update',()=>world.update(0));
@@ -179,6 +191,6 @@ if(profiles.completed&&lens.form==='page')openPage(context.room);
 const initialRoom=diag.params.get('room');if(initialRoom&&ROOMS[initialRoom]&&profiles.completed&&initialRoom!==context.room)readRoom(initialRoom,false);
 const invite=diag.params.get('invite');if(invite){const g=access.data.grants.find(g=>g.id===invite&&g.kind==='invite'&&g.to.person===lens.profileId&&!g.revokedAt&&(!g.expires||Date.parse(g.expires)>Date.now()));const id=g&&Object.keys(ROOMS).find(id=>ROOMS[id].id===g.room);if(id)startTravel(id);else ui.toast('This local invite is missing, expired, or addressed to another profile.');}
 if(new URLSearchParams(location.search).has('test')){
-  window.__atlas={travel,access,build:buildUI,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
+  window.__atlas={discovery,community:communityUI,travel,access,build:buildUI,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
 }
 }
