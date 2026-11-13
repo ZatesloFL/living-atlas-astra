@@ -12,6 +12,7 @@ You are one of two builders working on the same prototype in parallel. The other
 8. `docs/shared/08-brief-round-2c-arrival-and-presentation.md`: **the current round** (fast travel with pre-flight and fade, HUD zones, bus boycott exhibit, designed Page). Do it before rounds 3 and 4.
 6. `docs/shared/06-brief-round-3-queued.md`: **queued.** Read it for direction so your 2a work doesn't block it, but don't start it until Nic says go.
 7. `docs/shared/07-brief-round-4-connected-sources-queued.md`: **queued.** Don't build it yet, but A6's block model must already support its source pointers (see its last section).
+9. `docs/shared/09-brief-builder-gus-queued.md`: **queued** (Build mode and Atlas Gus). Don't build it yet, but round 2c's exhibits must be reusable components with behaviors as data (see its section "What round 2c must already do").
 
 `docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
 

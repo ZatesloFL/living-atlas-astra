@@ -41,6 +41,8 @@ Build a small exhibit in the History Quarter that shows off display types. Use *
 4. **Newspaper front page:** on a reading stand under a lamp; tap to zoom and pan; headline and article columns readable. In Page: a clipping-style figure with zoom.
 5. **The bus:** a walk-around model with a simple interactive seat map showing where riders were made to sit, with short captions. In Page: an annotated diagram.
 
+**Build them as kit pieces:** each exhibit is a reusable component with a settings schema, and its interactivity (play on tap, pause on leave, seat stories) is expressed as When → If → Then behavior records the engine interprets. See `09-brief-builder-gus-queued.md`.
+
 **Media honesty (required):** there's no network access to real archives yet and nothing may be fabricated as authentic. Use **clearly labeled sample media**: generated imagery, a short generated animation or slide sequence for video, speech synthesis reading a sample transcript for audio, and an obviously sample newspaper layout with lorem-style or explicitly fictional placeholder copy. Every exhibit shows a visible **"Sample media · real archive to connect"** label and a source pointer marked *not synced* (round 4 plugs in real sources). Captions and transcripts are sample text marked *to verify*.
 
 Content scores per exhibit: set so Kids sees the Textbook-appropriate exhibits and Teen/Adult see more (use the audience versions from Tier C).
