@@ -6,7 +6,7 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [de781c6](https://github.com/ZatesloFL/living-atlas-astra/commit/de781c6c25ec3ef91bcf58c8fe2f5ce5d6db2f93). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [ad915ff](https://github.com/ZatesloFL/living-atlas-astra/commit/ad915ff). The session report is committed afterward as documentation.
 
 ## Run and verify
 
@@ -87,3 +87,5 @@ What you'd do next with one more session.
 - `tests/tier-b-browser.cjs`: eight access/travel browser checks (same Playwright and ATLAS_URL environment variables). `tests/polish-browser.cjs`: five diagnostics/labels checks. Access receipts, grants, pins and recents are browser-local simulation.
 
 - `tests/tier-c-browser.cjs`: nine audience/style/layer/creator checks, including a native touch divider drag, reload persistence, owner merge and split full-bloom validation. Same Playwright and ATLAS_URL variables. Layer merges are browser-local and credited in the room ledger; creator preview does not switch the saved profile.
+
+- Current work: round 2c G2 → G1 → G3 → G4, then authorized simulated round 3 D/E. Reports continue at `2026-11-12-06`. `tests/hud-browser.cjs` checks both Pixel orientations for HUD intersections; default local test URL is port 8003. Brief 08 records Nic’s Level 1 baseline: 60 fps, DPR 1.65, 17–22 draws.
