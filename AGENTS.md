@@ -17,6 +17,8 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 11. `docs/shared/11-round-2b-proxy-approval-checklist.md`: **the approval gate for round 2b.** When you propose the round 2b proxy plan, answer its checks 1-11 in order in a lane report, each with evidence, then stop for Nic's approval. No schema changes or deployments before his go.
 12. `docs/shared/12-simplification-and-unification-crossing-engine.md`: **standing design direction** (the crossing engine: five primitives, one verb, declare→measure→show the gap, one grant object, pre-flight for all plans). Adopt its vocabulary in all new work and proposals, including the round 2b plan; map existing records onto it only at natural refactors and log mappings in `lane/decisions.md`. It does not interrupt round 2c or pull queued rounds forward.
 
+13. `docs/shared/13-project-bridge-second-look-rails.md`: **standing design direction** (Second Look projects as backed Things: backing not copying, the `backing_ref` slot, Atlas never mints backing identity). Add the slot at the next natural data-model touch and log it in `lane/decisions.md`; it does not interrupt round 2c, pull queued rounds forward, or authorize any live integration yet.
+
 `docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
 
 ## Where things go
