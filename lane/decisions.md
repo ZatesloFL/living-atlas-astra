@@ -98,3 +98,11 @@ One line per call the brief did not settle, with the reason.
 - G4: make Depth a cycling button in the sticky reader bar, with Content/Layers opening their section in a modal settings sheet; the Room dropdown moves behind Places.
 - G4: show community layers as expandable inline notes on phones and a margin column on wide screens; integration remains explicit and credited.
 - G4: keep source statuses, authorship, fictional media labels and identity badges visible within the designed article; no visual treatment implies historical verification.
+- D: map “my homestead” to the existing Nic’s Studio sample; first visits start in Town Square, while returning profiles default to that homestead and can choose Square or a safe saved place.
+- D: use graph-hop count for Nearest, explicitly explained on the board, because the rooms span virtual districts and do not share reliable surveyed distances.
+- D: use four small virtual research stations to complete the six-stop civil-rights trail; labels explicitly deny that they are historical event sites.
+- D: anchor sample events to a saved browser-local epoch (first tour starts two minutes later, table event two days later), so RSVP timing survives reload without a live calendar.
+- D: retain user-selected curator order, follows, trail progress, RSVPs, privacy and spawn preference in each local profile; no messages or live presence are sent.
+- D: render the moon in the existing sky pass, batch painted lamp caps with stone, and instance the waypoint beacon into the shared marker batch; this offsets the Town Square return portal within the draw budget.
+- D: share rounded planter foliage with the tree-leaf geometry; four-direction full-quality probes now stay at Square 16–18, Studio 17–22 and History 16–20 draw calls. These are draw counts, not physical Pixel fps.
+- File 12 arrived at the D checkpoint. Adopt Place/Thing/Path/Lens/Receipt vocabulary in the new staff work; helpers attach to Places, use the existing scoped grant records, and propose through checked door Paths. Grants and pending proposals will have explicit leases; existing records are mapped only where staff integration naturally touches them.
