@@ -13,7 +13,7 @@ You are one of two builders working on the same prototype in parallel. The other
 6. `docs/shared/06-brief-round-3-queued.md`: **queued.** Read it for direction so your 2a work doesn't block it, but don't start it until Nic says go.
 7. `docs/shared/07-brief-round-4-connected-sources-queued.md`: **queued.** Don't build it yet, but A6's block model must already support its source pointers (see its last section).
 9. `docs/shared/09-brief-builder-gus-queued.md`: **queued** (Build mode and Atlas Gus). Don't build it yet, but round 2c's exhibits must be reusable components with behaviors as data (see its section "What round 2c must already do").
-10. `docs/shared/10-ai-and-server-plan-queued.md`: **queued** (Supabase, AI proxy, model routing, voice). **One part applies now:** every AI-touching feature goes through the single `ai.request` interface with a `simulated` provider (see its "Do this now" section).
+10. `docs/shared/10-ai-and-server-plan-queued.md`: **next after round 2c, before round 3** (Supabase, AI proxy, model routing, voice). Nic has created the Supabase project and added the provider keys as Edge Function secrets. **One part applies now:** every AI-touching feature goes through the single `ai.request` interface with a `simulated` provider (see its "Do this now" section).
 
 `docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
 
@@ -31,7 +31,7 @@ You are one of two builders working on the same prototype in parallel. The other
 1. Target: Chrome on a Google Pixel phone, portrait first, landscape working. 3D-game visual quality, stable 60 fps.
 2. Work the current round's goals in order (round 2c: G2 HUD zones first, then G1, G3, G4). Make each solid before starting the next.
 3. Push commits directly to `main` with clear messages so GitHub Pages updates. If you can't push to main, open a PR and tell Nic.
-4. No backend, login or live AI. Visitors view and make permitted edits; no creating new rooms from scratch.
+4. No backend, login or live AI until round 2b (file 10) starts. From then: Supabase is the only backend; provider keys exist only as Edge Function secrets and must never appear in the repo, page, logs or reports; schema changes and deployments are proposed to Nic and applied only after he approves. Local-only mode must keep working. Visitors still can't create new rooms from scratch until round 5.
 5. You can't see the app running. After each tier, tell Nic exactly what to check on his phone. His feedback is the source of truth for visuals, feel and frame rate. Anything you couldn't verify yourself is Partial until he confirms it.
 6. Only stop and ask for something that truly blocks the build. Otherwise make the most reasonable call, log it in `lane/decisions.md`, and keep going.
 7. Privacy: sample content about Nic stays at the level in the brief. No family details beyond the private-room doorway, no home address, no named private people.
