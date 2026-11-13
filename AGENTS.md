@@ -1,6 +1,6 @@
 # Living Atlas: instructions for the builder (GPT Astra)
 
-You are one of two builders working on the same prototype in parallel. The other builder works in a separate repo from the same instructions. Nic (the owner) compares the results.
+You are the sole builder of the Living Atlas prototype. (An earlier plan for a parallel second builder was dropped.) Nic is the owner; his phone testing is the final word on look, feel and performance.
 
 ## Read first, in order
 
