@@ -2,10 +2,21 @@ export const ORIGIN='https://zateslofl.github.io';
 export const GUIDE_SCHEMA='atlas-evidence-answer-v1';
 export const MODEL_SCHEMA='atlas-model-check-v1';
 export const BUILDER_SCHEMA='atlas-kit-proposal-v1';
+// Closed diagnostic vocabulary: never persist error messages or provider text.
+export const FAILURE_CLASSES=Object.freeze([
+ 'provider_key_missing','provider_request_failed','provider_response_invalid',
+ 'provider_usage_invalid','provider_output_incomplete','provider_content_invalid',
+ 'proposal_json_invalid','proposal_schema_invalid','evidence_block_not_visible',
+ 'evidence_quote_not_exact','builder_validation_failed','dispatch_recheck_failed',
+ 'result_recheck_failed','accounting_bound_exceeded','reservation_expired',
+ 'dispatch_outcome_unknown','unclassified_rejection'
+]);
+export const failureClass=value=>FAILURE_CLASSES.includes(value)?value:'unclassified_rejection';
 export class Fault extends Error {
  constructor(code,status=400,retry=0){super(code);this.code=code;this.status=status;this.retry=retry;}
 }
 export const fail=(code,status=400,retry=0)=>{throw new Fault(code,status,retry);};
+export const rejectProposal=kind=>{throw Object.assign(new Fault('BAD_PROPOSAL',502),{failureClass:failureClass(kind)});};
 export const bytes=s=>new TextEncoder().encode(s);
 export const id=()=>crypto.randomUUID();
 export const iso=n=>new Date(n).toISOString();
@@ -41,8 +52,8 @@ export function envelope(route,prompt,syntheticPromptHash=null){
  if(!Number.isSafeInteger(reserved)||reserved<=0)fail('LIVE_UNAVAILABLE',503);
  return {input,reserved};
 }
-export function receipt(attempt,usage,accepted,amount,basis,time){
+export function receipt(attempt,usage,accepted,amount,basis,time,failure){
  const r={id:attempt.id,time:iso(time),job:attempt.accounting.job,model:attempt.accounting.model,agent:attempt.accounting.agent};
  for(const k of ['input','output','cache_read','cache_write','reasoning'])r[k+'_tokens']=usage?.[k+'_tokens']??null;
- return {...r,cost_microusd:amount,cost_basis:basis,validation_passed:accepted,result:accepted?'accepted':'rejected'};
+ return {...r,cost_microusd:amount,cost_basis:basis,validation_passed:accepted,result:accepted?'accepted':'rejected',failure_class:accepted?null:failureClass(failure)};
 }

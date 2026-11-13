@@ -2,7 +2,7 @@ import catalog from './catalog.js';
 import cases from './builder-cases.json' with {type:'json'};
 import builderSchema from './builder-schema.json' with {type:'json'};
 import {validateComponent} from './kit.js';
-import {exact,fail,GUIDE_SCHEMA,BUILDER_SCHEMA} from './core.js';
+import {exact,fail,rejectProposal,GUIDE_SCHEMA,BUILDER_SCHEMA} from './core.js';
 export {catalog,builderSchema};
 const dims=['violence','sexual','language','disturbing','viewpoint','sensory'];
 const rank={Glance:0,Standard:1,Deep:2},importance={core:0,supporting:1,detail:2};
@@ -48,9 +48,13 @@ export function prepare(spec){
  return {prompt:JSON.stringify({instruction:'Propose records only. Follow the schema and existing kit; no executable code, external sources, identity, grant or publication changes. Preserve sample / fictional / generated labels. Unsupported crossings produce a capability_gap. Nothing is applied.',schema:builderSchema,case:cases.cases.find(c=>c.id===spec.context.caseId),components:catalog.components}),blocks:[]};
 }
 export function validateAnswer(value,blocks){
- exact(value,['excerpts']);if(!Array.isArray(value.excerpts)||value.excerpts.length>3)fail('BAD_PROPOSAL',502);
- const quotes=[];for(const e of value.excerpts){exact(e,['blockId','quote']);const b=blocks.find(b=>b.id===e.blockId);
-  if(!b||typeof e.quote!=='string'||!e.quote.trim()||e.quote.length>800||!b.body.includes(e.quote))fail('BAD_PROPOSAL',502);quotes.push(e.quote);
+ // Same acceptance predicates as before; classify only the first failed check.
+ const shape=(v,keys)=>{try{exact(v,keys);}catch{rejectProposal('proposal_schema_invalid');}};
+ shape(value,['excerpts']);if(!Array.isArray(value.excerpts)||value.excerpts.length>3)rejectProposal('proposal_schema_invalid');
+ const quotes=[];for(const e of value.excerpts){shape(e,['blockId','quote']);const b=blocks.find(b=>b.id===e.blockId);
+  if(!b)rejectProposal('evidence_block_not_visible');
+  if(typeof e.quote!=='string'||!e.quote.trim()||e.quote.length>800)rejectProposal('proposal_schema_invalid');
+  if(!b.body.includes(e.quote))rejectProposal('evidence_quote_not_exact');quotes.push(e.quote);
  }
  return {kind:'answer',room:'boycott',reason:'Proposed excerpts from permitted public sample Things; historical claims remain to verify.',text:quotes.length?quotes.join('\n\n'):"I don't know from the blocks available in this view.",citations:[...new Set(value.excerpts.map(e=>e.blockId))]};
 }

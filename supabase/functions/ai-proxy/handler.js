@@ -1,4 +1,4 @@
-import {ORIGIN,Fault,fail,exact,bearer,readJSON} from './core.js';
+import {ORIGIN,Fault,fail,failureClass,exact,bearer,readJSON} from './core.js';
 import {prepare,validateAnswer,validateBuilder} from './protocol.js';
 import {modelCheck,generate} from './providers.js';
 export function createHandler({store,getSecret,fetchImpl=fetch,validateBuilderSchema}){
@@ -36,14 +36,14 @@ export function createHandler({store,getSecret,fetchImpl=fetch,validateBuilderSc
    const attempt=await store.reserve(credential,body,prepared.prompt);
    if(attempt.duplicate)return respond(409,{code:['reserved','dispatched'].includes(attempt.state)?'REQUEST_PENDING':'REQUEST_COMPLETED',receiptId:attempt.id});
    if(!getSecret(attempt.accounting.route.provider==='anthropic'?'ANTHROPIC_API_KEY':'OPENAI_API_KEY')){
-    await store.settle(attempt.id,{notDispatched:true,accepted:false});fail('LIVE_UNAVAILABLE',503);
+    await store.settle(attempt.id,{notDispatched:true,accepted:false,failureClass:'provider_key_missing'});fail('LIVE_UNAVAILABLE',503);
    }
    if(!await store.dispatch(attempt.id))fail('AI_OFF',503);
    const result=await generate({fetchImpl,getSecret},attempt.accounting.route,prepared.prompt);
-   let proposal=null;
-   if(result.value&&result.usage)try{proposal=body.job==='guide'?validateAnswer(result.value,prepared.blocks):validateBuilder(result.value,validateBuilderSchema);}catch{/* fixed failure only */}
-   const r=await store.settle(attempt.id,{usage:result.usage,accepted:!!proposal});
-   if(!r.validation_passed) return respond(502,{code:'BAD_PROPOSAL',receiptId:r.id});
+   let proposal=null,reason=result.failureClass;
+   if(result.usage&&!reason)try{proposal=body.job==='guide'?validateAnswer(result.value,prepared.blocks):validateBuilder(result.value,validateBuilderSchema);}catch(error){reason=body.job==='guide'?failureClass(error?.failureClass):'builder_validation_failed';}
+   const r=await store.settle(attempt.id,{usage:result.usage,accepted:!!proposal,failureClass:reason});
+   if(!r.validation_passed) return respond(502,{code:'BAD_PROPOSAL',receiptId:r.id,failureClass:r.failure_class});
    return respond(200,{proposal,model:r.model,agentId:body.agentId,receiptData:{provider:attempt.accounting.route.provider,job:r.job,model:r.model,agentId:r.agent,result:'proposed',receiptId:r.id}});
   }catch(error){
    const e=error instanceof Fault?error:new Fault('LIVE_UNAVAILABLE',503);

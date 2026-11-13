@@ -5,17 +5,24 @@ Astra writes; Silver applies the implementation commit Nic names (latest handoff
 deployment workflow, live URL or auto-activation. Do not run these files against
 Second Look or another project. The shipped browser singleton remains simulated.
 
-Round 2d's function-only Docent patch is handed off in
-[`lane/reports/2026-11-13-03.md`](../lane/reports/2026-11-13-03.md). Silver handles
-its redeploy and approved live retest before client wiring. The Stage A sequence
-below describes first installation; its migrations are already applied according
-to the operator receipts in `lane/ops/`.
+Round 2d's current diagnostics handoff is
+[`lane/reports/2026-11-13-04.md`](../lane/reports/2026-11-13-04.md). It adds one
+nullable, constrained failure-class column and requires migration before redeploy.
+Silver's v2 retest still returned BAD_PROPOSAL; the live cause remains unknown.
+The Stage A sequence below records the completed initial deployment from
+`1ff544b`, as documented in `lane/ops/`. Use the diagnostics upgrade below for the
+existing live installation; client wiring waits for the operator retest.
 
 ## Files
 
 - `migrations/20261113120000_atlas_ai.sql`: atomic additive forward migration.
   Creates exactly nine tables and nine indexes in the new private `atlas_ai`
   schema. Existing-name collisions abort; never use an IF NOT EXISTS workaround.
+- `migrations/20261113204500_ai_failure_class.sql`: additive diagnostic upgrade
+  to the existing private call-receipt table; no backfill or configuration change.
+- `migrations/rollback/20261113204500_ai_failure_class.rollback.sql`: after
+  redeploying the prior bundle, removes only an unused diagnostic column. Retains
+  it whenever a recorded classification or an in-flight call exists.
 - `migrations/rollback/20261113120000_atlas_ai.rollback.sql`: operational rollback,
   intentionally outside the top-level forward migration glob. Disables master
   and routes, clears model IDs, revokes leases and receipts each grant revocation
@@ -30,13 +37,81 @@ to the operator receipts in `lane/ops/`.
 - `config.toml`: the sole deployment setting, `verify_jwt=false`. The function
   authenticates its own random bearer leases; it does not use Supabase Auth.
 - `operators/verify-stage-a.sql`: read-only assertions and non-secret evidence.
+- `operators/verify-failure-diagnostics.sql`: read-only upgrade assertions and
+  recent minimal receipt metadata, including the fixed failure class.
 - `operators/prepare-model-check.mjs`: offline preparation of an operator lease.
 - `operators/run-model-check.mjs`: sends that lease only to `/models` and prints
   model names and availability. Never generates text or changes configuration.
 - `operators/revoke-model-check.mjs`: offline SQL generator to revoke that grant,
   its sessions and its private holder, preserving receipts and counters.
 
-## Stage A, in file 14's order
+## Round 2d diagnostics upgrade (Silver)
+
+After Nic approves the implementation commit in report 04, Silver applies only
+`20261113204500_ai_failure_class.sql` to the existing installation, then runs
+`operators/verify-failure-diagnostics.sql`. The original Stage A migration is
+already applied. Forward migrations sort by their UTC timestamps; the new file
+follows `20261113120000_atlas_ai.sql`. It adds `failure_class text` and two CHECK
+constraints to `atlas_ai.call_receipts`; all existing row values remain unchanged.
+The original nine tables, RLS and permissions stay in place.
+
+Silver then redeploys the complete 12-file function bundle from the approved
+commit, keeping its existing settings, routes, caps and secrets. The new code
+checks for the nullable diagnostic column before its database write operations.
+If deployed ahead of the migration, it returns LIVE_UNAVAILABLE before any paid
+dispatch; it never proceeds without being able to write the diagnostic receipt.
+The older bundle can run with the added nullable column during deployment.
+
+Silver makes one separately approved scoped Docent retest, records the HTTP
+status, receipt ID and fixed `failureClass` response field if rejected, and reads
+back `failure_class` in the corresponding receipt. Confirm measured/reserved
+cost and counters as usual. No question, answer, error message, provider body,
+headers or credentials go into the operator receipt. Then stop and return the
+classification to Astra. This upgrade does not claim to fix the unknown live
+cause and does not activate the browser transport.
+
+The diagnostic field is a closed list, never free text:
+
+| Class | Failed check |
+|---|---|
+| `provider_key_missing` | The configured provider credential was unavailable internally. |
+| `provider_request_failed` | Fetch failed or returned a non-success HTTP status. |
+| `provider_response_invalid` | The bounded outer response was not a valid JSON object. |
+| `provider_usage_invalid` | Required token counts were missing or invalid. |
+| `provider_output_incomplete` | The provider did not report a completed output. |
+| `provider_content_invalid` | The provider content structure/type was unsupported. |
+| `proposal_json_invalid` | Output text, after the existing guide fence handling, was not one JSON document. |
+| `proposal_schema_invalid` | The Docent answer failed the existing shape, excerpt count or quote-length/type checks. |
+| `evidence_block_not_visible` | An excerpt's block ID did not resolve to a permitted visible block. |
+| `evidence_quote_not_exact` | A quote was not an exact substring of that permitted block's body. |
+| `builder_validation_failed` | The existing builder schema/host validator rejected a proposal. |
+| `dispatch_recheck_failed` | Config, route, lease or authorization recheck prevented dispatch. |
+| `result_recheck_failed` | Config or authorization no longer allowed acceptance at settlement. |
+| `accounting_bound_exceeded` | Observed usage/cost exceeded the reserved envelope; the existing master-off safeguard applied. |
+| `reservation_expired` | An undispatched reservation expired; no provider spend occurred. |
+| `dispatch_outcome_unknown` | A dispatched call expired without a settled result; its reservation remains conservative spend. |
+| `unclassified_rejection` | A rejected internal result had no recognized class. Arbitrary strings become this fixed value. |
+
+Accepted receipts always have NULL. Historical receipts, and receipts written by
+the older bundle, may also have NULL; nothing is inferred or backfilled. Rejected
+calls written by this bundle have one class. Accounting bound overruns take
+precedence; a final acceptance recheck can override an otherwise valid answer.
+Idempotent settlement retains the first permanent receipt and its class.
+
+For a rollback, Silver first redeploys the v2 bundle from `5b290c0`, confirms that
+deployment and allows its in-flight calls to finish. Under the applicable Nic
+approval, the matching diagnostic rollback SQL can then run. It leaves every
+receipt row and every recorded classification intact: if a class or in-flight
+call exists, it retains the nullable column for compatibility with v2. Otherwise
+it removes just the unused column and its constraints. Its final Boolean result
+states whether the column remains. The SQL is idempotent and never changes
+routes, grants, config, counters or migration history. If the column remains,
+the diagnostic migration stays applied; do not reapply it. If it was removed,
+Silver reconciles only that migration through the supported history tool and
+records the action. The original full-undo guard still forbids removing this
+installation now that permanent receipts exist.
+
+## Original Stage A, in file 14's order
 
 [File 14](../docs/shared/14-database-operator-silver.md) governs this sequence.
 Nic's Stage A approval covers all seven steps, including creating and removing
@@ -195,7 +270,8 @@ anonymous leases are temporary; call/grant Receipts are permanent.
 
 Money is integer **micro-USD** (1,000,000 = $1), rounded upward per attempt. Call
 Receipts have exactly: id, time, job, model, agent, five token-count fields,
-cost_microusd, cost_basis, validation_passed and result. `accepted` means schema
+cost_microusd, cost_basis, validation_passed, result and the constrained nullable
+failure_class. `accepted` means schema
 and scope validation passed, never human publication. Missing usage is null;
 `cost_basis=reserved` means conservative unreconciled spend, not a provider bill.
 

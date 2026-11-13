@@ -49,17 +49,22 @@ export function normalizeUsage(provider,u){
 }
 export async function generate({fetchImpl=fetch,getSecret},route,prompt){
  const provider=route.provider,key=getSecret(provider==='anthropic'?'ANTHROPIC_API_KEY':'OPENAI_API_KEY');
- if(!key)return {usage:null,value:null};
+ const rejected=(failureClass,usage=null)=>({usage,value:null,failureClass});
+ if(!key)return rejected('provider_key_missing');
  const anthropic=provider==='anthropic';
  const body=anthropic?{model:route.model_id,max_tokens:route.output_token_cap,messages:[{role:'user',content:prompt}]}:{model:route.model_id,max_output_tokens:route.output_token_cap,input:[{role:'user',content:prompt}],store:false};
+ let response;
+ try{response=await fetchImpl(anthropic?'https://api.anthropic.com/v1/messages':'https://api.openai.com/v1/responses',{method:'POST',headers:{'content-type':'application/json',...(anthropic?{'x-api-key':key,'anthropic-version':ANTHROPIC_VERSION}:{Authorization:'Bearer '+key})},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(18000)});}catch{return rejected('provider_request_failed');}
+ if(!response.ok){await response.body?.cancel().catch(()=>{});return rejected('provider_request_failed');}
+ let data;
+ try{data=await readJSON(response,256*1024);}catch{return rejected('provider_response_invalid');}
+ if(!data||typeof data!=='object'||Array.isArray(data))return rejected('provider_response_invalid');
+ const usage=normalizeUsage(provider,data.usage);
+ if(!usage)return rejected('provider_usage_invalid');
+ if(anthropic?data.stop_reason!=='end_turn':data.status!=='completed')return rejected('provider_output_incomplete',usage);
  try{
-  const response=await fetchImpl(anthropic?'https://api.anthropic.com/v1/messages':'https://api.openai.com/v1/responses',{method:'POST',headers:{'content-type':'application/json',...(anthropic?{'x-api-key':key,'anthropic-version':ANTHROPIC_VERSION}:{Authorization:'Bearer '+key})},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(18000)});
-  if(!response.ok){await response.body?.cancel();return {usage:null,value:null};}
-  const data=await readJSON(response,256*1024),usage=normalizeUsage(provider,data.usage);
-  if(!usage)return {usage:null,value:null};
-  if(anthropic?data.stop_reason!=='end_turn':data.status!=='completed')return {usage,value:null};
   const chunks=anthropic?data.content:data.output?.flatMap(o=>o.type==='message'?o.content:[]);
-  if(!Array.isArray(chunks)||chunks.some(c=>!['text','output_text'].includes(c.type)||typeof c.text!=='string'))return {usage,value:null};
+  if(!Array.isArray(chunks)||chunks.some(c=>!c||!['text','output_text'].includes(c.type)||typeof c.text!=='string'))return rejected('provider_content_invalid',usage);
   let text=chunks.map(c=>c.text).join('');
   // A guide may wrap its otherwise valid JSON in one Markdown code fence.
   // Unwrap only that entire document, never extract JSON from surrounding prose.
@@ -69,6 +74,6 @@ export async function generate({fetchImpl=fetch,getSecret},route,prompt){
    const fenced=/^```(?:json)?\r?\n([\s\S]*?)\r?\n```$/i.exec(text);
    if(fenced)text=fenced[1];
   }
-  try{return {usage,value:JSON.parse(text)};}catch{return {usage,value:null};}
- }catch{return {usage:null,value:null};}
+  try{return {usage,value:JSON.parse(text),failureClass:null};}catch{return rejected('proposal_json_invalid',usage);}
+ }catch{return rejected('provider_content_invalid',usage);}
 }

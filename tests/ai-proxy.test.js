@@ -8,7 +8,7 @@ import postgres from 'postgres';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {Store} from '../supabase/functions/ai-proxy/store.js';
 import {createHandler} from '../supabase/functions/ai-proxy/handler.js';
-import {ORIGIN,GUIDE_SCHEMA,MODEL_SCHEMA,BUILDER_SCHEMA,id,token,digest,envelope} from '../supabase/functions/ai-proxy/core.js';
+import {ORIGIN,GUIDE_SCHEMA,MODEL_SCHEMA,BUILDER_SCHEMA,FAILURE_CLASSES,id,token,digest,envelope} from '../supabase/functions/ai-proxy/core.js';
 import {catalog,builderSchema,prepare,validateBuilder,validateAnswer,allowedBlocks} from '../supabase/functions/ai-proxy/protocol.js';
 import {modelCheck,normalizeUsage,generate} from '../supabase/functions/ai-proxy/providers.js';
 import {prepareModelCheck} from '../supabase/operators/prepare-model-check.mjs';
@@ -17,6 +17,9 @@ import {revokeModelCheck} from '../supabase/operators/revoke-model-check.mjs';
 let pg,sql,store,dir;
 const migration=await readFile(new URL('../supabase/migrations/20261113120000_atlas_ai.sql',import.meta.url),'utf8');
 const rollback=await readFile(new URL('../supabase/migrations/rollback/20261113120000_atlas_ai.rollback.sql',import.meta.url),'utf8');
+const diagnosticsMigration=await readFile(new URL('../supabase/migrations/20261113204500_ai_failure_class.sql',import.meta.url),'utf8');
+const diagnosticsRollback=await readFile(new URL('../supabase/migrations/rollback/20261113204500_ai_failure_class.rollback.sql',import.meta.url),'utf8');
+const diagnosticsVerify=await readFile(new URL('../supabase/operators/verify-failure-diagnostics.sql',import.meta.url),'utf8');
 // Hand-authored Anthropic-shaped fixture using public catalog text, never a
 // capture of Silver's deleted live response. Token counts are synthetic.
 const docentFixture=JSON.parse(await readFile(new URL('./fixtures/docent-haiku-response.json',import.meta.url),'utf8'));
@@ -36,6 +39,10 @@ async function enabled(){
  await sql`UPDATE atlas_ai.routing_config SET model_id='mock-model',model_verified_at=now(),pricing_source_url='https://example.test/pricing',input_microusd_per_million=1000000,output_microusd_per_million=2000000,cache_read_microusd_per_million=1000000,cache_write_microusd_per_million=1000000,billing_contract=${sql.json({api:'anthropic-messages',input_tokens_per_byte:1,overhead_tokens:50,evidence_url:'https://example.test/bounds',output_includes_reasoning:true})},enabled=true WHERE provider='anthropic'`;
 }
 async function paid(s,r=request()){const a=await reserve(s,r);assert.equal(await store.dispatch(a.id),true);await store.settle(a.id,{usage,accepted:true});return a;}
+async function legacyReceipt(accepted=false){
+ const [r]=await sql`INSERT INTO atlas_ai.call_receipts(id,time,job,model,agent,input_tokens,output_tokens,cost_microusd,cost_basis,validation_passed,result) VALUES(${id()},now(),'guide','local-fixture-model','docent-silver',100,20,140,'measured',${accepted},${accepted?'accepted':'rejected'}) RETURNING *`;
+ return r;
+}
 // Independent benchmark fixture: never repurpose a metadata grant or its template.
 async function benchmarkGrant(){
  const session=token(),hid=id(),gid=id();
@@ -73,7 +80,7 @@ before(async()=>{
  await sql`CREATE TABLE public.sentinel(id integer)`;await sql`INSERT INTO public.sentinel VALUES(7)`;
 });
 after(async()=>{await sql?.end();await pg?.stop();if(dir)await rm(dir,{recursive:true,force:true});});
-beforeEach(async()=>{await sql.unsafe('DROP SCHEMA IF EXISTS atlas_ai CASCADE');await sql.unsafe(migration);});
+beforeEach(async()=>{await sql.unsafe('DROP SCHEMA IF EXISTS atlas_ai CASCADE');await sql.unsafe(migration);await sql.unsafe(diagnosticsMigration);});
 
 test('migration creates exactly nine private RLS tables, disabled null routes; collisions abort without altering existing data',async()=>{
  const tables=await sql`SELECT relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='atlas_ai' AND relkind='r'`;
@@ -82,6 +89,38 @@ test('migration creates exactly nine private RLS tables, disabled null routes; c
  for(const role of ['anon','authenticated'])await assert.rejects(sql.begin(async tx=>{await tx.unsafe('SET LOCAL ROLE '+role);await tx`SELECT * FROM atlas_ai.call_receipts`;}),e=>e.code==='42501');
  const connection=await sql.reserve();try{await assert.rejects(connection.unsafe(migration));await connection.unsafe('ROLLBACK');}finally{connection.release();}
  assert.deepEqual(Array.from(await sql`SELECT * FROM public.sentinel`),[{id:7}]);
+});
+test('diagnostic migration preserves historical receipts and allows the previous bundle to omit the new column',async()=>{
+ await sql.unsafe(diagnosticsRollback);await sql.unsafe(diagnosticsRollback);
+ const rejected=await legacyReceipt(),accepted=await legacyReceipt(true);
+ await sql.unsafe(diagnosticsMigration);await sql.unsafe(diagnosticsVerify);
+ for(const original of [rejected,accepted]){
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${original.id}`;
+  const {failure_class,...priorFields}=r;assert.equal(failure_class,null);assert.deepEqual(priorFields,original);
+ }
+ assert.equal((await legacyReceipt()).failure_class,null);
+ assert.equal((await legacyReceipt(true)).failure_class,null);
+ const conn=await sql.reserve();try{await assert.rejects(conn.unsafe(diagnosticsMigration));await conn.unsafe('ROLLBACK');}finally{conn.release();}
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,4);assert.equal((await sql`SELECT id FROM public.sentinel`)[0].id,7);
+});
+test('diagnostic SQL vocabulary accepts every fixed class and rejects arbitrary text or a failure on an accepted receipt',async()=>{
+ const r=await legacyReceipt();
+ for(const code of FAILURE_CLASSES)await sql`INSERT INTO atlas_ai.call_receipts ${sql({...r,id:id(),failure_class:code})}`;
+ await assert.rejects(sql`INSERT INTO atlas_ai.call_receipts ${sql({...r,id:id(),failure_class:'PRIVATE_TEXT_CANARY'})}`,e=>e.code==='23514');
+ await assert.rejects(sql`INSERT INTO atlas_ai.call_receipts ${sql({...r,id:id(),validation_passed:true,result:'accepted',failure_class:'proposal_json_invalid'})}`,e=>e.code==='23514');
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,FAILURE_CLASSES.length+1);
+});
+test('new bundle refuses requests before a paid dispatch when its diagnostic migration is missing',async()=>{
+ await enabled();const s=await store.bootstrap();await sql.unsafe(diagnosticsRollback);
+ const counters=await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`;let calls=0;
+ const h=handler(async()=>{calls++;return Response.json(docentFixture);});
+ for(const response of [await h(req('/request',request(),s.session)),await h(req('/session'))]){
+  assert.equal(response.status,503);assert.equal((await response.json()).code,'LIVE_UNAVAILABLE');
+ }
+ assert.equal(calls,0);assert.equal((await sql`SELECT * FROM atlas_ai.call_leases`).length,0);assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,0);
+ assert.deepEqual(await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`,counters);
+ assert.equal((await sql`SELECT * FROM atlas_ai.session_leases`).length,1);
+ await sql.unsafe(diagnosticsMigration);assert.equal((await h(req('/request',request(),s.session))).status,200);assert.equal(calls,1);
 });
 test('off state returns clean AI_OFF for session and request without a provider call or new lease',async()=>{
  for(const path of ['/request','/session']){const r=await handler()(req(path));assert.equal(r.status,503);assert.equal((await r.json()).message,'AI is off');}
@@ -185,14 +224,14 @@ test('route without verified prices or token-bound contract cannot dispatch',asy
 });
 test('master disable or grant revoke after reservation prevents dispatch and releases only unspent reservation',async()=>{
  await enabled();const s=await store.bootstrap(),a=await reserve(s);await sql`UPDATE atlas_ai.runtime_config SET enabled=false`;
- assert.equal(await store.dispatch(a.id),false);const [r]=await sql`SELECT * FROM atlas_ai.call_receipts`;assert.equal(r.cost_basis,'not-dispatched');assert.equal(Number(r.cost_microusd),0);
+ assert.equal(await store.dispatch(a.id),false);const [r]=await sql`SELECT * FROM atlas_ai.call_receipts`;assert.equal(r.cost_basis,'not-dispatched');assert.equal(Number(r.cost_microusd),0);assert.equal(r.failure_class,'dispatch_recheck_failed');
  assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
 });
 test('settlement is idempotent, measured usage releases unused reserve, one minimal Receipt without visitor text',async()=>{
  await enabled();const s=await store.bootstrap(),a=await reserve(s);assert.equal(await store.dispatch(a.id),true);
  await Promise.all(Array.from({length:5},()=>store.settle(a.id,{usage,accepted:true})));
  const rows=await sql`SELECT * FROM atlas_ai.call_receipts`;assert.equal(rows.length,1);assert.equal(Number(rows[0].cost_microusd),140);
- assert.deepEqual(Object.keys(rows[0]).sort(),['id','time','job','model','agent','input_tokens','output_tokens','cache_read_tokens','cache_write_tokens','reasoning_tokens','cost_microusd','cost_basis','validation_passed','result'].sort());
+ assert.deepEqual(Object.keys(rows[0]).sort(),['id','time','job','model','agent','input_tokens','output_tokens','cache_read_tokens','cache_write_tokens','reasoning_tokens','cost_microusd','cost_basis','validation_passed','result','failure_class'].sort());assert.equal(rows[0].failure_class,null);
  assert((await sql`SELECT * FROM atlas_ai.quota_windows WHERE bucket<>'new-holders'`).every(q=>Number(q.reserved_microusd)===0&&Number(q.spent_microusd)===140));
  const all=JSON.stringify(await sql`SELECT accounting,quota_reservations FROM atlas_ai.call_leases`);assert(!all.includes('What is this Place?'));
 });
@@ -200,13 +239,13 @@ test('timeout and crashed dispatch retain full reserved cost, null usage, no bli
  await enabled();const s=await store.bootstrap(),a=await reserve(s);assert.equal(await store.dispatch(a.id),true);
  await sql`UPDATE atlas_ai.call_leases SET expires_at=now()-interval '1 second',created_at=now()-interval '2 minutes'`;
  await store.bootstrap(s.holder);const [r]=await sql`SELECT * FROM atlas_ai.call_receipts`;
- assert.equal(r.input_tokens,null);assert.equal(r.cost_basis,'reserved');assert.equal(Number(r.cost_microusd),Number(a.reserved_microusd));
+ assert.equal(r.input_tokens,null);assert.equal(r.cost_basis,'reserved');assert.equal(Number(r.cost_microusd),Number(a.reserved_microusd));assert.equal(r.failure_class,'dispatch_outcome_unknown');
  assert((await sql`SELECT * FROM atlas_ai.quota_windows WHERE bucket<>'new-holders'`).every(q=>Number(q.spent_microusd)===Number(a.reserved_microusd)));
  assert.equal((await sql`SELECT state FROM atlas_ai.call_leases`)[0].state,'uncertain');
 });
 test('unexpected usage exceeding reserved envelope disables master and records actual measured spend',async()=>{
  await enabled();const s=await store.bootstrap(),a=await reserve(s);await store.dispatch(a.id);
- const r=await store.settle(a.id,{usage:{...usage,input_tokens:9000000},accepted:true});assert.equal(r.validation_passed,false);assert.equal((await store.config()).enabled,false);
+ const r=await store.settle(a.id,{usage:{...usage,input_tokens:9000000},accepted:true});assert.equal(r.validation_passed,false);assert.equal((await store.config()).enabled,false);assert.equal(r.failure_class,'accounting_bound_exceeded');
  assert(Number(r.cost_microusd)>Number(a.reserved_microusd));
 });
 test('grounded answer accepts exact scoped excerpts, rejects fabricated quotes, and abstains honestly',()=>{
@@ -235,7 +274,7 @@ test('Docent grounded provider fixtures traverse reserved spend, dispatch, valid
   assert.equal(json.proposal.text,docentAnswer.excerpts[0].quote);assert.deepEqual(json.proposal.citations,['lead']);
   assert.equal(json.model,'anthropic/'+docentFixture.model);assert.equal(json.receiptData.receiptId,attemptId);
   const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${attemptId}`;
-  assert.equal(r.result,'accepted');assert.equal(r.validation_passed,true);assert.equal(r.cost_basis,'measured');
+  assert.equal(r.result,'accepted');assert.equal(r.validation_passed,true);assert.equal(r.cost_basis,'measured');assert.equal(r.failure_class,null);
   assert.equal(r.input_tokens,600);assert.equal(r.output_tokens,96);assert.equal(Number(r.cost_microusd),792);
   assert(!JSON.stringify(r).includes(spec.context.question));assert(!JSON.stringify(r).includes(docentAnswer.excerpts[0].quote));
   assert.equal((await sql`SELECT state FROM atlas_ai.call_leases WHERE id=${attemptId}`)[0].state,'completed');
@@ -248,26 +287,26 @@ test('Docent fence handling preserves schema, exact-quote, length and visible-ev
  await enabled();
  const quote=docentAnswer.excerpts[0].quote,withQuote=quote=>({excerpts:[{blockId:'lead',quote}]});
  const variants=[
-  ['paraphrase',withQuote('This Place tells the story of the Tallahassee bus boycott.')],
-  ['invented claim',withQuote(quote+' Everyone in the city participated.')],
-  ['normalized punctuation',withQuote(quote.replace('city’s',"city's"))],
-  ['non-visible block',{excerpts:[{blockId:'timeline',quote}]}],
-  ['source label',withQuote('Florida Memory: civil-rights collections')],
-  ['wrong ID field',{excerpts:[{id:'lead',quote}]}],
-  ['extra assertion',{...docentAnswer,answer:'An ungrounded explanation.'}],
-  ['extra citation field',{excerpts:[{blockId:'lead',quote,citation:'outside-source'}]}],
-  ['too many excerpts',{excerpts:Array(4).fill({blockId:'lead',quote})}],
-  ['overlong quote',withQuote('x'.repeat(801))],
-  ['empty quote',withQuote('')],
-  ['not an excerpts array',{excerpts:quote}]
+  ['paraphrase',withQuote('This Place tells the story of the Tallahassee bus boycott.'),'evidence_quote_not_exact'],
+  ['invented claim',withQuote(quote+' Everyone in the city participated.'),'evidence_quote_not_exact'],
+  ['normalized punctuation',withQuote(quote.replace('city’s',"city's")),'evidence_quote_not_exact'],
+  ['non-visible block',{excerpts:[{blockId:'timeline',quote}]},'evidence_block_not_visible'],
+  ['source label',withQuote('Florida Memory: civil-rights collections'),'evidence_quote_not_exact'],
+  ['wrong ID field',{excerpts:[{id:'lead',quote}]},'proposal_schema_invalid'],
+  ['extra assertion',{...docentAnswer,answer:'An ungrounded explanation.'},'proposal_schema_invalid'],
+  ['extra citation field',{excerpts:[{blockId:'lead',quote,citation:'outside-source'}]},'proposal_schema_invalid'],
+  ['too many excerpts',{excerpts:Array(4).fill({blockId:'lead',quote})},'proposal_schema_invalid'],
+  ['overlong quote',withQuote('x'.repeat(801)),'proposal_schema_invalid'],
+  ['empty quote',withQuote(''),'proposal_schema_invalid'],
+  ['not an excerpts array',{excerpts:quote},'proposal_schema_invalid']
  ];
- for(const [name,value] of variants){
+ for(const [name,value,expected] of variants){
   const s=await store.bootstrap();let calls=0;
   const response=await handler(async()=>{calls++;return Response.json({...docentFixture,content:[{type:'text',text:'```json\n'+JSON.stringify(value)+'\n```'}]});})(req('/request',request(),s.session));
   const json=await response.json();assert.equal(response.status,502,name);assert.equal(json.code,'BAD_PROPOSAL');assert.equal(calls,1);
-  assert.deepEqual(Object.keys(json).sort(),['code','receiptId']);
+  assert.deepEqual(Object.keys(json).sort(),['code','failureClass','receiptId']);assert.equal(json.failureClass,expected,name);
   const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
-  assert.equal(r.result,'rejected');assert.equal(r.validation_passed,false);assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),792);
+  assert.equal(r.result,'rejected');assert.equal(r.validation_passed,false);assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),792);assert.equal(r.failure_class,expected,name);
  }
  assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
  assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
@@ -284,15 +323,15 @@ test('Docent parsing never extracts JSON from prose, multiple documents, invalid
   ['wrong language','```javascript\n'+docentJSON+'\n```'],
   ['invalid JSON','```json\n{"excerpts":\n```'],
   ['unclosed fence','```json\n'+docentJSON],
-  ['truncated provider',docentJSON,{stop_reason:'max_tokens'}],
-  ['non-text provider block',docentJSON,{content:[{type:'tool_use',id:'local_fixture',name:'unrequested',input:{}}]}]
+  ['truncated provider',docentJSON,{stop_reason:'max_tokens'},'provider_output_incomplete'],
+  ['non-text provider block',docentJSON,{content:[{type:'tool_use',id:'local_fixture',name:'unrequested',input:{}}]},'provider_content_invalid']
  ];
- for(const [name,text,patch={}] of variants){
+ for(const [name,text,patch={},expected='proposal_json_invalid'] of variants){
   const s=await store.bootstrap();let calls=0;
   const response=await handler(async()=>{calls++;return Response.json({...docentFixture,content:[{type:'text',text}],...patch});})(req('/request',request(),s.session));
-  const json=await response.json();assert.equal(response.status,502,name);assert.equal(json.code,'BAD_PROPOSAL');assert.equal(calls,1);
+  const json=await response.json();assert.equal(response.status,502,name);assert.equal(json.code,'BAD_PROPOSAL');assert.equal(calls,1);assert.equal(json.failureClass,expected,name);
   const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
-  assert.equal(r.result,'rejected');assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),792);
+  assert.equal(r.result,'rejected');assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),792);assert.equal(r.failure_class,expected,name);
  }
  assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
 });
@@ -301,6 +340,48 @@ test('provider fence support is limited to guide and does not change the builder
  const route={provider:'anthropic',model_id:docentFixture.model,output_token_cap:512};
  assert.deepEqual((await generate(deps,{...route,route_key:'guide'},'local fixture')).value,docentAnswer);
  assert.equal((await generate(deps,{...route,route_key:'builder'},'local fixture')).value,null);
+});
+test('provider and answer failures return only fixed diagnostic classes and never accept injected error labels or text',async()=>{
+ await enabled();
+ const variants=[
+  ['HTTP failure',()=>new Response('PROVIDER_KEY_CANARY',{status:500}),'provider_request_failed','reserved'],
+  ['outer JSON',()=>new Response('PROVIDER_BODY_CANARY'),'provider_response_invalid','reserved'],
+  ['outer null',()=>Response.json(null),'provider_response_invalid','reserved'],
+  ['invalid usage',()=>Response.json({...docentFixture,usage:{input_tokens:-1,output_tokens:20},failureClass:'PROVIDER_LABEL_CANARY'}),'provider_usage_invalid','reserved'],
+  ['null proposal',()=>Response.json({...docentFixture,content:[{type:'text',text:'null'}]}),'proposal_schema_invalid','measured'],
+  ['injected labels',()=>Response.json({...docentFixture,model:'MODEL_CANARY',failureClass:'provider_request_failed',error:'PROVIDER_ERROR_CANARY',content:[{type:'text',text:JSON.stringify({excerpts:[{blockId:'lead',quote:'ANSWER_CANARY'}]})}]}),'evidence_quote_not_exact','measured']
+ ];
+ for(const [name,mocked,expected,basis] of variants){
+  const s=await store.bootstrap(),spec=request();spec.context.question='VISITOR_QUESTION_CANARY';let calls=0;
+  const response=await handler(async()=>{calls++;return mocked();})(req('/request',spec,s.session));
+  const json=await response.json();assert.equal(response.status,502,name);assert.equal(calls,1);assert.equal(json.failureClass,expected,name);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
+  assert.equal(r.failure_class,expected);assert.equal(r.cost_basis,basis);assert(!JSON.stringify([json,r]).includes('CANARY'));
+ }
+});
+test('both provider adapters classify output problems without exposing raw provider data',async()=>{
+ const route={provider:'openai',route_key:'builder_challenger',model_id:'mock-openai',output_token_cap:512};
+ const base={status:'completed',usage:{input_tokens:100,output_tokens:20},output:[{type:'message',content:[{type:'output_text',text:docentJSON}]}]};
+ for(const [data,expected] of [[base,null],[{...base,status:'incomplete'},'provider_output_incomplete'],[{...base,output:{}},'provider_content_invalid'],[{...base,output:[{type:'message',content:[{type:'output_text',text:'OUTPUT_CANARY'}]}]},'proposal_json_invalid']]){
+  const result=await generate({getSecret:secrets,fetchImpl:async()=>Response.json(data)},route,'public fixture');assert.equal(result.failureClass,expected);
+  if(expected)assert(!JSON.stringify(result).includes('CANARY'));
+ }
+});
+test('builder validation rejection uses its own fixed class without running a comparison',async()=>{
+ await enabled();const b=await benchmarkGrant();
+ const r={requestId:id(),job:'builder',agentId:'gus-benchmark',schemaId:BUILDER_SCHEMA,context:{placeId:'boycott',catalogRevision:catalog.revision,caseId:'01-seat-narration',candidate:'primary'}};
+ const hash=Buffer.from(await digest(prepare(r).prompt)).toString('hex'),[route]=await sql`SELECT * FROM atlas_ai.routing_config WHERE route_key='builder'`;
+ await sql`UPDATE atlas_ai.routing_config SET billing_contract=${sql.json({...route.billing_contract,synthetic_input_bounds:{[hash]:6000}})} WHERE route_key='builder'`;
+ const h=handler(async()=>Response.json({...docentFixture,content:[{type:'text',text:'{"untrusted":"BUILDER_CANARY"}'}]}));
+ const response=await h(req('/request',r,b.session)),json=await response.json();assert.equal(response.status,502);assert.equal(json.failureClass,'builder_validation_failed');
+ const [receipt]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;assert.equal(receipt.failure_class,'builder_validation_failed');assert(!JSON.stringify(receipt).includes('CANARY'));
+});
+test('settlement sanitizes unexpected diagnostic values and replay cannot change the first permanent class',async()=>{
+ await enabled();const s=await store.bootstrap(),a=await reserve(s);await store.dispatch(a.id);
+ const first=await store.settle(a.id,{usage,accepted:false,failureClass:'VISITOR_TEXT_CANARY'});
+ assert.equal(first.failure_class,'unclassified_rejection');assert(!JSON.stringify(first).includes('CANARY'));
+ const again=await store.settle(a.id,{usage,accepted:false,failureClass:'proposal_json_invalid'});assert.equal(again.failure_class,'unclassified_rejection');
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,1);
 });
 test('handler success, replay, invalid provider JSON and provider failure never echo visitor text or raw errors',async()=>{
  await enabled();const s=await store.bootstrap(),r=request();r.context.question='VISITOR_CANARY';let calls=0;
@@ -439,7 +520,7 @@ test('benchmark attempts enforce grant total of 40, dollar ceiling and global co
 test('lease expiry constraints, revoked holder and grant recheck prevent a late accepted response',async()=>{
  await enabled();const s=await store.bootstrap();await assert.rejects(sql`UPDATE atlas_ai.session_leases SET expires_at=created_at+interval '31 minutes'`);
  const a=await reserve(s);assert.equal(await store.dispatch(a.id),true);await sql`UPDATE atlas_ai.grants SET revoked_at=now()`;
- const r=await store.settle(a.id,{usage,accepted:true});assert.equal(r.validation_passed,false);assert.equal(r.cost_basis,'measured');
+ const r=await store.settle(a.id,{usage,accepted:true});assert.equal(r.validation_passed,false);assert.equal(r.cost_basis,'measured');assert.equal(r.failure_class,'result_recheck_failed');
  await sql`UPDATE atlas_ai.grants SET revoked_at=NULL`;await sql`UPDATE atlas_ai.holder_leases SET revoked_at=now()`;await assert.rejects(reserve(s),expectCode('UNAUTHORIZED'));
 });
 test('route changes between reserve and dispatch fail closed; missing key cannot dispatch',async()=>{
@@ -448,6 +529,7 @@ test('route changes between reserve and dispatch fail closed; missing key cannot
  const h=createHandler({store,getSecret:n=>n==='ALLOWED_ORIGINS'?ORIGIN:undefined,validateBuilderSchema,fetchImpl:()=>{throw new Error('must not fetch');}});
  assert.equal((await h(req('/request',request(),s.session))).status,503);
  assert((await sql`SELECT * FROM atlas_ai.call_receipts`).every(r=>r.cost_basis==='not-dispatched'));
+ assert.deepEqual((await sql`SELECT failure_class FROM atlas_ai.call_receipts ORDER BY time`).map(r=>r.failure_class),['dispatch_recheck_failed','provider_key_missing']);
 });
 test('oversized chunked body is stopped without trusting Content-Length',async()=>{
  await enabled();let cancelled=false;
@@ -461,7 +543,7 @@ test('malformed generation output is rejected with measured usage; provider time
  assert.equal((await malformed(req('/request',request(),s.session))).status,502);
  const timeout=handler(async()=>{throw new DOMException('UNTRUSTED_NETWORK_DETAIL','TimeoutError');});assert.equal((await timeout(req('/request',request(),s.session))).status,502);
  const rows=await sql`SELECT * FROM atlas_ai.call_receipts ORDER BY time`;
- assert.deepEqual(rows.map(r=>r.cost_basis),['measured','reserved']);assert(!JSON.stringify(rows).includes('UNTRUSTED'));
+ assert.deepEqual(rows.map(r=>r.cost_basis),['measured','reserved']);assert.deepEqual(rows.map(r=>r.failure_class),['proposal_json_invalid','provider_request_failed']);assert(!JSON.stringify(rows).includes('UNTRUSTED'));
 });
 test('inactive monthly window cleanup never refunds uncertain spend or deletes permanent Receipts',async()=>{
  await enabled();const s=await store.bootstrap(),a=await reserve(s);await store.dispatch(a.id);await store.settle(a.id,{accepted:false});
@@ -469,13 +551,33 @@ test('inactive monthly window cleanup never refunds uncertain spend or deletes p
  await store.locked((tx,c,now)=>store.cleanup(tx,now));assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,1);assert.equal((await sql`SELECT * FROM atlas_ai.call_leases`).length,1);
  assert((await sql`SELECT * FROM atlas_ai.quota_windows WHERE bucket<>'new-holders'`).every(q=>Number(q.spent_microusd)===Number(a.reserved_microusd)));
 });
+test('expired undispatched reservations get a distinct zero-cost diagnostic',async()=>{
+ await enabled();const s=await store.bootstrap(),a=await reserve(s);
+ await sql`UPDATE atlas_ai.call_leases SET expires_at=now()-interval '1 second',created_at=now()-interval '2 minutes' WHERE id=${a.id}`;
+ await store.locked((tx,c,now)=>store.cleanup(tx,now));
+ const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${a.id}`;assert.equal(r.failure_class,'reservation_expired');assert.equal(r.cost_basis,'not-dispatched');assert.equal(Number(r.cost_microusd),0);
+});
+test('diagnostic rollback preserves recorded classifications, receipts, counters, config and grants',async()=>{
+ await enabled();const s=await store.bootstrap();await handler(async()=>Response.json({...docentFixture,content:[{type:'text',text:'invalid JSON'}]}))(req('/request',request(),s.session));
+ const receipts=await sql`SELECT * FROM atlas_ai.call_receipts`,counters=await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`,config=await store.config(),grants=await sql`SELECT * FROM atlas_ai.grants`;
+ await sql.unsafe(diagnosticsRollback);await sql.unsafe(diagnosticsRollback);await sql.unsafe(diagnosticsVerify);
+ assert.deepEqual(await sql`SELECT * FROM atlas_ai.call_receipts`,receipts);assert.deepEqual(await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`,counters);
+ assert.deepEqual(await store.config(),config);assert.deepEqual(await sql`SELECT * FROM atlas_ai.grants`,grants);
+});
+test('diagnostic rollback keeps the column while a request is in flight even before any classified receipt',async()=>{
+ await enabled();const s=await store.bootstrap(),a=await reserve(s);const counters=await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`;
+ await sql.unsafe(diagnosticsRollback);await sql.unsafe(diagnosticsVerify);
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,0);assert.deepEqual(await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`,counters);
+ assert.equal(await store.dispatch(a.id),true);const r=await store.settle(a.id,{usage,accepted:true});assert.equal(r.failure_class,null);
+});
 
 test('full undo removes only an unused installation, is safe if absent, and permits ordered fresh reapply',async()=>{
  const undo=await readFile(new URL('../supabase/migrations/rollback/20261113120000_atlas_ai.full-undo.sql',import.meta.url),'utf8');
  await sql.unsafe(undo);assert.equal((await sql`SELECT to_regnamespace('atlas_ai') AS n`)[0].n,null);
  assert.equal((await sql`SELECT id FROM public.sentinel`)[0].id,7);
- await sql.unsafe(undo);await sql.unsafe(migration);assert.equal((await store.config()).enabled,false);
+ await sql.unsafe(undo);await sql.unsafe(migration);await sql.unsafe(diagnosticsMigration);assert.equal((await store.config()).enabled,false);
  await sql.unsafe(await readFile(new URL('../supabase/operators/verify-stage-a.sql',import.meta.url),'utf8'));
+ await sql.unsafe(diagnosticsVerify);
 });
 test('full undo refuses even one grant Receipt and leaves the complete schema and Receipt intact',async()=>{
  const undo=await readFile(new URL('../supabase/migrations/rollback/20261113120000_atlas_ai.full-undo.sql',import.meta.url),'utf8');

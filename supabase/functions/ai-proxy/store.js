@@ -15,6 +15,9 @@ export class Store {
   await tx`SET LOCAL statement_timeout='5s'`;
   const [config]=await tx`SELECT *, clock_timestamp() AS clock FROM atlas_ai.runtime_config WHERE id=true FOR UPDATE`;
   if(!config)fail('LIVE_UNAVAILABLE',503);
+  // A partial deployment must fail before reservation or paid provider dispatch.
+  const [{ready}]=await tx`SELECT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid='atlas_ai.call_receipts'::regclass AND attname='failure_class' AND atttypid='text'::regtype AND NOT attisdropped AND NOT attnotnull) AS ready`;
+  if(!ready)fail('LIVE_UNAVAILABLE',503);
   return fn(tx,config,+new Date(config.clock));
  });}
  ready(c,now,paid=true){if(c.public_origin!==ORIGIN||+new Date(c.expires_at)<=now)fail('AI_OFF',503);if(paid&&!c.enabled)fail('AI_OFF',503);}
@@ -116,13 +119,13 @@ export class Store {
    const [r]=await tx`SELECT *, to_jsonb(r)=${tx.json(a.accounting.route)}::jsonb AS unchanged FROM atlas_ai.routing_config r WHERE route_key=${a.route_key}`;
    valid=live(a,now)&&r?.enabled&&r.unchanged&&String(c.revision)===a.accounting.configRevision;
   }catch{valid=false;}
-  if(!valid){await this.settleTx(tx,a,{notDispatched:true,accepted:false},now);return false;}
+  if(!valid){await this.settleTx(tx,a,{notDispatched:true,accepted:false,failureClass:'dispatch_recheck_failed'},now);return false;}
   await tx`UPDATE atlas_ai.call_leases SET state='dispatched' WHERE id=${a.id}`;return true;
  });}
  async settle(attemptId,result){return this.locked(async(tx,c,now)=>{
   const [a]=await tx`SELECT * FROM atlas_ai.call_leases WHERE id=${attemptId} FOR UPDATE`;
   if(!a)fail('LIVE_UNAVAILABLE',503);
-  if(result.accepted){try{this.ready(c,now);const [s]=await tx`SELECT * FROM atlas_ai.session_leases WHERE id=${a.session_id}`;await this.auth(tx,s.token_sha256,now);}catch{result={...result,accepted:false};}}
+  if(result.accepted){try{this.ready(c,now);const [s]=await tx`SELECT * FROM atlas_ai.session_leases WHERE id=${a.session_id}`;await this.auth(tx,s.token_sha256,now);}catch{result={...result,accepted:false,failureClass:'result_recheck_failed'};}}
   return this.settleTx(tx,a,result,now);
  });}
  async settleTx(tx,a,result,now){
@@ -135,14 +138,14 @@ export class Store {
    const changed=await tx`UPDATE atlas_ai.quota_windows SET reserved_microusd=reserved_microusd-${a.reserved_microusd},spent_microusd=spent_microusd+${amount} WHERE bucket=${b.key} AND window_start=${b.start} RETURNING bucket`;
    if(changed.length!==1)fail('LIVE_UNAVAILABLE',503);
   }
-  const r=receipt(a,result.usage,result.accepted===true&&!exceeded,amount,neverSent?'not-dispatched':known?'measured':'reserved',now);
+  const r=receipt(a,result.usage,result.accepted===true&&!exceeded,amount,neverSent?'not-dispatched':known?'measured':'reserved',now,exceeded?'accounting_bound_exceeded':result.failureClass);
   await tx`INSERT INTO atlas_ai.call_receipts ${tx(r)}`;
   await tx`UPDATE atlas_ai.call_leases SET state=${known||neverSent?'completed':'uncertain'},settled_microusd=${amount},expires_at=${iso(now+DAY)} WHERE id=${a.id}`;
   return r;
  }
  async cleanup(tx,now){
   const stale=await tx`SELECT * FROM atlas_ai.call_leases WHERE state IN ('reserved','dispatched') AND expires_at<=${iso(now)} ORDER BY created_at LIMIT 20 FOR UPDATE`;
-  for(const a of stale)await this.settleTx(tx,a,{accepted:false,notDispatched:a.state==='reserved'},now);
+  for(const a of stale)await this.settleTx(tx,a,{accepted:false,notDispatched:a.state==='reserved',failureClass:a.state==='reserved'?'reservation_expired':'dispatch_outcome_unknown'},now);
   // Uncertain calls stay for explicit operator reconciliation; money never expires
   // out of an active quota window, even when an in-flight slot is released.
   await tx`DELETE FROM atlas_ai.call_leases WHERE id IN (SELECT id FROM atlas_ai.call_leases WHERE state='completed' AND expires_at<=${iso(now)} LIMIT 100)`;
