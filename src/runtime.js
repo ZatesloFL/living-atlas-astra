@@ -13,7 +13,9 @@ const {roomEntry}=await diag.asyncRun('content rules module',()=>import('./conte
 const {PageRenderer}=await diag.asyncRun('Page module',()=>import('./page.js'));
 const {AccessStore}=await diag.asyncRun('access module',()=>import('./access-store.js'));
 const {AccessUI}=await diag.asyncRun('access UI module',()=>import('./access-ui.js'));
-const {Travel,graphRoute,resolveAddress,beforeDoor,approach}=await diag.asyncRun('travel module',()=>import('./navigation.js'));
+const {graphRoute,resolveAddress,beforeDoor,approach}=await diag.asyncRun('travel module',()=>import('./navigation.js'));
+const {FastTravel}=await import('./fast-travel.js');
+const {planRoute}=await import('./travel-plan.js');
 const {permission,roomTitle}=await import('./permissions.js');
 const {versionLabel}=await import('./audience.js');
 const {LayerUI}=await import('./experience-ui.js');
@@ -46,7 +48,7 @@ async function applyProfile(){travel?.cancel();place=null;waypoint=null;lens=cur
 async function switchProfile(id){if(previewState)buildUI.exit();await profiles.switchProfile(id);await applyProfile();}
 function enter(edge){
   const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window')return;
-  if(edge.travel){travel.confirm();return;}
+  if(edge.travel){travel.start(edge.to);return;}
   if(!result.rights?.canEnter)return;
   if(edge.readTarget){focusRoom(edge.readTarget,true);return;}
   if(edge.destination){changeScene(edge.destination);return;}
@@ -119,7 +121,7 @@ graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
-ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
@@ -132,21 +134,27 @@ const audienceBadge=document.createElement('aside');audienceBadge.id='audience-h
 function experienceChanged(next){if(next.preview){ui.toast('Exit Preview as to save changes.');return;}profiles.preferences(next);lens=currentLens();rebuild();profileUI.refresh();}
 function applyPreview(config){travel?.cancel();place=null;waypoint=null;previewState=config;lens=currentLens();if(config.split){if(previewRatio===null)previewRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}else if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
 function exitPreview(){previewState=null;place=null;lens=currentLens();if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
-travel=new Travel({lens:()=>lens,room:()=>context.room,world:()=>world,controls:()=>controls,message:text=>ui.toast(text),preview:e=>ui.edge(e),use:id=>lens.preview?Promise.resolve():access.use(id,'enter',lens),arrived:id=>{place={id,scene:kind,x:controls.position.x,z:controls.position.z};access.recent(id,lens);updateContext();},scene:next=>new Promise(resolve=>fadeTo(()=>{controls.teleport(0,SPAWN_Z);place=null;rebuild(next);ui.title(next);resolve();})),changed:()=>updateWaypoint()});
-const compass=document.createElement('aside');compass.id='compass';compass.hidden=true;compass.innerHTML='<span data-bearing>↑</span><button data-status></button><button data-cancel>Clear</button>';hud.mount(compass,60);compass.querySelector('[data-cancel]').onclick=()=>{travel.cancel();waypoint=null;world.setWaypoint(null);compass.hidden=true;ui.close();};compass.querySelector('[data-status]').onclick=()=>{if(travel.waiting)ui.edge({...travel.edge,travel:true});};
+travel=new FastTravel(ui,access,{hud,lens:()=>lens,room:()=>context.room,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);updateContext();}});
+function landArrival(arrival,route,confirmed){
+ const next=new World(arrival.scene,lens,reducedQuery.matches);for(const e of EDGES)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.id);
+ for(const e of route)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.originalId??e.id);
+ if(!next.canStand(...arrival.position)){next.dispose();throw new Error('That landing point is obstructed. Choose Outside or Door.');}
+ world.dispose();world=next;kind=arrival.scene;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.teleport(...arrival.position,arrival.facing);place={id:arrival.room,scene:kind,x:arrival.position[0],z:arrival.position[1]};near=null;ui.prompt(null);ui.fadeTitle();
+}
+const compass=document.createElement('aside');compass.id='compass';compass.hidden=true;compass.innerHTML='<span data-bearing>↑</span><button data-status></button><button data-cancel>Clear</button>';hud.mount(compass,60);compass.querySelector('[data-cancel]').onclick=()=>{travel.cancel();waypoint=null;world.setWaypoint(null);compass.hidden=true;ui.close();};compass.querySelector('[data-status]').onclick=()=>{if(waypoint)startTravel(waypoint);};
 let expiryState=expirySignature();expiryTimer=setInterval(()=>{const next=expirySignature();if(next!==expiryState){expiryState=next;refreshAccess();ui.toast('Access changed or expired; the scene has been checked again.');}},1000);
 function expirySignature(){return access.data.grants.map(g=>g.id+':'+!!g.revokedAt+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|');}
-function refreshAccess({preserveAccess=false}={}){travel?.cancel();place=null;lens=currentLens();if(world)rebuild();if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
+function refreshAccess({preserveAccess=false}={}){place=null;lens=currentLens();if(world)rebuild();if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
 function setWaypoint(id){if(graphRoute(context.room,id,lens)===null){ui.toast('No permitted route for a waypoint.');return;}waypoint=id;ui.fadeTitle();updateWaypoint();}
-function startTravel(id){ui.close();if(page){page.close();resume3D(pageOrigin);}setWaypoint(id);travel.start(id);}
-function goAddress(value){const id=resolveAddress(value,lens);if(!id||roomEntry(id,lens,EDGES).state==='hidden'){ui.toast('No accessible room at that address.');return;}if(graphRoute(context.room,id,lens)===null){accessUI.open(id);return;}startTravel(id);}
+function startTravel(id){ui.close();if(previewState)buildUI.exit();if(page){page.close();resume3D(pageOrigin);}travel.start(id);}
+function goAddress(value){const id=resolveAddress(value,lens);if(!id||roomEntry(id,lens,EDGES).state==='hidden'){ui.toast('No accessible room at that address.');return;}if(planRoute(context.room,id,lens)===null){accessUI.open(id);return;}startTravel(id);}
 function updateWaypoint(){
- const panel=document.getElementById('compass');if(!panel||!world)return;const target=travel?.active?travel.target:waypoint;
+ const panel=document.getElementById('compass');if(!panel||!world)return;const target=waypoint;
  if(!target||!permission(ROOMS[target],lens).visible||roomEntry(target,lens,EDGES).state==='hidden'){if(!panel.hidden)panel.hidden=true;world.setWaypoint(null);return;}
  const route=graphRoute(context.room,target,lens);if(route===null){if(!panel.hidden)panel.hidden=true;world.setWaypoint(null);waypoint=null;return;}
  let point=approach(ROOMS[target]),via='';if(ROOMS[target].layout.scene!==kind){const door=route.find(e=>e.destination);if(door){point=beforeDoor(door);via=' · next doorway';}}
- if(travel?.active&&travel.door){point=beforeDoor(travel.edge);via=' · doorway';}
- world.setWaypoint(point);const dx=point[0]-controls.position.x,dz=point[1]-controls.position.z,bearing=Math.atan2(-dx,-dz)-controls.smoothYaw;if(panel.hidden)panel.hidden=false;panel.querySelector('[data-bearing]').style.transform=`rotate(${-bearing*180/Math.PI}deg)`;const statusText=`${travel?.waiting?'At door · tap to continue':travel?.active?'Travelling':'Waypoint'} · ${roomTitle(ROOMS[target],lens)} · ${Math.round(Math.hypot(dx,dz))} m${via}`;const status=panel.querySelector('[data-status]');if(status.textContent!==statusText)status.textContent=statusText;const cancelText=travel?.active?'Cancel':'Clear',cancel=panel.querySelector('[data-cancel]');if(cancel.textContent!==cancelText)cancel.textContent=cancelText;
+
+ world.setWaypoint(point);const dx=point[0]-controls.position.x,dz=point[1]-controls.position.z,bearing=Math.atan2(-dx,-dz)-controls.smoothYaw;if(panel.hidden)panel.hidden=false;panel.querySelector('[data-bearing]').style.transform=`rotate(${-bearing*180/Math.PI}deg)`;const statusText=`${'Waypoint'} · ${roomTitle(ROOMS[target],lens)} · ${Math.round(Math.hypot(dx,dz))} m${via}`;const status=panel.querySelector('[data-status]');if(status.textContent!==statusText)status.textContent=statusText;const cancelText='Clear',cancel=panel.querySelector('[data-cancel]');if(cancel.textContent!==cancelText)cancel.textContent=cancelText;
 }
 
 diag.run('first scene update',()=>world.update(0));
@@ -165,7 +173,7 @@ window.atlasStatus=()=>({mode:document.body.classList.contains('page-mode')?'pag
 if(diag.params.get('form')==='3d'){lens.form='3d';profiles.preferences(lens);}
 if(profiles.completed&&lens.form==='page')openPage(context.room);
 const initialRoom=diag.params.get('room');if(initialRoom&&ROOMS[initialRoom]&&profiles.completed&&initialRoom!==context.room)readRoom(initialRoom,false);
-const invite=diag.params.get('invite');if(invite)access.redeem(invite,lens).then(id=>{ui.toast('Local invite accepted.');startTravel(id);}).catch(error=>ui.toast(error.message));
+const invite=diag.params.get('invite');if(invite){const g=access.data.grants.find(g=>g.id===invite&&g.kind==='invite'&&g.to.person===lens.profileId&&!g.revokedAt&&(!g.expires||Date.parse(g.expires)>Date.now()));const id=g&&Object.keys(ROOMS).find(id=>ROOMS[id].id===g.room);if(id)startTravel(id);else ui.toast('This local invite is missing, expired, or addressed to another profile.');}
 if(new URLSearchParams(location.search).has('test')){
   window.__atlas={travel,access,build:buildUI,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
 }

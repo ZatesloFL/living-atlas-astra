@@ -1,3 +1,4 @@
+import {planRoute} from './travel-plan.js';
 import {viewRoom} from './audience.js';
 import {styleLabel} from './item-style.js';
 import {experienceHTML,bindExperience,layerSettings,bindLayerSettings} from './experience-ui.js';
@@ -32,7 +33,7 @@ export class UI {
     for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=true;
     this.content.scrollTop=0;$('sheet-close').focus({preventScroll:true});this.api.panelChanged?.();
   }
-  close(){if(this.mode==='setup'&&!this.api.state().profiles.completed)return;this.mode=null;this.sheet.hidden=true;this.content.replaceChildren();$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();}
+  close(){if(this.mode==='setup'&&!this.api.state().profiles.completed)return;const closedMode=this.mode;this.mode=null;this.sheet.hidden=true;this.content.replaceChildren();$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();this.api.panelClosed?.(closedMode);}
   toast(message,options){if(this.api.hud)this.api.hud.notify(message,options);else {$('toast').textContent=message;$('toast').hidden=false;}}
   location(context){
     const r=ROOMS[context.room]??ROOMS.studio,d=DISTRICTS[r.district];$('district-name').textContent=context.inside?`Inside: ${context.inside}`:d.name.toUpperCase();$('district-name').style.color=d.color;$('breadcrumb').textContent=r.address.replaceAll('/',' / ');document.querySelector('.district-dot').style.background=d.color;
@@ -117,7 +118,7 @@ export class UI {
     const places=this.api.state().access?.places(lens)??{pins:[],recent:[]};
     const list=(ids)=>ids.filter(id=>ROOMS[id]&&roomEntry(id,lens,EDGES).state!=='hidden').map(id=>`<button data-place="${id}">${escapeHTML(roomTitle(ROOMS[id],lens))}</button>`).join('')||'<span class="muted">No places yet.</span>';
     this.content.innerHTML=`<form id="atlas-address" class="address-form"><label>Room address<input name="address" placeholder="tlh/tallahassee/1956" autocapitalize="off" spellcheck="false" required></label><button type="submit">Go</button></form><div class="atlas-saved"><button id="atlas-home">⌂ Home</button><details><summary>Pins</summary>${list(places.pins)}</details><details><summary>Recent places</summary>${list(places.recent)}</details></div>
-      <div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}" class="${this.showOthers?'active':''}">${this.showOthers?'On':'Off'}</button></div><p class="muted">Tap a place to travel or set a waypoint. Doors still stop your route. Unknown hidden rooms are never revealed.</p><div class="map-wrap"><svg id="atlas-map" viewBox="0 0 440 660" aria-label="Room graph" role="group">${paths}${nodes}</svg></div><div class="legend"><span data-symbol="≈">Seamless</span><span data-symbol="∩">Door</span><span data-symbol="◎">Embedded</span><span data-symbol="▧">Window</span></div><details class="atlas-directory"><summary>Places & access</summary>${list(Object.keys(ROOMS))}</details><div id="map-detail" aria-live="polite">You are in ${escapeHTML(roomTitle(ROOMS[context.room],lens))}.</div>`;
+      <div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}" class="${this.showOthers?'active':''}">${this.showOthers?'On':'Off'}</button></div><p class="muted">Tap a place to travel or set a waypoint. Review route doorways before a short arrival fade. Unknown hidden rooms are never revealed.</p><div class="map-wrap"><svg id="atlas-map" viewBox="0 0 440 660" aria-label="Room graph" role="group">${paths}${nodes}</svg></div><div class="legend"><span data-symbol="≈">Seamless</span><span data-symbol="∩">Door</span><span data-symbol="◎">Embedded</span><span data-symbol="▧">Window</span></div><details class="atlas-directory"><summary>Places & access</summary>${list(Object.keys(ROOMS))}</details><div id="map-detail" aria-live="polite">You are in ${escapeHTML(roomTitle(ROOMS[context.room],lens))}.</div>`;
     $('atlas-address').onsubmit=e=>{e.preventDefault();this.api.address(new FormData(e.currentTarget).get('address'));};$('atlas-home').onclick=()=>{this.close();this.api.travel('studio');};
     this.content.querySelectorAll('[data-place]').forEach(b=>b.onclick=()=>this.mapRoom(b.dataset.place));
     $('show-others').onclick=()=>{this.showOthers=!this.showOthers;this.renderAtlas();};
@@ -126,9 +127,9 @@ export class UI {
   }
   mapRoom(id){
     const {lens,context,access}=this.api.state(),r=ROOMS[id],result=roomEntry(id,lens,EDGES),rights=permission(r,lens);if(!rights.visible)return;
-    const route=graphRoute(context.room,id,lens),canGo=route!==null&&result.state!=='hidden',pinned=access?.places(lens).pins.includes(id);
+    const route=planRoute(context.room,id,lens),canGo=route!==null&&result.state!=='hidden',pinned=access?.places(lens).pins.includes(id);
     $('map-detail').innerHTML=`<strong>${escapeHTML(roomTitle(r,lens))}</strong><p>${result.state==='hidden'?'Hidden by this lens':result.type} · ${escapeHTML(result.reasons.join(' · ')||result.oddness?.join(' · ')||'Within your lens')}</p>
-      ${canGo?'<button id="map-travel" class="primary">Travel here</button><button id="map-waypoint">Set waypoint</button>':''}
+      ${canGo?`<button id="map-travel" class="primary">Travel here</button>${graphRoute(context.room,id,lens)!==null?'<button id="map-waypoint">Set waypoint</button>':''}`:''}
       ${result.state!=='hidden'&&rights.canLook?'<button id="map-read-page" class="secondary">Read in Page form</button>':''}
       ${result.state!=='hidden'?`<button id="map-access">${rights.canLook?'Access & receipts':'Knock'}</button>`:''}
       ${canGo?`<button id="map-pin">${pinned?'Unpin':'Pin this place'}</button>`:''}`;

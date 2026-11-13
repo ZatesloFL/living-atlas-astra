@@ -1,3 +1,4 @@
+import {addArrivals} from './arrivals.js';
 import {addAudienceData} from './audience-data.js';
 import {enrichRooms} from './content-data.js';
 export const DIMENSIONS = [
@@ -75,6 +76,8 @@ const zones={
 EDGES.push({id:'city-studio',from:'tallahassee',to:'studio',type:'door',scene:'history',position:[0,11],before:[0,9.2],destination:'studio'});
 const contexts=['studio-writing','commons-archive','broadcast-listening','commons-night','commons-market','studio-commons','canopy-capitol','city-boycott','city-mission','city-cascades','studio-broadcast'];
 for(const edge of EDGES){edge.zone??=zones[edge.id];edge.contextPriority=contexts.indexOf(edge.id);}
+
+addArrivals(ROOMS,EDGES);
 
 export const PRESETS = {
   Kids:{limits:scores({sensory:1}),hard:scores({sensory:1})},
