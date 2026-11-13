@@ -1,0 +1,26 @@
+{
+  "id": "msg_local_docent_thinking_fixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-haiku-5-5",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "SYNTHETIC_SIGNATURE_CANARY"
+    },
+    {
+      "type": "text",
+      "text": "{\"excerpts\":[{\"blockId\":\"lead\",\"quote\":\"In 1956, Black residents of Tallahassee organized a boycott of the city’s segregated bus service.\"}]}"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 600,
+    "output_tokens": 300,
+    "output_tokens_details": {"thinking_tokens": 204},
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+  }
+}

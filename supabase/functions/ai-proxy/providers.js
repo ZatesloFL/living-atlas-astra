@@ -38,14 +38,17 @@ const count=v=>Number.isSafeInteger(v)&&v>=0&&v<=10000000;
 export function normalizeUsage(provider,u){
  if(!u||!count(u.input_tokens)||!count(u.output_tokens))return null;
  let r;if(provider==='anthropic'){
-  // Nonzero thinking modes are never requested by this adapter. Unexpected
-  // usage dimensions fail closed rather than fabricating a measured cost.
-  r={input_tokens:u.input_tokens,output_tokens:u.output_tokens,cache_read_tokens:u.cache_read_input_tokens??0,cache_write_tokens:u.cache_creation_input_tokens??0,reasoning_tokens:0};
+  const details=u.output_tokens_details;
+  if(details!=null&&(typeof details!=='object'||Array.isArray(details)))return null;
+  // Haiku can think by default. Its reported thinking count is part of total
+  // output, never an extra charge; an absent breakdown is unknown, not zero.
+  r={input_tokens:u.input_tokens,output_tokens:u.output_tokens,cache_read_tokens:u.cache_read_input_tokens??0,cache_write_tokens:u.cache_creation_input_tokens??0,reasoning_tokens:details?.thinking_tokens??null};
  }else{
   const cache=u.input_tokens_details?.cached_tokens??0;
   r={input_tokens:u.input_tokens-cache,output_tokens:u.output_tokens,cache_read_tokens:cache,cache_write_tokens:0,reasoning_tokens:u.output_tokens_details?.reasoning_tokens??0};
  }
- return Object.values(r).every(count)&&r.reasoning_tokens<=r.output_tokens?r:null;
+ const {reasoning_tokens,...billable}=r;
+ return Object.values(billable).every(count)&&(reasoning_tokens===null||(count(reasoning_tokens)&&reasoning_tokens<=r.output_tokens))?r:null;
 }
 export async function generate({fetchImpl=fetch,getSecret},route,prompt){
  const provider=route.provider,key=getSecret(provider==='anthropic'?'ANTHROPIC_API_KEY':'OPENAI_API_KEY');
@@ -63,8 +66,24 @@ export async function generate({fetchImpl=fetch,getSecret},route,prompt){
  if(!usage)return rejected('provider_usage_invalid');
  if(anthropic?data.stop_reason!=='end_turn':data.status!=='completed')return rejected('provider_output_incomplete',usage);
  try{
-  const chunks=anthropic?data.content:data.output?.flatMap(o=>o.type==='message'?o.content:[]);
-  if(!Array.isArray(chunks)||chunks.some(c=>!c||!['text','output_text'].includes(c.type)||typeof c.text!=='string'))return rejected('provider_content_invalid',usage);
+  let chunks;
+  if(anthropic){
+   if(!Array.isArray(data.content))return rejected('provider_content_invalid',usage);
+   chunks=[];
+   for(const block of data.content){
+    if(!block||typeof block!=='object'||Array.isArray(block))return rejected('provider_content_invalid',usage);
+    if(block.type==='text'&&typeof block.text==='string')chunks.push(block);
+    // Documented metadata only: never parse, return, retain or reuse its
+    // contents/signature/data. Empty thinking is valid with display omitted.
+    else if(block.type==='thinking'&&typeof block.thinking==='string'&&typeof block.signature==='string')continue;
+    else if(block.type==='redacted_thinking'&&typeof block.data==='string')continue;
+    else return rejected('provider_content_invalid',usage);
+   }
+   if(!chunks.length)return rejected('provider_content_invalid',usage);
+  }else{
+   chunks=data.output?.flatMap(o=>o.type==='message'?o.content:[]);
+   if(!Array.isArray(chunks)||chunks.some(c=>!c||!['text','output_text'].includes(c.type)||typeof c.text!=='string'))return rejected('provider_content_invalid',usage);
+  }
   let text=chunks.map(c=>c.text).join('');
   // A guide may wrap its otherwise valid JSON in one Markdown code fence.
   // Unwrap only that entire document, never extract JSON from surrounding prose.

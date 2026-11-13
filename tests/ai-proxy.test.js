@@ -23,6 +23,8 @@ const diagnosticsVerify=await readFile(new URL('../supabase/operators/verify-fai
 // Hand-authored Anthropic-shaped fixture using public catalog text, never a
 // capture of Silver's deleted live response. Token counts are synthetic.
 const docentFixture=JSON.parse(await readFile(new URL('./fixtures/docent-haiku-response.json',import.meta.url),'utf8'));
+// Documented default omitted-thinking envelope; synthetic signature and counts.
+const docentThinkingFixture=JSON.parse(await readFile(new URL('./fixtures/docent-haiku-thinking-response.json',import.meta.url),'utf8'));
 const docentJSON=docentFixture.content[0].text.slice('```json\n'.length,-'\n```'.length);
 const docentAnswer=JSON.parse(docentJSON);
 const validateBuilderSchema=new Ajv2020({strict:false}).compile(builderSchema);
@@ -275,13 +277,127 @@ test('Docent grounded provider fixtures traverse reserved spend, dispatch, valid
   assert.equal(json.model,'anthropic/'+docentFixture.model);assert.equal(json.receiptData.receiptId,attemptId);
   const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${attemptId}`;
   assert.equal(r.result,'accepted');assert.equal(r.validation_passed,true);assert.equal(r.cost_basis,'measured');assert.equal(r.failure_class,null);
-  assert.equal(r.input_tokens,600);assert.equal(r.output_tokens,96);assert.equal(Number(r.cost_microusd),792);
+  assert.equal(r.input_tokens,600);assert.equal(r.output_tokens,96);assert.equal(r.reasoning_tokens,null);assert.equal(Number(r.cost_microusd),792);
   assert(!JSON.stringify(r).includes(spec.context.question));assert(!JSON.stringify(r).includes(docentAnswer.excerpts[0].quote));
   assert.equal((await sql`SELECT state FROM atlas_ai.call_leases WHERE id=${attemptId}`)[0].state,'completed');
   assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
   assert.equal((await h(req('/request',spec,s.session))).status,409);assert.equal(calls,1);
  }
  assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
+});
+test('Docent thinking envelopes accept only grounded answer text and bill total output once without persisting metadata',async()=>{
+ await enabled();await sql`UPDATE atlas_ai.routing_config SET model_id=${docentThinkingFixture.model} WHERE route_key='guide'`;
+ const [thinking,answer]=docentThinkingFixture.content,redacted={type:'redacted_thinking',data:'SYNTHETIC_REDACTED_CANARY'};
+ const variants=[
+  ['default omitted thinking',docentThinkingFixture.content,204],
+  ['thinking summary',[{...thinking,thinking:'SYNTHETIC_THINKING_CANARY'},answer],204],
+  ['redacted thinking',[redacted,answer],204],
+  ['both metadata types and fenced answer',[thinking,redacted,{type:'text',text:docentFixture.content[0].text}],204],
+  ['split text',[thinking,{type:'text',text:answer.text.slice(0,50)},{type:'text',text:answer.text.slice(50)}],204],
+  ['unknown thinking count',docentThinkingFixture.content,null]
+ ];
+ for(const [name,content,reasoning] of variants){
+  const s=await store.bootstrap(),spec=request();spec.context.question='VISITOR_QUESTION_CANARY';let calls=0,attemptId;
+  const h=handler(async(url,options)=>{
+   calls++;assert.equal(String(url),'https://api.anthropic.com/v1/messages');
+   const outgoing=JSON.parse(options.body);assert.deepEqual(Object.keys(outgoing).sort(),['max_tokens','messages','model']);
+   assert.equal(outgoing.max_tokens,512);assert.equal(outgoing.model,docentThinkingFixture.model);
+   const [a]=await sql`SELECT * FROM atlas_ai.call_leases WHERE state='dispatched'`;
+   assert(a);attemptId=a.id;assert(Number(a.reserved_microusd)>1200);
+   assert((await sql`SELECT * FROM atlas_ai.quota_windows WHERE reserved_microusd>0`).length>=5);
+   assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${attemptId}`).length,0);
+   return Response.json({...docentThinkingFixture,content,usage:{...docentThinkingFixture.usage,output_tokens_details:reasoning===null?undefined:{thinking_tokens:reasoning}}});
+  });
+  const response=await h(req('/request',spec,s.session)),json=await response.json();assert.equal(response.status,200,name);assert.equal(calls,1);
+  assert.equal(json.proposal.text,docentAnswer.excerpts[0].quote);assert.deepEqual(json.proposal.citations,['lead']);assert.equal(json.receiptData.receiptId,attemptId);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${attemptId}`;
+  assert.equal(r.result,'accepted');assert.equal(r.failure_class,null);assert.equal(r.cost_basis,'measured');assert.equal(r.reasoning_tokens,reasoning);
+  assert.equal(r.input_tokens,600);assert.equal(r.output_tokens,300);assert.equal(Number(r.cost_microusd),1200);
+  const leases=await sql`SELECT * FROM atlas_ai.call_leases WHERE id=${attemptId}`;assert.equal(leases[0].state,'completed');
+  assert(!JSON.stringify([json,r,leases]).includes('CANARY'));assert(!JSON.stringify([r,leases]).includes(docentAnswer.excerpts[0].quote));
+  assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
+  assert.equal((await h(req('/request',spec,s.session))).status,409);assert.equal(calls,1);
+ }
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
+ const [publicBudget]=await sql`SELECT * FROM atlas_ai.quota_windows WHERE bucket='public'`;
+ assert.equal(publicBudget.calls_used,variants.length);assert.equal(Number(publicBudget.spent_microusd),1200*variants.length);
+});
+test('Docent ignores only well-formed thinking metadata and rejects tools, unknown blocks and metadata-only answers',async()=>{
+ await enabled();const [thinking,answer]=docentThinkingFixture.content;
+ const variants=[
+  ['unrequested tool',[thinking,answer,{type:'tool_use',id:'fixture',name:'unrequested',input:{text:'TOOL_CANARY'}}]],
+  ['unknown metadata',[thinking,answer,{type:'future_block',data:'UNKNOWN_CANARY'}]],
+  ['missing thinking',[{type:'thinking',signature:'SIGNATURE_CANARY'},answer]],
+  ['missing signature',[{type:'thinking',thinking:''},answer]],
+  ['non-string thinking',[{...thinking,thinking:{text:'THINKING_CANARY'}},answer]],
+  ['non-string signature',[{...thinking,signature:42},answer]],
+  ['missing redaction',[{type:'redacted_thinking'},answer]],
+  ['non-string redaction',[{type:'redacted_thinking',data:42},answer]],
+  ['non-string answer',[thinking,{type:'text',text:{excerpts:[]}}]],
+  ['foreign text type',[thinking,{type:'output_text',text:answer.text}]],
+  ['null block',[thinking,null,answer]],
+  ['null content',null],
+  ['empty content',[]],
+  ['answer in thinking only',[{...thinking,thinking:answer.text}]],
+  ['answer in redaction only',[{type:'redacted_thinking',data:answer.text}]]
+ ];
+ for(const [name,content] of variants){
+  const s=await store.bootstrap();let calls=0;
+  const response=await handler(async()=>{calls++;return Response.json({...docentThinkingFixture,content});})(req('/request',request(),s.session));
+  const json=await response.json();assert.equal(response.status,502,name);assert.equal(calls,1);assert.equal(json.failureClass,'provider_content_invalid',name);
+  assert.deepEqual(Object.keys(json).sort(),['code','failureClass','receiptId']);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
+  assert.equal(r.result,'rejected');assert.equal(r.failure_class,'provider_content_invalid');assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),1200);
+  assert(!JSON.stringify([json,r,await sql`SELECT * FROM atlas_ai.call_leases WHERE id=${json.receiptId}`]).includes('CANARY'));
+ }
+ assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,variants.length);
+ assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
+});
+test('thinking metadata cannot rescue invalid answer text, non-visible evidence or incomplete output',async()=>{
+ await enabled();const [thinking,answer]=docentThinkingFixture.content;
+ const variants=[
+  ['valid JSON in thinking only','ANSWER_TEXT_CANARY','proposal_json_invalid'],
+  ['surrounding prose','Here is the answer: '+answer.text,'proposal_json_invalid'],
+  ['extra assertion',JSON.stringify({...docentAnswer,answer:'UNSUPPORTED_CANARY'}),'proposal_schema_invalid'],
+  ['non-visible evidence',JSON.stringify({excerpts:[{blockId:'timeline',quote:docentAnswer.excerpts[0].quote}]}),'evidence_block_not_visible'],
+  ['fabricated quote',JSON.stringify({excerpts:[{blockId:'lead',quote:'FABRICATED_CANARY'}]}),'evidence_quote_not_exact'],
+  ['truncated output',answer.text,'provider_output_incomplete','max_tokens']
+ ];
+ for(const [name,text,expected,stop_reason='end_turn'] of variants){
+  const s=await store.bootstrap();let calls=0;
+  const content=[{...thinking,thinking:answer.text},{type:'text',text}];
+  const response=await handler(async()=>{calls++;return Response.json({...docentThinkingFixture,content,stop_reason});})(req('/request',request(),s.session));
+  const json=await response.json();assert.equal(response.status,502,name);assert.equal(json.failureClass,expected,name);assert.equal(calls,1);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
+  assert.equal(r.result,'rejected');assert.equal(r.failure_class,expected);assert.equal(r.cost_basis,'measured');assert.equal(Number(r.cost_microusd),1200);
+  assert(!JSON.stringify([json,r]).includes('CANARY'));
+ }
+ assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
+});
+test('thinking uses the existing total output cap even when visible answer text is short',async()=>{
+ await enabled();const s=await store.bootstrap();let calls=0;
+ const response=await handler(async(url,options)=>{
+  calls++;assert.equal(JSON.parse(options.body).max_tokens,512);
+  return Response.json({...docentThinkingFixture,usage:{...docentThinkingFixture.usage,output_tokens:513,output_tokens_details:{thinking_tokens:420}}});
+ })(req('/request',request(),s.session));
+ const json=await response.json();assert.equal(response.status,502);assert.equal(json.failureClass,'accounting_bound_exceeded');assert.equal(calls,1);
+ const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
+ assert.equal(r.output_tokens,513);assert.equal(r.reasoning_tokens,420);assert.equal(Number(r.cost_microusd),1626);assert.equal(r.cost_basis,'measured');assert.equal(r.failure_class,'accounting_bound_exceeded');
+ assert.equal((await store.config()).enabled,false);assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
+});
+test('malformed thinking usage rejects before answer parsing and retains the complete cost reservation',async()=>{
+ await enabled();
+ for(const details of [{thinking_tokens:301},{thinking_tokens:-1},{thinking_tokens:'204'},[],false]){
+  const s=await store.bootstrap();let calls=0,reserved;
+  const response=await handler(async()=>{
+   calls++;const [a]=await sql`SELECT * FROM atlas_ai.call_leases WHERE state='dispatched'`;reserved=Number(a.reserved_microusd);
+   return Response.json({...docentThinkingFixture,usage:{...docentThinkingFixture.usage,output_tokens_details:details}});
+  })(req('/request',request(),s.session));
+  const json=await response.json();assert.equal(response.status,502);assert.equal(json.failureClass,'provider_usage_invalid');assert.equal(calls,1);
+  const [r]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptId}`;
+  assert.equal(r.cost_basis,'reserved');assert.equal(Number(r.cost_microusd),reserved);assert.equal(r.output_tokens,null);assert.equal(r.reasoning_tokens,null);assert.equal(r.failure_class,'provider_usage_invalid');
+ }
+ assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
 });
 test('Docent fence handling preserves schema, exact-quote, length and visible-evidence rejections',async()=>{
  await enabled();
@@ -449,6 +565,13 @@ test('builder output registry rejects invented behavior, forged backing and queu
 test('usage handles cache and reasoning without double billing; malformed counts remain unknown',()=>{
  assert.deepEqual(normalizeUsage('openai',{input_tokens:100,output_tokens:20,input_tokens_details:{cached_tokens:30},output_tokens_details:{reasoning_tokens:10}}),{input_tokens:70,output_tokens:20,cache_read_tokens:30,cache_write_tokens:0,reasoning_tokens:10});
  assert.equal(normalizeUsage('openai',{input_tokens:10,output_tokens:20,input_tokens_details:{cached_tokens:30}}),null);assert.equal(normalizeUsage('anthropic',{}),null);
+});
+test('Anthropic usage reports optional thinking as part of total output, preserves cache counts and never infers thinking from content',()=>{
+ const u={...docentThinkingFixture.usage,cache_read_input_tokens:30,cache_creation_input_tokens:50};
+ assert.deepEqual(normalizeUsage('anthropic',u),{input_tokens:600,output_tokens:300,cache_read_tokens:30,cache_write_tokens:50,reasoning_tokens:204});
+ for(const details of [undefined,null,{}, {thinking_tokens:null}])assert.equal(normalizeUsage('anthropic',{...u,output_tokens_details:details}).reasoning_tokens,null);
+ assert.equal(normalizeUsage('anthropic',{...u,output_tokens_details:{thinking_tokens:0}}).reasoning_tokens,0);
+ for(const details of [{thinking_tokens:301},{thinking_tokens:-1},{thinking_tokens:1.5},{thinking_tokens:'204'},[],false])assert.equal(normalizeUsage('anthropic',{...u,output_tokens_details:details}),null);
 });
 test('rollback is idempotent, disables routes and grants, preserves receipts, pending costs and unrelated resources',async()=>{
  await enabled();const s=await store.bootstrap();await paid(s);const a=await reserve(s);await store.dispatch(a.id);

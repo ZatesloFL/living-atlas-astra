@@ -1,17 +1,21 @@
 # Round 2b: files for Silver
 
 Astra writes; Silver applies the implementation commit Nic names (latest handoff:
-`lane/reports/2026-11-13-02.md`). This directory has no linked project, credentials,
+`lane/reports/2026-11-13-05.md`). This directory has no linked project, credentials,
 deployment workflow, live URL or auto-activation. Do not run these files against
 Second Look or another project. The shipped browser singleton remains simulated.
 
-Round 2d's current diagnostics handoff is
-[`lane/reports/2026-11-13-04.md`](../lane/reports/2026-11-13-04.md). It adds one
-nullable, constrained failure-class column and requires migration before redeploy.
-Silver's v2 retest still returned BAD_PROPOSAL; the live cause remains unknown.
+Round 2d's current provider-envelope fix is
+[`lane/reports/2026-11-13-05.md`](../lane/reports/2026-11-13-05.md). Silver's
+[receipt 04](../lane/ops/2026-11-13-04.md) confirms both migrations are applied
+and the v3 retest failed at `provider_content_invalid`, before answer validation.
+This handoff handles documented Anthropic thinking metadata and needs a
+**function-only redeploy and one approved retest; no SQL application**.
+The dropped live payload's exact block type remains unobserved.
 The Stage A sequence below records the completed initial deployment from
-`1ff544b`, as documented in `lane/ops/`. Use the diagnostics upgrade below for the
-existing live installation; client wiring waits for the operator retest.
+`1ff544b`, as documented in `lane/ops/`. Neither Stage A nor the diagnostics
+migration should be repeated on that installation. Client wiring waits for an
+accepted live answer in Silver's operator receipt.
 
 ## Files
 
@@ -45,7 +49,50 @@ existing live installation; client wiring waits for the operator retest.
 - `operators/revoke-model-check.mjs`: offline SQL generator to revoke that grant,
   its sessions and its private holder, preserving receipts and counters.
 
-## Round 2d diagnostics upgrade (Silver)
+## Round 2d thinking-envelope fix (Silver)
+
+After Nic approves report 05's implementation commit and one retest, redeploy
+the complete 12-file `functions/ai-proxy/` bundle with the existing settings.
+Both required migrations are already applied per receipt 04. Change no routes,
+prices, caps, grants or secrets. Record the new function version and commit.
+
+The Anthropic adapter accepts only answer `text` blocks plus well-formed
+`thinking` and `redacted_thinking` metadata. Haiku 5.5 defaults to thinking with
+its display omitted, which can produce an empty thinking string and an opaque
+signature ahead of the answer. The metadata's contents are never parsed as an
+answer, logged, stored, returned or reused. Unknown blocks, tools, malformed
+metadata and metadata-only responses still fail closed. Completion checks,
+guide-only fence handling and strict visible-block/verbatim-quote validation
+remain in force. No request setting or output cap changes, no automatic retry.
+
+`usage.output_tokens` remains the total billed output, including thinking.
+`usage.output_tokens_details.thinking_tokens`, when reported, populates the
+existing `reasoning_tokens` field without adding another charge. An absent/null
+breakdown or count is NULL (unknown), not zero. An invalid breakdown/count, or a
+count exceeding total output, rejects with unknown usage and retains the full
+cost reservation. A measured total-output overrun still disables the master.
+There is no schema change or historical receipt backfill.
+
+Run the single approved `/session` → `/request` check with guide/docent-silver,
+boycott, the current catalog revision, visible blocks `[lead]`, and “What is this
+Place?”. Success requires a non-empty grounded answer citing lead and an accepted,
+measured receipt with NULL `failure_class`. Rejection records the fixed class
+and matching receipt metadata. Confirm full output-token cost and settled quota
+counters. Do not retain the question, answer, thinking metadata or raw response;
+write the new operator receipt and stop. Client wiring remains blocked until
+success is proved; local fixtures alone do not establish live acceptance.
+
+If this function-only change needs rollback under Nic's applicable approval,
+redeploy the complete prior v3 bundle from
+`a7f3b4d75b94a8f24c07ea8dd76421263b123c10`. Leave both applied migrations,
+receipts, counters and configuration intact. No rollback SQL is needed for this
+change; permanent receipts still forbid full schema undo.
+
+## Round 2d diagnostics upgrade (completed; reference)
+
+Silver's receipt 04 confirms this upgrade and its classified retest are complete.
+The following describes the already-applied migration and its compatibility;
+report 05 needs only the function redeploy above.
 
 After Nic approves the implementation commit in report 04, Silver applies only
 `20261113204500_ai_failure_class.sql` to the existing installation, then runs
@@ -301,7 +348,9 @@ The `billing_contract` must contain api (`anthropic-messages` or
 `overhead_tokens`, `output_includes_reasoning: true`, and `evidence_url` for the
 verified contract. Unknowns leave routes off. Native tools, streaming, extended
 thinking settings, explicit caching and automatic retries are not requested.
-Outputs/reasoning are covered by the provider's verified maximum output bound.
+Models may still think by default; the adapter handles documented thinking
+metadata as described above. Total output, including thinking, is covered by the
+provider's verified maximum output bound and is billed once in full.
 An observed bound overrun stops the master and records the measured cost.
 
 The full fixed builder prompt exceeds the 12,000-token cap under a one-token-per-
@@ -351,6 +400,8 @@ These are documentation reads only, not project or provider-account access:
 [Anthropic model list](https://platform.claude.com/docs/en/api/models/list),
 [Anthropic API versioning](https://platform.claude.com/docs/en/api/versioning),
 [Messages](https://platform.claude.com/docs/en/api/messages/create),
+[thinking behavior](https://platform.claude.com/docs/en/build-with-claude/thinking),
+[Messages content and usage types](https://platform.claude.com/docs/en/api/http/messages),
 [OpenAI model list](https://developers.openai.com/api/reference/resources/models/methods/list),
 [Responses](https://developers.openai.com/api/reference/resources/responses/methods/create).
 The Anthropic adapter pins version `2026-10-21`. Database connections require
