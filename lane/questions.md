@@ -21,3 +21,4 @@ Anything unclear or wrong in docs/shared/.
 
 - 2026-11-12 / Tier C — “Deep automatically includes Expert” and “preview before integrating” could conflict. Deep enables Expert pins/previews, but text enters the main view only after Integrate; an explicit type filter still excludes it.
 - 2026-11-12 / Tier C — The brief does not specify which audience version receives an author merge. The owner selects one; a merge is rejected if its scores exceed that version’s audience ceiling. This keeps a later contribution from silently changing the Kids version.
+- 2026-11-13: main added file 11's round-2b proposal/approval stop after 2c, while the current chat explicitly says continue through simulated round 3 D/E and stop there. Following the direct chat scope; server/proxy planning and deployment remain queued. The new file and AGENTS edits are preserved.

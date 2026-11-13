@@ -94,3 +94,7 @@ One line per call the brief did not settle, with the reason.
 - G3: bake the photo wall's spotlight gradients into one shared atlas and instance its frames; keep the scene's one sun instead of adding six real-time lights.
 - G3: share the rough wood/stone fixture batches, retaining per-instance colors, to make room for the media atlas within the draw budget; the tested History view uses 18 draws with bloom and shadows.
 - G3: use speech start/end events for highlighted transcript cues; when the device has no available voice, explicitly show speech unavailable and retain the text.
+- G4: use local system serif/body fonts and generated hero art so the designed reader remains fully offline; an exhibition, editorial or notebook preset selects the shared presentation.
+- G4: make Depth a cycling button in the sticky reader bar, with Content/Layers opening their section in a modal settings sheet; the Room dropdown moves behind Places.
+- G4: show community layers as expandable inline notes on phones and a margin column on wide screens; integration remains explicit and credited.
+- G4: keep source statuses, authorship, fictional media labels and identity badges visible within the designed article; no visual treatment implies historical verification.

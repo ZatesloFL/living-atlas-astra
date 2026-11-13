@@ -6,7 +6,7 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [7fd678d](https://github.com/ZatesloFL/living-atlas-astra/commit/7fd678d). The session report is committed afterward as documentation.
+- Latest commit: [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) · locally tested app build [4b44c50](https://github.com/ZatesloFL/living-atlas-astra/commit/4b44c50). The session report is committed afterward as documentation.
 
 ## Run and verify
 
@@ -93,3 +93,5 @@ What you'd do next with one more session.
 - `tests/fast-travel-browser.cjs`: five pre-flight/fade/arrival/cancel/waystation/window checks. Default local URL port 8003; same Playwright module variable. Report `2026-11-12-07`.
 
 - `tests/kit-browser.cjs`: five exhibit/player/budget checks (port 8003 by default). Report `2026-11-12-08`; sample assets generated locally, no archival media connected.
+
+- `tests/page-design-browser.cjs`: four Page-only presentation, sticky bar, layer and responsive checks. Report `2026-11-12-09`. Current Page controls are behind Places/Settings; older scripts with visible dropdowns or the retired floating Page button document earlier UI checkpoints.
