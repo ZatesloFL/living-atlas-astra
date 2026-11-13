@@ -29,41 +29,74 @@ in file 11 validate, Nic approves, you apply, and the receipt is logged.
   `supabase/migrations/` and `supabase/functions/ai-proxy/`, each migration
   with a matching rollback file. Apply only files from a commit Nic names.
 
-## What to do, in order
+## What needs Nic's separate approval, and what doesn't
 
-**Stage A: set up with everything switched off.**
+Nic's approval of a stage covers every step listed in that stage, including
+creating and removing short-lived operator access the stage needs. He is not
+a courier for operator files and does not run scripts.
 
-1. Read the live project before touching it: list existing schemas, tables,
-   functions and the names (not values) of Edge Function secrets. Confirm
-   `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and `ALLOWED_ORIGINS` exist. Write
-   this inventory into your receipt.
-2. Check the migration against the live inventory. It must be additive only:
-   it creates the private `atlas_ai` schema and its nine tables and alters or
-   drops nothing that already exists (file 11, check 5). If it would touch
-   anything existing, stop and report.
-3. Apply the migration. Confirm all nine tables exist and that `atlas_ai` is
-   not exposed through the public API.
-4. Deploy `ai-proxy` with the master config **disabled** and every model
-   route **null**.
-5. Run the function's model check. It asks Anthropic and OpenAI, using the
-   stored keys, which models those keys can reach, and returns only names and
-   availability. Report whether these exact IDs come back:
-   `claude-opus-5-5`, `claude-haiku-5-5`, `claude-fable-5-2`, and the exact
-   ID matching GPT-6.1 Sol. Do not make any generation call.
-6. Smoke-test the switched-off state. A request from the Pages origin should
-   get a clean "AI is off" answer. A request from any other origin should be
-   refused. The live site at https://zateslofl.github.io/living-atlas-astra/
-   should still work in local-only mode.
-7. Write your receipt (see below) and stop.
+These still need their own, separate yes from Nic, because each changes the
+real risk: turning on the master config or any route; allowing any
+generation call; running the builder head-to-head; changing quota or dollar
+caps or provider spending limits; adding, replacing or rotating a provider
+key or any other secret; and any rollback once real call receipts exist.
 
-**Stage B: turn it on (only after Nic reads the Stage A receipt and says go).**
+## Stage A, one sequence (supersedes earlier step lists)
 
-8. Set the routes to the verified model IDs and enable the master config,
-   with the quota and dollar caps exactly as in report 12.
-9. Make one Docent test call, confirm it lands as a receipt row holding only
-   job, model, agent, tokens, cost and accept/reject (no visitor text), and
-   confirm the quota counters moved.
-10. Receipt, then stop. The builder head-to-head is a separate approval.
+Run against the commit Nic names. Steps are in this order on purpose: the
+full-undo rollback works only until the first grant receipt exists, so the
+one step that creates a grant comes last.
+
+1. **Inventory.** Record Nic's approval and the commit. List the project's
+   schemas, tables, functions, Edge Functions and secret **names** (never
+   values). Confirm `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and
+   `ALLOWED_ORIGINS` exist, and that `atlas_ai` and `ai-proxy` do not.
+2. **Additive review.** Compare `20261113120000_atlas_ai.sql` with that
+   inventory. It may create only the `atlas_ai` schema and its own nine tables,
+   indexes and permissions. If it would touch anything existing, stop.
+3. **Apply and verify.** Apply that forward file only (never the `rollback/`
+   folder). Run `supabase/operators/verify-stage-a.sql`. Confirm `atlas_ai` is
+   not in the Data API's exposed schemas and public roles are denied.
+4. **Deploy switched off.** Deploy `ai-proxy` exactly as `supabase/README.md`
+   describes, master disabled, every route null.
+5. **Off-state smoke test.** Exact Pages origin gets `AI_OFF`; any other
+   origin gets `ORIGIN_DENIED`; no call receipts or counters appear; the live
+   site still works in local-only mode. *Up to here, a failure means full
+   undo.*
+6. **Model check (Silver, end to end).** In Silver's own private workspace:
+   generate the one-time grant with `prepare-model-check.mjs`; apply only the
+   fingerprint SQL; run `run-model-check.mjs` against the function URL;
+   revoke the grant right away (or confirm its expiry if revoke isn't
+   available); delete the local `grant.json`. Report only model names and
+   available / unavailable / unknown for `claude-opus-5-5`,
+   `claude-haiku-5-5`, `claude-fable-5-2` and the exact GPT-6.1 Sol ID. No
+   generation call. **If Silver's workspace can't run Node or can't reach the
+   function URL, skip this step and record "deferred to Stage B".** Don't
+   route it through Nic. Stage A is proven without it; model IDs only matter
+   when routes are set.
+7. **Receipt and stop.** Write `lane/ops/YYYY-MM-DD-NN.md` (format below),
+   leave everything switched off, and stop.
+
+## Stage B (only after Nic reads the Stage A receipt and says go)
+
+1. If the model check was deferred, run it now as Stage A step 6.
+2. Set routes to the verified IDs and enable the master config, with the
+   caps exactly as in report 12.
+3. One Docent test call. Confirm the receipt row holds only job, model, agent,
+   tokens, cost and accept/reject (no visitor text), and the counters moved.
+4. Receipt, then stop. The builder head-to-head is a separate approval.
+
+## What changed on 2026-11-13 (for Silver)
+
+- Stage A is now one numbered list, and this file's order is the one to
+  follow if `supabase/README.md` differs.
+- The off-state smoke test moved ahead of the model check, so full undo
+  stays possible for every step but the last.
+- Silver runs the model check end to end under the Stage A approval; Nic
+  doesn't hold `grant.json` or run scripts. If Silver can't run it, it
+  defers to Stage B instead.
+- Silver revokes the grant and deletes `grant.json` when done.
+- Dual control (Nic's separate yes) is reserved for the list above.
 
 ## Hard rules
 
