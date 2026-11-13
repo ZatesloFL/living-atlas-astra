@@ -20,6 +20,7 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 13. `docs/shared/13-project-bridge-second-look-rails.md`: **standing design direction** (Second Look projects as backed Things: backing not copying, the `backing_ref` slot, Atlas never mints backing identity). Add the slot at the next natural data-model touch and log it in `lane/decisions.md`; it does not interrupt round 2c, pull queued rounds forward, or authorize any live integration yet.
 
 `docs/shared/` is the source of truth. **Never edit anything in `docs/shared/`.** Where the vision board and the brief differ, the brief wins. If something there is unclear or wrong, say so in `lane/questions.md`; don't work around it silently.
+14. `docs/shared/14-database-operator-silver.md`: **standing rule from round 2b on.** Silver, not you, applies migrations and deploys to Supabase. Your job is to hand Silver complete, reviewable files and a model-check endpoint it can run.
 
 ## Where things go
 
@@ -35,7 +36,7 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 1. Target: Chrome on a Google Pixel phone, portrait first, landscape working. 3D-game visual quality, stable 60 fps.
 2. Work the current round's goals in order (round 2c: G2 HUD zones first, then G1, G3, G4). Make each solid before starting the next.
 3. Push commits directly to `main` with clear messages so GitHub Pages updates. If you can't push to main, open a PR and tell Nic.
-4. No backend, login or live AI until round 2b (file 10) starts. From then: Supabase is the only backend; provider keys exist only as Edge Function secrets and must never appear in the repo, page, logs or reports; schema changes and deployments are proposed to Nic and applied only after he approves. Local-only mode must keep working. Visitors still can't create new rooms from scratch until round 5.
+4. No backend, login or live AI until round 2b (file 10) starts. From then: Supabase is the only backend; provider keys exist only as Edge Function secrets and must never appear in the repo, page, logs or reports; schema changes and deployments are proposed to Nic and applied only after he approves. **You write the code; you never apply it.** Migrations (each with a rollback file) go in `supabase/migrations/`, the function in `supabase/functions/ai-proxy/`; Silver applies and deploys them after Nic approves (see file 14). Never connect to the live Supabase project yourself. Local-only mode must keep working. Visitors still can't create new rooms from scratch until round 5.
 5. You can't see the app running. After each tier, tell Nic exactly what to check on his phone. His feedback is the source of truth for visuals, feel and frame rate. Anything you couldn't verify yourself is Partial until he confirms it.
 6. Only stop and ask for something that truly blocks the build. Otherwise make the most reasonable call, log it in `lane/decisions.md`, and keep going.
 7. Privacy: sample content about Nic stays at the level in the brief. No family details beyond the private-room doorway, no home address, no named private people.
