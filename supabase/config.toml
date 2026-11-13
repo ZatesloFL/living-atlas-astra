@@ -1,0 +1,4 @@
+# Reviewed deployment setting only. No linked project or deployment automation.
+[functions.ai-proxy]
+verify_jwt = false
+entrypoint = "./functions/ai-proxy/index.ts"

@@ -1,0 +1,791 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:living-atlas:proposed:atlas-kit-proposal-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "atlas-kit-proposal-v1"
+    },
+    "place": {
+      "const": "boycott"
+    },
+    "backing_ref": {
+      "type": "null"
+    },
+    "status": {
+      "enum": [
+        "proposed",
+        "capability_gap"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "replace_component"
+              },
+              "thing": {
+                "const": "film"
+              },
+              "component": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "const": "film"
+                  },
+                  "kind": {
+                    "const": "screen"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "slides": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "title": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            },
+                            "caption": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 600
+                            },
+                            "scene": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 5
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "caption",
+                            "scene"
+                          ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 8
+                      },
+                      "transcript": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 3000
+                      },
+                      "secondsPerSlide": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 30
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "slides",
+                      "transcript",
+                      "secondsPerSlide"
+                    ]
+                  },
+                  "behaviors": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "when": {
+                          "enum": [
+                            "tap",
+                            "leave",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "if": {
+                          "const": "canView"
+                        },
+                        "then": {
+                          "enum": [
+                            "toggle",
+                            "pause",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "target": {
+                          "const": "self"
+                        }
+                      },
+                      "required": [
+                        "when",
+                        "if",
+                        "then",
+                        "target"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "settings",
+                  "behaviors"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "thing",
+              "component"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "replace_component"
+              },
+              "thing": {
+                "const": "archive-image"
+              },
+              "component": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "const": "archive-image"
+                  },
+                  "kind": {
+                    "const": "photoWall"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "photos": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "title": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            },
+                            "scene": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 5
+                            },
+                            "alt": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 400
+                            },
+                            "caption": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 600
+                            },
+                            "credit": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 240
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "scene",
+                            "alt",
+                            "caption",
+                            "credit"
+                          ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 6
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "photos"
+                    ]
+                  },
+                  "behaviors": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "when": {
+                          "enum": [
+                            "tap",
+                            "leave",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "if": {
+                          "const": "canView"
+                        },
+                        "then": {
+                          "enum": [
+                            "toggle",
+                            "pause",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "target": {
+                          "const": "self"
+                        }
+                      },
+                      "required": [
+                        "when",
+                        "if",
+                        "then",
+                        "target"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "settings",
+                  "behaviors"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "thing",
+              "component"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "replace_component"
+              },
+              "thing": {
+                "const": "oral-history"
+              },
+              "component": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "const": "oral-history"
+                  },
+                  "kind": {
+                    "const": "listening"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "cues": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 600
+                        },
+                        "minItems": 1,
+                        "maxItems": 8
+                      },
+                      "transcript": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 3000
+                      },
+                      "voice": {
+                        "const": "device speech synthesis"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "cues",
+                      "transcript",
+                      "voice"
+                    ]
+                  },
+                  "behaviors": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "when": {
+                          "enum": [
+                            "tap",
+                            "leave",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "if": {
+                          "const": "canView"
+                        },
+                        "then": {
+                          "enum": [
+                            "toggle",
+                            "pause",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "target": {
+                          "const": "self"
+                        }
+                      },
+                      "required": [
+                        "when",
+                        "if",
+                        "then",
+                        "target"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "settings",
+                  "behaviors"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "thing",
+              "component"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "replace_component"
+              },
+              "thing": {
+                "const": "sample-clipping"
+              },
+              "component": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "const": "sample-clipping"
+                  },
+                  "kind": {
+                    "const": "newspaper"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "headline": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "columns": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 1200
+                        },
+                        "minItems": 1,
+                        "maxItems": 4
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "headline",
+                      "columns"
+                    ]
+                  },
+                  "behaviors": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "when": {
+                          "enum": [
+                            "tap",
+                            "leave",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "if": {
+                          "const": "canView"
+                        },
+                        "then": {
+                          "enum": [
+                            "toggle",
+                            "pause",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "target": {
+                          "const": "self"
+                        }
+                      },
+                      "required": [
+                        "when",
+                        "if",
+                        "then",
+                        "target"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "settings",
+                  "behaviors"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "thing",
+              "component"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "replace_component"
+              },
+              "thing": {
+                "const": "bus-model"
+              },
+              "component": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "const": "bus-model"
+                  },
+                  "kind": {
+                    "const": "seatMap"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "seats": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "label": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "caption": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 600
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "caption"
+                          ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 12
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "seats"
+                    ]
+                  },
+                  "behaviors": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "when": {
+                          "enum": [
+                            "tap",
+                            "leave",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "if": {
+                          "const": "canView"
+                        },
+                        "then": {
+                          "enum": [
+                            "toggle",
+                            "pause",
+                            "photo",
+                            "seat",
+                            "zoom",
+                            "seek"
+                          ]
+                        },
+                        "target": {
+                          "const": "self"
+                        }
+                      },
+                      "required": [
+                        "when",
+                        "if",
+                        "then",
+                        "target"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "settings",
+                  "behaviors"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "thing",
+              "component"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "move_component"
+              },
+              "thing": {
+                "enum": [
+                  "film",
+                  "archive-image",
+                  "oral-history",
+                  "sample-clipping",
+                  "bus-model"
+                ]
+              },
+              "position": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -6,
+                  "maximum": 6
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "facing": {
+                "type": "number",
+                "minimum": -3.141593,
+                "maximum": 3.141593
+              }
+            },
+            "required": [
+              "op",
+              "thing",
+              "position",
+              "facing"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "const": "set_presentation"
+              },
+              "theme": {
+                "enum": [
+                  "exhibition",
+                  "editorial",
+                  "notebook"
+                ]
+              },
+              "accent": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              },
+              "heroBlock": {
+                "enum": [
+                  "film",
+                  "archive-image",
+                  "oral-history",
+                  "sample-clipping",
+                  "bus-model"
+                ]
+              }
+            },
+            "required": [
+              "op",
+              "theme",
+              "accent",
+              "heroBlock"
+            ]
+          }
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 8
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "unsupported_behavior",
+              "scope_floor",
+              "connected_source_queued",
+              "unsupported_setting"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 600
+          }
+        },
+        "required": [
+          "code",
+          "reason"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 4
+    }
+  },
+  "required": [
+    "schema_version",
+    "place",
+    "backing_ref",
+    "status",
+    "reason",
+    "changes",
+    "gaps"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "capability_gap"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "changes": {
+            "maxItems": 0
+          },
+          "gaps": {
+            "minItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "changes": {
+            "minItems": 1
+          },
+          "gaps": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}

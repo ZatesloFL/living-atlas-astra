@@ -1,0 +1,65 @@
+import {readJSON,fail} from './core.js';
+const ANTHROPIC_VERSION='2026-10-21';
+const safeName=s=>typeof s==='string'&&/^[a-zA-Z0-9][a-zA-Z0-9 ._:/-]{0,150}$/.test(s);
+// Provider payloads/errors/headers are never returned or logged. Only the model
+// names and tri-state availability below leave the metadata boundary.
+export async function modelCheck({fetchImpl=fetch,getSecret},solId=null){
+ if(solId!==null&&(!safeName(solId)||!solId.startsWith('gpt-')))fail('BAD_REQUEST');
+ async function list(provider){
+  const key=getSecret(provider==='anthropic'?'ANTHROPIC_API_KEY':'OPENAI_API_KEY');
+  if(!key)return null;
+  const names=new Set(),seen=new Set();let cursor=null;
+  try{
+   for(let page=0;page<20;page++){
+    const url=new URL(provider==='anthropic'?'https://api.anthropic.com/v1/models':'https://api.openai.com/v1/models');
+    if(provider==='anthropic'){url.searchParams.set('limit','1000');if(cursor)url.searchParams.set('after_id',cursor);}
+    const res=await fetchImpl(url,{method:'GET',headers:provider==='anthropic'?{'x-api-key':key,'anthropic-version':ANTHROPIC_VERSION}:{Authorization:'Bearer '+key},redirect:'error',signal:AbortSignal.timeout(10000)});
+    if(!res.ok){await res.body?.cancel();return null;}
+    const json=await readJSON(res,1024*1024);if(!Array.isArray(json.data))return null;
+    for(const m of json.data)if(safeName(m.id))names.add(m.id);
+    if(!json.has_more)return names;
+    if(provider!=='anthropic'||!safeName(json.last_id)||seen.has(json.last_id))return null;
+    cursor=json.last_id;seen.add(cursor);
+   }
+  }catch{return null;}
+  return null; // An incomplete listing must not claim a model is absent.
+ }
+ const [a,o]=await Promise.all([list('anthropic'),list('openai')]);
+ const available=(set,name)=>set===null?'unknown':set.has(name)?'available':'unavailable';
+ const rows=['claude-opus-5-5','claude-haiku-5-5','claude-fable-5-2'].map(name=>({name,availability:available(a,name)}));
+ // OpenAI's list supplies IDs, not a dependable marketing-name mapping.
+ // Return exact listed GPT-6.1 IDs for Silver to map using official docs.
+ // A supplied exact ID is checked for membership, never guessed from "Sol".
+ rows.push({name:solId??'GPT-6.1 Sol (exact ID unverified)',availability:solId?available(o,solId):'unknown'});
+ if(!solId&&o)for(const name of [...o].sort().filter(n=>/^gpt-6[.]1(?:[._/-]|$)/i.test(n)).slice(0,100))rows.push({name,availability:'available'});
+ return rows;
+}
+const count=v=>Number.isSafeInteger(v)&&v>=0&&v<=10000000;
+export function normalizeUsage(provider,u){
+ if(!u||!count(u.input_tokens)||!count(u.output_tokens))return null;
+ let r;if(provider==='anthropic'){
+  // Nonzero thinking modes are never requested by this adapter. Unexpected
+  // usage dimensions fail closed rather than fabricating a measured cost.
+  r={input_tokens:u.input_tokens,output_tokens:u.output_tokens,cache_read_tokens:u.cache_read_input_tokens??0,cache_write_tokens:u.cache_creation_input_tokens??0,reasoning_tokens:0};
+ }else{
+  const cache=u.input_tokens_details?.cached_tokens??0;
+  r={input_tokens:u.input_tokens-cache,output_tokens:u.output_tokens,cache_read_tokens:cache,cache_write_tokens:0,reasoning_tokens:u.output_tokens_details?.reasoning_tokens??0};
+ }
+ return Object.values(r).every(count)&&r.reasoning_tokens<=r.output_tokens?r:null;
+}
+export async function generate({fetchImpl=fetch,getSecret},route,prompt){
+ const provider=route.provider,key=getSecret(provider==='anthropic'?'ANTHROPIC_API_KEY':'OPENAI_API_KEY');
+ if(!key)return {usage:null,value:null};
+ const anthropic=provider==='anthropic';
+ const body=anthropic?{model:route.model_id,max_tokens:route.output_token_cap,messages:[{role:'user',content:prompt}]}:{model:route.model_id,max_output_tokens:route.output_token_cap,input:[{role:'user',content:prompt}],store:false};
+ try{
+  const response=await fetchImpl(anthropic?'https://api.anthropic.com/v1/messages':'https://api.openai.com/v1/responses',{method:'POST',headers:{'content-type':'application/json',...(anthropic?{'x-api-key':key,'anthropic-version':ANTHROPIC_VERSION}:{Authorization:'Bearer '+key})},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(18000)});
+  if(!response.ok){await response.body?.cancel();return {usage:null,value:null};}
+  const data=await readJSON(response,256*1024),usage=normalizeUsage(provider,data.usage);
+  if(!usage)return {usage:null,value:null};
+  if(anthropic?data.stop_reason!=='end_turn':data.status!=='completed')return {usage,value:null};
+  const chunks=anthropic?data.content:data.output?.flatMap(o=>o.type==='message'?o.content:[]);
+  if(!Array.isArray(chunks)||chunks.some(c=>!['text','output_text'].includes(c.type)||typeof c.text!=='string'))return {usage,value:null};
+  try{return {usage,value:JSON.parse(chunks.map(c=>c.text).join(''))};}catch{return {usage,value:null};}
+ }catch{return {usage:null,value:null};}
+}
