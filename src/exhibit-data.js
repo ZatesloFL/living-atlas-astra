@@ -21,6 +21,6 @@ export const KIDS_EXHIBITS=EXHIBITS.filter(b=>['film','archive-image','bus-model
 export function addExhibits(rooms){
  const room=rooms.boycott,old=new Set(EXHIBITS.map(b=>b.id));room.blocks=room.blocks.filter(b=>!old.has(b.id));room.blocks.splice(3,0,...EXHIBITS);
  for(const v of room.versions){if(v.id==='textbook'){v.blocks.push(...KIDS_EXHIBITS);v.layout={...v.layout,model:'none'};}else{v.blocks=v.blocks.filter(b=>!old.has(b.id));v.blocks.splice(3,0,...EXHIBITS);}}
- room.layout.model='none';room.layout.components=EXHIBITS.map(b=>({block:b.id,position:b.exhibit.position,facing:b.exhibit.facing}));room.layout.approach=[7,-3.3];room.layout.sign=['1956 · BUS BOYCOTT','FIVE SAMPLE EXHIBITS · TAP TO EXPLORE',[-.3,3.8,.5]];
+ room.layout.model='none';room.layout.components=EXHIBITS.map(b=>({block:b.id,position:b.exhibit.position,facing:b.exhibit.facing}));room.layout.approach=[9.5,-3.4];room.layout.sign=['1956 · BUS BOYCOTT','FIVE SAMPLE EXHIBITS · TAP TO EXPLORE',[-.3,3.8,.5]];
  room.presentation={theme:'exhibition',accent:'#b66740',heroBlock:'archive-image'};
 }
