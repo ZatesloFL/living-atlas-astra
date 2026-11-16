@@ -73,3 +73,23 @@ test('timeout does not retry paid generation; blocked storage remains usable',as
  let calls=0;const a=createAI({transport:createProxyTransport({endpoint:'https://example.test/functions/v1/ai-proxy',timeoutMs:20,storage:{getItem(){throw new Error('blocked');},setItem(){throw new Error('blocked');}},fetchImpl:async(u,o)=>{calls++;if(u.endsWith('/session'))return session();return new Promise((resolve,reject)=>o.signal.addEventListener('abort',()=>reject(new Error('timeout'))));}})});
  assert.equal((await a.request(request())).model,'simulated-v1');await a.request(request());assert.equal(calls,2);
 });
+
+test('real deployed proxy captures replay through client evidence and provenance validation',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const {default:catalog}=await import('../supabase/functions/ai-proxy/catalog.js');
+ for(const question of ['overview','sources','rules']){
+  const capture=JSON.parse(await readFile(new URL('./fixtures/docent-proxy-live-'+question+'.json',import.meta.url),'utf8'));
+  assert.match(capture.captureType,/real deployed proxy/);assert.equal(capture.httpStatus,200);
+  const c={place:{key:'boycott'},action:'answer',question,blocks:catalog.versions.flatMap(v=>v.blocks),lens:{...capture.request.context.lens,ageBand:'teen'}};
+  let calls=0;
+  const client=createAI({transport:createProxyTransport({endpoint:AI_PROXY_ENDPOINT,fetchImpl:async(url,opts)=>{
+   if(url.endsWith('/session'))return session();
+   calls++;const sent=JSON.parse(opts.body);delete sent.requestId;
+   const expected=structuredClone(capture.request);delete expected.requestId;
+   assert.deepEqual(sent,expected);return Response.json(capture.response);
+  }})});
+  const result=await client.request(request(c));
+  assert.equal(calls,1);assert.deepEqual(result,capture.clientResult);
+  assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');
+ }
+});

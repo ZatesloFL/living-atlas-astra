@@ -1,0 +1,86 @@
+{
+  "captureType": "real deployed proxy response; not a provider envelope",
+  "capturedAt": "2026-11-16T15:46:56.619Z",
+  "request": {
+    "requestId": "4f7a4afb-3d8f-4753-9b58-afce1b2089cd",
+    "job": "guide",
+    "agentId": "docent-silver",
+    "schemaId": "atlas-evidence-answer-v1",
+    "context": {
+      "placeId": "boycott",
+      "catalogRevision": "203df5c3229c78d7f2c2bbceb3cf09327d19f696e8c3c2b466cbcc686a4ed704",
+      "visibleBlockIds": [
+        "sample",
+        "kids-label"
+      ],
+      "lens": {
+        "limits": {
+          "violence": 1,
+          "sexual": 1,
+          "language": 1,
+          "disturbing": 1,
+          "viewpoint": 1,
+          "sensory": 1
+        },
+        "hard": {
+          "violence": 2,
+          "sexual": 2,
+          "language": 2,
+          "disturbing": 2,
+          "viewpoint": 2,
+          "sensory": 2
+        },
+        "depth": "Deep",
+        "trustFrom": "Author",
+        "show": {
+          "real": true,
+          "pseudonym": true,
+          "anonymous": true,
+          "agents": true
+        },
+        "audience": "teen"
+      },
+      "question": "What can this helper do?"
+    }
+  },
+  "httpStatus": 200,
+  "response": {
+    "proposal": {
+      "kind": "answer",
+      "room": "boycott",
+      "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+      "text": "I don't know from the blocks available in this view.",
+      "citations": []
+    },
+    "model": "anthropic/claude-haiku-5-5",
+    "agentId": "docent-silver",
+    "receiptData": {
+      "provider": "anthropic",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agentId": "docent-silver",
+      "result": "proposed",
+      "receiptId": "c71af8db-b34f-45d1-b77a-f748ab71313c"
+    }
+  },
+  "clientResult": {
+    "proposal": {
+      "kind": "answer",
+      "room": "boycott",
+      "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+      "text": "I don't know from the blocks available in this view.",
+      "citations": []
+    },
+    "model": "anthropic/claude-haiku-5-5",
+    "agentId": "docent-silver",
+    "receiptData": {
+      "provider": "proxy",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agentId": "docent-silver",
+      "result": "proposed",
+      "receiptId": "c71af8db-b34f-45d1-b77a-f748ab71313c"
+    }
+  },
+  "label": "Live · grounded answer"
+}
