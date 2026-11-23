@@ -1,3 +1,4 @@
+import {addInteriors} from './interior-data.js';
 import {addCommunityRooms} from './community-data.js';
 import {addExhibits} from './exhibit-data.js';
 import {addArrivals} from './arrivals.js';
@@ -82,6 +83,7 @@ const contexts=['studio-writing','commons-archive','broadcast-listening','common
 for(const edge of EDGES){edge.zone??=zones[edge.id];edge.contextPriority??=contexts.indexOf(edge.id);}
 
 addArrivals(ROOMS,EDGES);
+addInteriors(ROOMS);
 
 export const PRESETS = {
   Kids:{limits:scores({sensory:1}),hard:scores({sensory:1})},

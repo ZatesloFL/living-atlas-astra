@@ -1,3 +1,4 @@
+import {exhibitSpace} from './interior-kit.js';
 import {artURL} from './kit-art.js';
 import {SAMPLE_LABEL} from './exhibit-data.js';
 import {interpret} from './kit.js';
@@ -24,12 +25,12 @@ export function mediaContext(context){
 function canView(p){
  const original=ROOMS[p.room];if(!original||!current.lens)return false;
  const room=viewRoom(original,current.lens),block=selectContent(room,current.lens).blocks.find(b=>b.exhibit?.id===p.component.id);
- return roomVisible(p.room,current.lens)&&permission(room,current.lens).canLook&&!!block&&!blockAccess(block,room,current.lens).hidden&&(current.mode==='page'?current.room===p.room:current.scene===room.layout.scene);
+ return roomVisible(p.room,current.lens)&&permission(room,current.lens).canLook&&!!block&&!blockAccess(block,room,current.lens).hidden&&(current.mode==='page'?current.room===p.room:current.scene===exhibitSpace(room).scene);
 }
 function canPlay(p){
  if(!canView(p))return false;if(current.mode==='page')return [...p.views].some(v=>v.root.isConnected);
- const room=viewRoom(ROOMS[p.room],current.lens),placement=room.layout.components?.find(c=>c.block===p.component.id)??p.component;
- const layout=exhibitPlacement({...room.layout,scale:(room.layout.scale??1)*itemStyle(room,current.lens).scale},placement);
+ const room=viewRoom(ROOMS[p.room],current.lens),space=exhibitSpace(room,itemStyle(room,current.lens).scale),placement=space.components?.find(c=>c.block===p.component.id)??p.component;
+ const layout=exhibitPlacement(space,placement);
  return Math.hypot(current.position.x-layout.slot[0],current.position.z-layout.slot[1])<7;
 }
 setMediaGuard(canPlay);

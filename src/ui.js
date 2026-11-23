@@ -1,3 +1,4 @@
+import {hallEntry,hallRoom} from './interior-space.js';
 import {planRoute} from './travel-plan.js';
 import {viewRoom} from './audience.js';
 import {styleLabel} from './item-style.js';
@@ -39,8 +40,8 @@ export class UI {
     const r=ROOMS[context.room]??ROOMS.studio,d=DISTRICTS[r.district];$('district-name').textContent=context.inside?`Inside: ${context.inside}`:d.name.toUpperCase();$('district-name').style.color=d.color;$('breadcrumb').textContent=r.address.replaceAll('/',' / ');document.querySelector('.district-dot').style.background=d.color;
   }
   fadeTitle(){clearTimeout(this.titleTimer);$('scene-title').classList.add('faded');}
-  title(kind){if(kind==='square'){$('scene-title').classList.remove('faded');$('scene-kicker').textContent='00 / TOWN SQUARE';$('scene-heading').innerHTML='Find your<br><em>own way.</em>';$('scene-subtitle').textContent='Choose your curators. Follow your curiosity.';clearTimeout(this.titleTimer);this.titleTimer=setTimeout(()=>this.fadeTitle(),2400);return;}$('scene-title').classList.remove('faded');$('scene-kicker').textContent=kind==='studio'?'01 / MAKERS ROW':'02 / HISTORY QUARTER';$('scene-heading').innerHTML=kind==='studio'?'A place for<br><em>ideas.</em>':'Under the<br><em>canopy.</em>';$('scene-subtitle').textContent=kind==='studio'?'Nic’s Studio · Tallahassee':'Public places. Shared histories.';clearTimeout(this.titleTimer);this.titleTimer=setTimeout(()=>$('scene-title').classList.add('faded'),2400);}
-  prompt(edge){const b=$('edge-prompt');if(!edge){b.hidden=true;return;}b.hidden=false;const r=ROOMS[edge.to];b.innerHTML=`${icon[edge.result.type]} &nbsp; ${escapeHTML(roomTitle(r,this.api.state().lens))}<small>${edge.result.reasons.length?escapeHTML(edge.result.reasons[0]):edge.result.type==='seamless'?'Walk through · tap to read':edge.result.type==='window'?'Look through · viewing only':'Tap to preview the crossing'} &nbsp; ↗</small>`;b.onclick=()=>this.edge(edge);}
+  title(kind){if(hallRoom(kind)){this.fadeTitle();return;}if(kind==='square'){$('scene-title').classList.remove('faded');$('scene-kicker').textContent='00 / TOWN SQUARE';$('scene-heading').innerHTML='Find your<br><em>own way.</em>';$('scene-subtitle').textContent='Choose your curators. Follow your curiosity.';clearTimeout(this.titleTimer);this.titleTimer=setTimeout(()=>this.fadeTitle(),2400);return;}$('scene-title').classList.remove('faded');$('scene-kicker').textContent=kind==='studio'?'01 / MAKERS ROW':'02 / HISTORY QUARTER';$('scene-heading').innerHTML=kind==='studio'?'A place for<br><em>ideas.</em>':'Under the<br><em>canopy.</em>';$('scene-subtitle').textContent=kind==='studio'?'Nic’s Studio · Tallahassee':'Public places. Shared histories.';clearTimeout(this.titleTimer);this.titleTimer=setTimeout(()=>$('scene-title').classList.add('faded'),2400);}
+  prompt(edge){const b=$('edge-prompt');if(!edge){b.hidden=true;return;}b.hidden=false;const r=ROOMS[edge.to];b.innerHTML=`${icon[edge.result.type]} &nbsp; ${edge.interior?'Enter · ':edge.interiorExit?'Exit · ':''}${escapeHTML(roomTitle(r,this.api.state().lens))}<small>${edge.result.reasons.length?escapeHTML(edge.result.reasons[0]):edge.result.type==='seamless'?'Walk through · tap to read':edge.result.type==='window'?'Look through · viewing only':'Tap to preview the crossing'} &nbsp; ↗</small>`;b.onclick=()=>edge.interior?this.entrance(edge.interior):edge.interiorExit?this.api.enter(edge):this.edge(edge);}
   lens(keepScroll=false){
     if(this.api.state().lens.preview){this.api.openBuild();return;}
     const scroll=keepScroll?this.content.scrollTop:0,l=this.api.state().lens;
@@ -87,6 +88,12 @@ export class UI {
     $('info-staff').onclick=()=>this.api.staff(id);$('info-access').onclick=()=>this.api.accessRoom(id);$('info-close').onclick=()=>this.close();$('info-page').onclick=()=>this.api.openPage(id);
     bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:block=>{this.softApproved.add(block);this.info(id,true);}});if(preserve)this.content.scrollTop=oldScroll;
   }
+  entrance(id){
+    const edge=hallEntry(id),result=visibleEdge(edge,this.api.state().lens),room=ROOMS[id];if(result.state==='hidden')return;
+    this.open('entrance',DISTRICTS[room.district].name+' · hall entrance',roomTitle(room,this.api.state().lens));
+    this.content.innerHTML=`<p class="address">${escapeHTML(room.address)}</p><p>A hall of sample exhibits. Step inside to explore.</p>${result.reasons.map(r=>`<p class="reason">${escapeHTML(r)}</p>`).join('')}${result.rights?.canEnter?'<button id="hall-enter" class="primary">Enter ↗</button>':''}${result.rights?.canLook?'<button id="hall-info" class="secondary">Place info</button><button id="hall-page" class="secondary">Read in Page form</button><button id="hall-staff" class="secondary">Staff · ask the Docent</button>':''}<button id="hall-access" class="secondary">Knock / manage access</button>`;
+    $('hall-enter')?.addEventListener('click',()=>{this.close();this.api.enter(edge);});$('hall-info')?.addEventListener('click',()=>this.info(id));$('hall-page')?.addEventListener('click',()=>this.api.openPage(id));$('hall-staff')?.addEventListener('click',()=>this.api.staff(id));$('hall-access').onclick=()=>this.api.accessRoom(id);
+  }
   edge(edge){
     const result=visibleEdge(edge,this.api.state().lens);if(result.state==='hidden'){this.toast('This connection is outside your current lens.');return;}
     const room=ROOMS[edge.to];this.open('edge',`${icon[result.type]} ${result.type} crossing`,roomTitle(room,this.api.state().lens));
@@ -105,7 +112,7 @@ export class UI {
     this.open('atlas','A graph, shaped by your lens','Your Atlas');this.renderAtlas();
   }
   renderAtlas(){
-    const {lens,context}=this.api.state(),all=graphEdges();let paths='',nodes='';
+    const {lens,context}=this.api.state(),all=graphEdges().map(e=>!e.reversed&&ROOMS[e.to]?.layout.interior?hallEntry(e.to):e);let paths='',nodes='';
     const reachable=new Set(['studio']);for(let n=0;n<5;n++)for(const e of all){if(reachable.has(e.from)&&visibleEdge(e,lens).state!=='hidden')reachable.add(e.to);}
     for(const e of all){if(!permission(ROOMS[e.to],lens).visible||!permission(ROOMS[e.from],lens).visible)continue;if(!positions[e.from]||!positions[e.to])continue;const r=visibleEdge(e,lens),[x1,y1]=positions[e.from],[x2,y2]=positions[e.to];const hidden=r.state==='hidden'||!reachable.has(e.from),downgraded=r.type!==e.type;if(hidden&&!this.showOthers)continue;
       const c=hidden?'#627184':r.type==='door'?'#f2bc73':r.type==='embedded'?'#9ebeff':r.type==='window'?'#dfaae5':'#6dd6bf';
@@ -140,5 +147,5 @@ export class UI {
   guide(){
     this.open('guide','The first walk','Welcome to the studio');this.content.innerHTML=`<p>Left thumb to walk. Drag the scene with your right thumb to look. Tap an object or a glowing threshold to explore.</p><div class="info-box"><small>Find your way</small>Straight ahead: the amber door to Tallahassee.<br>Left: Silver and the workbench.<br>Right: the view-only lab window.<br>Along the left side: the blue listening booth.<br>Follow the green path right to the Commons and Night Market.</div><p class="muted">Try Unverified visitor, then Child in the profile switcher. Built-in profiles show TEST MODE. Open the Atlas to see which connections changed. The small ◈ button below reveals frame rate and draw calls.</p><button class="primary" id="guide-close">Let’s walk</button><button class="secondary" id="return-home">Return to studio entrance</button>`;$('guide-close').onclick=()=>this.close();$('return-home').onclick=()=>{this.close();this.api.home();};
   }
-  performance({fps,calls,ratio,kind,level}){if($('performance').hidden)return;$('performance').textContent=`${Math.round(fps)} fps  ·  ${calls} draws · ${kind==='studio'?'Studio':kind==='square'?'Square':'Tallahassee'} · DPR ${ratio.toFixed(2)} · ${level??''}`;}
+  performance({fps,calls,ratio,kind,level}){if($('performance').hidden)return;$('performance').textContent=`${Math.round(fps)} fps  ·  ${calls} draws · ${hallRoom(kind)?'Hall':kind==='studio'?'Studio':kind==='square'?'Square':'Tallahassee'} · DPR ${ratio.toFixed(2)} · ${level??''}`;}
 }

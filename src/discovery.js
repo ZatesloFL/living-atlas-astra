@@ -1,3 +1,4 @@
+import {exhibitSpace} from './interior-kit.js';
 import {ROOMS,EDGES} from './data.js';
 import {CURATORS,TRAILS,PEOPLE,BOARD_CARDS,CLUBS} from './community-data.js';
 import {discoveryState} from './discovery-state.js';
@@ -35,7 +36,7 @@ export class Discovery {
  follow(id){const p=this.prefs();this.save({followed:p.followed.includes(id)?p.followed.filter(x=>x!==id):[...p.followed,id]});}
  startTrail(id){const t=TRAILS.find(t=>t.id===id);if(!t||!availableTrail(t,this.lens()))throw new Error('This trail is outside your current Lens or access.');const previous=this.prefs().trail,index=previous?.id===id&&previous.index<t.stops.length?previous.index:0;this.save({trail:{id,index,done:previous?.id===id?previous.done:[],active:true}});this.api.waypoint?.(t.stops[index].room);return t;}
  stopTrail(){const t=this.prefs().trail;if(t)this.save({trail:{...t,active:false}});this.api.clearWaypoint?.();}
- progress({room,scene,position,reading=false}){if(this.lens().preview)return false;const progress=this.prefs().trail,t=TRAILS.find(t=>t.id===progress?.id),stop=t?.stops[progress?.index];if(!progress?.active||!stop||!reachable(stop.room,this.lens()))return false;const target=ROOMS[stop.room],p=target.layout.approach;const arrived=reading?room===stop.room:scene===target.layout.scene&&position&&Math.hypot(position.x-p[0],position.z-p[1])<2.4;if(!arrived)return false;
+ progress({room,scene,position,reading=false}){if(this.lens().preview)return false;const progress=this.prefs().trail,t=TRAILS.find(t=>t.id===progress?.id),stop=t?.stops[progress?.index];if(!progress?.active||!stop||!reachable(stop.room,this.lens()))return false;const target=ROOMS[stop.room],layout=exhibitSpace(target),p=layout.approach;const arrived=reading?room===stop.room:scene===layout.scene&&position&&Math.hypot(position.x-p[0],position.z-p[1])<2.4;if(!arrived)return false;
   const index=progress.index+1;this.save({trail:{...progress,index,done:[...new Set([...progress.done,stop.room])],active:index<t.stops.length}});if(index<t.stops.length)this.api.waypoint?.(t.stops[index].room);else this.api.clearWaypoint?.();this.api.message?.(index<t.stops.length?`Trail ${index}/${t.stops.length} · next: ${ROOMS[t.stops[index].room].title}`:'Trail complete · progress saved to this profile');return true;
  }
  rsvp(id){const p=this.prefs();if(!eventsFor(this.access.data).some(e=>e.id===id&&reachable(e.room,this.lens())))throw new Error('This event is not available.');this.save({rsvps:p.rsvps.includes(id)?p.rsvps.filter(x=>x!==id):[...p.rsvps,id]});}

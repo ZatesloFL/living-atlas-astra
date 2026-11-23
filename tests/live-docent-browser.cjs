@@ -48,7 +48,7 @@ const success=()=>({proposal:{kind:'answer',room:'boycott',reason:'Permitted pub
    await visit(p,'boycott');await docent(p);
   }else{
    await p.waitForFunction(()=>window.__atlas);await p.locator('[name=age]').fill('30');await p.getByRole('button',{name:/Save profile & enter/}).click();
-   await p.waitForFunction(()=>document.getElementById('sheet').hidden);await p.evaluate(()=>__atlas.staffUI.docent('boycott'));
+   await p.waitForFunction(()=>document.getElementById('sheet').hidden);await p.evaluate(()=>__atlas.go('boycott',{choice:'inside'}));for(let i=0;i<8&&await p.locator('[data-preview]').count();i++){await p.locator('[data-preview]').first().click();await p.locator('[data-confirm]').click();}await p.locator('#travel-go').click();await p.waitForFunction(()=>!__atlas.travel.active);assert.equal(await p.evaluate(()=>atlasStatus().scene),'hall:boycott');await p.evaluate(()=>__atlas.staffUI.docent(__atlas.state().context.room));
   }
   assert.equal(calls.length,0);
   return {context,p,calls,errors,release:()=>release?.()};

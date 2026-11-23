@@ -10,8 +10,8 @@ export function planRoute(from,to,lens){
   seen.set(e.to,e);if(e.to===to){const result=[];for(let at=to;at!==from;){const edge=seen.get(at);result.unshift(edge);at=edge.from;}return result;}queue.push(e.to);
  }return null;
 }
-export function travelPlan(from,target,lens,{confirmed=new Set(),invites=new Set()}={}){
- const route=planRoute(from,target,lens);if(!route)return {route:null,rows:[],ready:false};const rows=[];
+export function travelPlan(from,target,lens,{confirmed=new Set(),invites=new Set(),route=planRoute(from,target,lens)}={}){
+ if(!route)return {route:null,rows:[],ready:false};const rows=[];
  for(const edge of route){
   const room=ROOMS[edge.to],gate=visibleEdge(edge,lens),p=permission(room,lens),request=[...(lens.access?.requests??[])].reverse().find(q=>q.room===room.id&&q.by===personId(lens)&&q.status!=='cancelled');
   if(!p.canEnter){rows.push({id:'access:'+edge.id,kind:'access',edge,state:request?.status==='pending'?'Waiting on owner':'Needs you',request,reason:request?.status==='declined'?'Request declined. Knock again or leave.':p.reason});continue;}

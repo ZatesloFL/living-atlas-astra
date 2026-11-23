@@ -1,3 +1,6 @@
+import {hallRoom,hallEntry} from './interior-space.js';
+import {exhibitSpace} from './interior-kit.js';
+import {drawFrontage,drawHall,hallLabels,flushHallSigns} from './interior-world.js';
 import {drawSquare,drawPresence} from './community-world.js';
 import {flushCrossingSurfaces} from './crossing-surfaces.js';
 import {flushGlowBatch} from './glow-batch.js';
@@ -35,13 +38,12 @@ const makersSun=new THREE.Color(0xffdfad),commonsSun=new THREE.Color(0xd2e6c3);
 export class World {
   constructor(kind,lens,reduced=false,diffLens=null){
     this.diffLens=diffLens;
-    this.kind=kind;this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
+    this.kind=kind;this.hall=hallRoom(kind);this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
     this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;this.portalSurfaces=[];this.groundBands=[];
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
     const sun=new THREE.DirectionalLight(0xffdfad,2.2);sun.position.set(-13,23,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=29;sun.shadow.camera.bottom=-29;sun.shadow.camera.near=1;sun.shadow.camera.far=80;sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;this.scene.add(sun);this.sun=sun;
-    this.ground();
-    this.gate=e=>visibleEdge(e,this.lens);if(kind==='studio')this.studio();else if(kind==='square')drawSquare(this);else this.history();
-    this.renderRooms();drawPresence(this);this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);flushCrossingSurfaces(this,stoneTexture);
+    this.gate=e=>visibleEdge(e,this.lens);if(this.hall)drawHall(this,this.hall);else {this.ground();if(kind==='studio')this.studio();else if(kind==='square')drawSquare(this);else this.history();}
+    this.renderRooms();drawPresence(this);if(!this.hall)this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);flushHallSigns(this);flushCrossingSurfaces(this,stoneTexture);
     this.scene.userData.view={profile:lens.profileId,rooms:this.renderedRooms};this.scene.updateMatrixWorld(true);
   }
   add(shape,mat,x,y,z,sx=1,sy=1,sz=1,color='#ffffff',id=null,rotation=[0,0,0]){
@@ -64,21 +66,23 @@ export class World {
     this.geometry=geo;this.material=material;this.renderedRooms=[];
     const visible=(id,lens)=>roomVisible(id,lens)&&!EDGES.some(e=>e.to===id&&visibleEdge(e,lens).state==='hidden');
     for(const [id,original] of Object.entries(ROOMS)){
-      if(original.layout?.scene!==this.kind)continue;
+      if(this.hall?id!==this.hall:original.layout?.scene!==this.kind)continue;
       const own=visible(id,this.lens),other=this.diffLens&&visible(id,this.diffLens),rights=permission(original,this.lens),ghost=!own&&other&&rights.visibility==='public';
       if(!own&&!ghost)continue;
       const r=viewRoom(original,ghost?this.diffLens:this.lens),style=itemStyle(r,ghost?this.diffLens:this.lens);
-      this.placement={scale:1,facing:0,...r.layout,style,ghost};if(rights.canLook)this.placement.scale*=style.scale;
-      drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
-      if(rights.canLook&&!ghost&&r.layout.components)drawKit(this,r,id);
+      if(!this.hall&&r.layout.interior&&rights.canLook&&!ghost){drawFrontage(this,r,id);this.renderedRooms.push({id,frontage:true,version:r.version?.id,style});continue;}
+      const layout=this.hall?exhibitSpace(r):r.layout;
+      this.placement={scale:1,facing:0,...layout,style,ghost};if(rights.canLook){if(this.hall)Object.assign(this.placement,exhibitSpace(r,style.scale));else this.placement.scale*=style.scale;}
+      if(!this.hall)drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
+      if(rights.canLook&&!ghost&&r.layout.components)drawKit(this,{...r,layout:this.placement},id);
       this.renderedRooms.push({id,ghost:!!ghost,version:r.version?.id,style:rights.canLook?style:null});
-      if(r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':versionLabel(r,this.lens)||sign[1],p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
+      if(!this.hall&&r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':versionLabel(r,this.lens)||sign[1],p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
       if(this.diffLens&&own&&rights.visibility==='public'&&(!other||viewRoom(original,this.diffLens).version?.id!==r.version?.id))this.add('ring','ghost',0,.15,0,2,2,2,'#aaa',null,[Math.PI/2,0,0]);
       if(!ghost&&rights.canLook){
         for(const [i,{layer}] of layerSelection(original,this.lens).filter(x=>!x.accepted).entries())this.add('diamond','teal',-1+i*.9,2.2,1.9,.16,.25,.16,'#fff','layer:'+id+':'+layer.id);
 
       }
-      this.placement=null;
+      this.placement=null;if(this.hall&&rights.canLook&&!ghost)hallLabels(this,r,id);
     }
   }
   flush(){
@@ -93,7 +97,7 @@ export class World {
     }
     flushGlowBatch(this,glowBatches,geo,material);this.batches.clear();
   }
-  label(title,sub,x,y,z,id=null,width=3.1,color){this.labels.push({title,sub,position:new THREE.Vector3(x,y,z),id,color});}
+  label(title,sub,x,y,z,id=null,width=3.1,color){if(this.hall&&id?.startsWith('exhibit:'))return;this.labels.push({title,sub,position:new THREE.Vector3(x,y,z),id,color});}
   tree(x,z,size=1,seed=1){
     const r=random(seed*174+23),y=1.6*size;
     this.add('cylinder','wood',x,y,z,.2*size,3.2*size,.22*size,'#746452');
@@ -127,7 +131,7 @@ export class World {
     part(-1.39,1.65,.055,3,.12,color);part(1.39,1.65,.055,3,.12,color);part(0,3.08,2.8,.055,.12,color);
     for(const dx of [-1.55,1.55]){part(dx,.22,.65,.45,.8,'stone');part(dx,3.53,.24,.22,.3,color);}
     this.portalSurfaces.push({id:edge.id,x,z,rotation:rot,tint:color==='blue'?'#729bee':color==='pink'?'#b483ca':'#cfbd83',opacity:result.type==='window'?.16:.42});
-    const room=ROOMS[edge.to],title=roomTitle(room,this.lens);this.label(title,`${result.type} · ${result.reasons.length?'LENS PREVIEW':'TAP TO EXPLORE'}`,x,3.99,z,'edge:'+edge.id,3.75);
+    if(edge.interior)return;const room=ROOMS[edge.to],title=roomTitle(room,this.lens);this.label(title,`${result.type} · ${result.reasons.length?'LENS PREVIEW':'TAP TO EXPLORE'}`,x,3.99,z,'edge:'+edge.id,3.75);
   }
   edge(edge){
     const result=visibleEdge(edge,this.lens);const item={...edge,result};this.edgeObjects.push(item);
@@ -164,13 +168,13 @@ export class World {
       this.box(x,3.5,z-2,w+.6,.16,.38,'#aa9268','wood');
       for(let i=0;i<6;i++)this.box(x-w/2+i*w/5,3.55,z,.12,.14,4.4,'#9e8e6c','wood');
     }
-    for(const e of EDGES.filter(e=>e.scene==='studio'))this.edge(e);
+    for(const e of EDGES.filter(e=>e.scene==='studio'))this.edge(hallEntry(e.to)??e);
   }
   history(){
     this.floor(0,-2,26,33,'#4b665b');this.path(0,-2,4.4,32);this.path(0,1,23,3.5);this.path(6,7,12,3);
     for(let i=0;i<7;i++){this.tree(-4.3,8-i*3.8,1.25+(i%2)*.2,80+i);this.tree(4.3,8-i*3.8,1.35,90+i);}
     for(const [x,z] of [[-2.7,6],[2.7,6],[-2.7,-1],[2.7,-1],[-2.7,-9],[2.7,-9]])this.lamp(x,z,'blue');
-    for(const e of EDGES.filter(e=>e.scene==='history')){if(e.render===false)this.edgeObjects.push({...e,result:visibleEdge(e,this.lens)});else this.edge(e);}
+    for(const original of EDGES.filter(e=>e.scene==='history')){const e=hallEntry(original.to)??original;if(e.render===false)this.edgeObjects.push({...e,result:visibleEdge(e,this.lens)});else this.edge(e);}
   }
   particles(){
     const r=random(this.kind==='studio'?33:71),count=this.kind==='studio'?95:130,p=new Float32Array(count*3),phase=new Float32Array(count);
@@ -197,20 +201,22 @@ export class World {
       if(a.type==='portal')a.object.material.uniforms.time.value=time;
       if(a.type==='nodes'){for(let i=0;i<16;i++){const x=i%4,z=Math.floor(i/4),h=.18+Math.sin(time*1.4+x*.65+z*.4)*.1;pose.position.set(-.6+x*.4,1.22+h,-.6+z*.4);pose.rotation.set(0,0,0);pose.scale.set(.08,.08,.08);pose.updateMatrix();a.object.setMatrixAt(i,pose.matrix);}a.object.instanceMatrix.needsUpdate=true;}
     }
-    if(!this.reduced){const p=this.dust.geometry.attributes.position;for(let i=0;i<p.count;i++){p.array[i*3+1]=this.particleBase[i*3+1]+Math.sin(time*.35+this.particlePhase[i])*.18;}p.needsUpdate=true;}
+    if(!this.reduced&&this.dust){const p=this.dust.geometry.attributes.position;for(let i=0;i<p.count;i++){p.array[i*3+1]=this.particleBase[i*3+1]+Math.sin(time*.35+this.particlePhase[i])*.18;}p.needsUpdate=true;}
     if(this.waterPoints){const p=this.waterPoints.geometry.attributes.position;for(let i=0;i<p.count;i++){const a=i*2.4,f=(time*.4+i/48)%1;p.setXYZ(i,this.fountainLayout.slot[0]+Math.cos(a)*f*1.5,1+Math.sin(f*Math.PI)*.85-f*.7,this.fountainLayout.slot[1]+Math.sin(a)*f*1.5);}p.needsUpdate=true;}
   }
   zone(edge,x,z){
     const b=edge.zone;return !!b&&(!b.x||(x>b.x[0]&&x<b.x[1]))&&(!b.z||(z>b.z[0]&&z<b.z[1]));
   }
   canStand(x,z){
-    if(x<(this.kind==='studio'?-13.5:-13)||x>(this.kind==='studio'?34.2:13)||z<(this.kind==='studio'?-14.5:-20)||z>12)return false;
+    if(this.hall){const h=ROOMS[this.hall].layout.interior;if(Math.abs(x)>h.width/2-.4||Math.abs(z)>h.depth/2-.4)return false;}
+    else if(x<(this.kind==='studio'?-13.5:-13)||x>(this.kind==='studio'?34.2:13)||z<(this.kind==='studio'?-14.5:-20)||z>12)return false;
     for(const c of this.colliders)if(Math.abs(x-c.x)<c.w&&Math.abs(z-c.z)<c.d)return false;
     for(const e of this.edgeObjects){if(this.zone(e,x,z)&&(()=>{const r=visibleEdge(e,this.lens);return r.state==='hidden'||r.state==='private'||r.type==='window'||(r.type==='door'&&!this.granted.has(e.id));})())return false;}
     return true;
   }
-  nearest(x,z,yaw=0){let found=null,dist=Infinity;for(const e of this.edgeObjects){if(e.render===false)continue;if(e.result.state==='hidden')continue;const dx=e.position[0]-x,dz=e.position[1]-z,d=Math.hypot(dx,dz);if(d>1.4&&(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)<.1)continue;if(d<4&&d<dist){dist=d;found=e;}}return found;}
+  nearest(x,z,yaw=0){let found=null,dist=Infinity;for(const e of this.edgeObjects){if(e.render===false)continue;if(e.result.state==='hidden')continue;const dx=e.position[0]-x,dz=e.position[1]-z,d=Math.hypot(dx,dz);if(d>1.4&&(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)<.1)continue;if(d<(e.interior?7.4:4)&&d<dist){dist=d;found=e;}}return found;}
   context(x,z){
+    if(this.hall)return {room:this.hall,inside:ROOMS[this.hall].title};
     const e=[...this.edgeObjects].filter(e=>e.contextPriority>=0).sort((a,b)=>a.contextPriority-b.contextPriority).find(e=>e.result.state!=='hidden'&&this.zone(e,x,z));
     if(e)return {room:e.to,...(e.host?{inside:ROOMS[e.host].title}:{})};
     return {room:Object.entries(ROOMS).find(([,r])=>r.layout?.scene===this.kind&&r.layout.root)?.[0]??'studio'};
