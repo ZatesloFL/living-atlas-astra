@@ -73,3 +73,15 @@ is opt-in). The build just never gave the boycott an inside. Fix that.
 This is the current round. Grok's standing regression suite runs against
 the live site after the push; expect its fresh-profile pass and a cold
 walk ("go into the boycott museum") in the findings.
+
+## Addendum — same day, Nic testing further
+
+Nic walked the current arrangement again right after this was filed and
+his verdict was blunt: "not very usable as it stands." From his
+screenshot: the five exhibits are bunched into a few metres of open
+ground, the floating labels stack across the scene and over each other,
+and there is no space to stand back from a piece or approach one exhibit
+without the others crowding the view. Treat circulation and spacing as
+part of this order, not decoration: the hall should give each exhibit
+its own wall or bay, a clear approach, and labels that sit with their
+piece instead of hovering over the whole scene.
