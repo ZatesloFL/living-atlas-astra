@@ -7,6 +7,12 @@ export function blockAccess(block,room,lens){
  for(const [key,label] of DIMENSIONS){const score=block.content?.[key]??contentScore(room,key);if(access.hard[key]!==null&&score>access.hard[key])hard.push(label);if(score>access.limits[key])soft.push(label);}
  return {hidden:hard.length>0,soft:soft.length>0,reasons:hard.length?hard:soft};
 }
+// The hero and the block reader share exactly the same soft-preview boundary.
+// Hard limits are checked separately and can never be approved away.
+export function blockNeedsPreview(block,room,lens,{approved=false,softApproved=new Set()}={}){
+ const covered=approved&&DIMENSIONS.every(([k])=>(block.content?.[k]??0)<=Math.max(room.content?.[k]??0,room.measured?.[k]??0));
+ return blockAccess(block,room,lens).soft&&!covered&&!softApproved.has(block.id);
+}
 export function selectContent(room,lens,blocks=room.blocks??[]){
  const shown=[],omitted={depth:0,content:0,show:0,trust:0};
  for(const block of blocks){

@@ -3,8 +3,8 @@ import {roomVisible} from './rules.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {layerSelection,mergedLayers,layerBlock,layerConsentKey} from './layers.js';
 import {permission} from './permissions.js';
-import {ROOMS,DIMENSIONS} from './data.js';
-import {blockAccess,selectContent,contentStore} from './content.js';
+import {ROOMS} from './data.js';
+import {blockAccess,blockNeedsPreview,selectContent,contentStore} from './content.js';
 export const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function safeURL(value){if(typeof value!=='string'||!value.trim())return null;try{const url=new URL(value,globalThis.location?.href??'https://atlas.invalid/');return ['https:','http:'].includes(url.protocol)?url.href:null;}catch{return null;}}
 const link=(label,url)=>{const href=safeURL(url);return href?`<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`:esc(label);};
@@ -19,12 +19,11 @@ function media(block){
  let visual=image&&!unavailable?`<img src="${esc(image)}" alt="${esc(r.alt||fallback)}" loading="lazy" data-media-fallback="${esc(fallback)}">`:illustration;
  const file=safeURL(r[block.type]);
  if(['audio','video'].includes(block.type)&&file&&!unavailable)visual=`<${block.type} controls preload="metadata" src="${esc(file)}" ${image?`poster="${esc(image)}"`:''} data-media-fallback="${esc(fallback)}"></${block.type}>`;
- return `<figure>${visual}<figcaption>${esc(block.body)} · ${image||file?'Media representation':'Generated placeholder, not archival media'}</figcaption><p>${esc(fallback)}</p>${r.alt?`<p class="muted">Description: ${esc(r.alt)}</p>`:''}</figure>`;
+ return `<figure>${visual}<figcaption>${esc(block.body)} · ${(image||file)&&!unavailable?'Media representation':'Generated placeholder, not archival media'}<br>Credit: ${esc((image||file)&&!unavailable?r.credit??'Not supplied · to verify':'Generated placeholder by Living Atlas')}</figcaption><p>${esc(fallback)}</p>${r.alt?`<p class="muted">Description: ${esc(r.alt)}</p>`:''}</figure>`;
 }
 export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()}={}){
  const access=blockAccess(block,room,lens);if(access.hidden)return '';
- const covered=approved&&DIMENSIONS.every(([k])=>(block.content?.[k]??0)<=Math.max(room.content?.[k]??0,room.measured?.[k]??0));
- if(access.soft&&!covered&&!softApproved.has(block.id))return `<section class="content-block block-preview" data-block-id="${esc(block.id)}"><p>Preview required · ${esc(access.reasons.join(', '))} exceeds your soft limit.</p><button data-allow-block="${esc(block.id)}">Show this block</button></section>`;
+ if(blockNeedsPreview(block,room,lens,{approved,softApproved}))return `<section class="content-block block-preview" data-block-id="${esc(block.id)}"><p>Preview required · ${esc(access.reasons.join(', '))} exceeds your soft limit.</p><button data-allow-block="${esc(block.id)}">Show this block</button></section>`;
  const body=block.body;let html='';
  if(block.state==='pending'||block.state==='error'||block.state==='unavailable')html+=`<p class="block-load-status" role="status">${block.state==='pending'?'Content is arriving. Showing the available fallback.':block.state==='error'?'Content could not be loaded. Showing the available fallback.':'Media is not attached. Showing the available fallback.'}</p>`;
  if(block.exhibit)html+=kitHTML(block,room);else switch(block.type){
