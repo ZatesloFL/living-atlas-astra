@@ -1,0 +1,110 @@
+{
+  "capturedAt": "2026-11-23T19:27:58.698Z",
+  "actions": [
+    {
+      "path": "/functions/v1/ai-proxy/session",
+      "status": 200
+    },
+    {
+      "path": "/functions/v1/ai-proxy/request",
+      "status": 200
+    }
+  ],
+  "standingGrant": true,
+  "label": "Live \u00b7 grounded answer",
+  "provenance": {
+    "provider": "proxy",
+    "job": "guide",
+    "model": "anthropic/claude-haiku-5-5",
+    "agentId": "docent-silver",
+    "result": "proposed",
+    "receiptId": "bc5a95a0-f19b-4b9f-b4fb-87efcbc51585"
+  },
+  "localReceipt": {
+    "action": "helper_proposed",
+    "serverReceiptId": "bc5a95a0-f19b-4b9f-b4fb-87efcbc51585"
+  },
+  "capture": {
+    "captureType": "real deployed proxy response; not a provider envelope",
+    "capturedAt": "2026-11-23T19:27:58.642Z",
+    "request": {
+      "requestId": "6f48ffa1-1bca-4989-b29f-e9fdffd722fe",
+      "job": "guide",
+      "agentId": "docent-silver",
+      "schemaId": "atlas-evidence-answer-v1",
+      "context": {
+        "placeId": "boycott",
+        "catalogRevision": "203df5c3229c78d7f2c2bbceb3cf09327d19f696e8c3c2b466cbcc686a4ed704",
+        "visibleBlockIds": [
+          "sample",
+          "research-note",
+          "citation-0",
+          "citation-1",
+          "citation-2"
+        ],
+        "lens": {
+          "limits": {
+            "violence": 1,
+            "sexual": 1,
+            "language": 2,
+            "disturbing": 1,
+            "viewpoint": 1,
+            "sensory": 1
+          },
+          "hard": {
+            "violence": 2,
+            "sexual": 2,
+            "language": 2,
+            "disturbing": 2,
+            "viewpoint": 2,
+            "sensory": 2
+          },
+          "depth": "Deep",
+          "trustFrom": "Author",
+          "show": {
+            "real": true,
+            "pseudonym": true,
+            "anonymous": true,
+            "agents": true
+          },
+          "audience": "teen"
+        },
+        "question": "What needs verification?"
+      }
+    },
+    "httpStatus": 200,
+    "response": {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "Dates, descriptions and source matches need checking against primary records.",
+        "citations": [
+          "sample"
+        ]
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "agentId": "docent-silver",
+      "receiptData": {
+        "provider": "anthropic",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "bc5a95a0-f19b-4b9f-b4fb-87efcbc51585"
+      }
+    }
+  },
+  "serverReceipt": {
+    "id": "bc5a95a0-f19b-4b9f-b4fb-87efcbc51585",
+    "time": "2026-11-23T19:27:58.573Z",
+    "job": "guide",
+    "model": "anthropic/claude-haiku-5-5",
+    "agent": "docent-silver",
+    "cost_microusd": 212,
+    "cost_basis": "measured",
+    "validation_passed": true,
+    "result": "accepted",
+    "failure_class": null
+  }
+}

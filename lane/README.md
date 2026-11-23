@@ -6,21 +6,21 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest app build: [6deac22](https://github.com/ZatesloFL/living-atlas-astra/commit/6deac22) · [G3 completion audit](reports/2026-11-16-02.md). [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) includes the subsequent report.
+- Latest app build: [1fc0589](https://github.com/ZatesloFL/living-atlas-astra/commit/1fc0589) · [G4 and standing Docents](reports/2026-11-23-01.md), including grant fix [aebe42b](https://github.com/ZatesloFL/living-atlas-astra/commit/aebe42b). [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) includes the subsequent report.
 
-Current work: G3 audited and repaired; G4 is next for its dedicated presentation audit. Round 2d is verified live, with three real proxy captures in [report 2026-11-16-01](reports/2026-11-16-01.md). The client uses the public proxy for eligible Boycott answers on Pages with honest provenance; `?ai=local` and local previews stay local. Rule 4's dev mode remains on. No builder head-to-head is authorized; later rounds stay queued.
+Current work: G3 and G4 completion audits finished; physical phone checks remain Partial for Nic. File 16 is implemented: standing read-only Docents, automatic recovery of lapsed seeded grants and explicit expired-lease labels. One standing-grant synthetic live call passed with a receipted cost of $0.000212; see the current report. Stopped after reporting live actions. Round 2d is verified live, with three real proxy captures in [report 2026-11-16-01](reports/2026-11-16-01.md). The client uses the public proxy for eligible Boycott answers on Pages with honest provenance; `?ai=local` and local previews stay local. Rule 4's dev mode remains on. No builder head-to-head is authorized; later rounds stay queued.
 
 ## Run and verify
 
 No installation or compilation is needed for the static app. From the repository root, `npm start` serves `index.html` on port 8000. All runtime imports are local, including Three.js. Live processes do not survive environment restarts; restart this command when needed. Use this existing checkout; do not create a worktree for routine tasks.
 
-- `npm test`: 144 Node tests covering content, crossings, identity, profiles and receipts, plus the private AI proxy, accounting, provider validation and the actual Staff/client/server path with local Postgres and injected providers.
+- `npm test`: 155 Node tests covering content, crossings, identity, profiles and receipts, plus the private AI proxy, accounting, provider validation and the actual Staff/client/server path with local Postgres and injected providers.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/live-docent-browser.cjs`: shipped-origin client checks using local assets and intercepted proxy responses, with zero live calls. Covers both Page and 3D, fallback labels, local mode, mobile layouts and stale answers.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/browser-smoke.cjs`: 22 functional checks using the cloud machine’s existing Chromium and Playwright. Start the local server first. In another environment, provide the path to its installed Playwright module and optionally `ATLAS_CHROMIUM`.
 - The ◈ button in the app toggles fps, draw calls, scene, and rendering resolution. The display uses actual elapsed time; a software renderer’s numbers do not predict Pixel performance.
 - Profiles, preferences, the last-used profile, and local receipts persist in localStorage when allowed. Unsaved developer overrides, position, and temporary door confirmations reset on reload. Blocked storage falls back to an explicitly labeled in-memory session. There is no login or profile sync; the AI proxy is the only live backend integration.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/tier-a-browser.cjs`: 16 round-2a checks, including native long-press touch events and first-run/reload behavior. Both browser suites accept `ATLAS_URL` if the server uses a different port.
-- Historical work: A0, Tiers A/B/C, round 2c G2/G1/G3/G4 and authorized simulated D/E. Nic confirmed the pre-2c Pixel baseline; new physical visual/fps results remain Partial. The current [G3 report](reports/2026-11-16-02.md) records the additional fixes and phone checklist. Earlier reports remain historical evidence; they do not authorize a builder comparison or later rounds.
+- Historical work: A0, Tiers A/B/C, round 2c G2/G1/G3/G4 and authorized simulated D/E. Nic confirmed the pre-2c Pixel baseline; new physical visual/fps results remain Partial. The [G3 report](reports/2026-11-16-02.md) and current [G4/file-16 report](reports/2026-11-23-01.md) record the fixes and phone checklists. Earlier reports remain historical evidence; they do not authorize a builder comparison or later rounds.
 
 ## Report template
 
@@ -106,3 +106,5 @@ What you'd do next with one more session.
 - Historical round 2b proposal: [report -12](reports/2026-11-12-12.md). The original SQL, common builder schema and ten synthetic requests remain in `lane/proposals/`. Later reports and operator receipts record approval, implementation and activation; current work is the G3/G4 audit above.
 
 - `tests/kit-regression-browser.cjs`: nine additional G3 checks for glyph zoom, native video events/rebinding, capture-track cleanup, Lens changes, lightbox/source lifecycle, stale speech events, Child filtering, consistent procedural artwork and independent rotated kit instances. Same Playwright module and local port 8003 as the original kit suite; no external requests or live AI.
+
+- `tests/page-reading-browser.cjs`: eight G4 checks for reading anchors/focus, late hero media, responsive notes, readable components, audience/consent gates and local-only defaults. `tests/staff-standing-browser.cjs`: three fresh/legacy-store/expiry/revocation checks; `tests/staff-standing.test.js`: five local-store grant/receipt tests. Same local server and Playwright configuration as above.
