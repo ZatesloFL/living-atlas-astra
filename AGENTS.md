@@ -25,7 +25,9 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 
 16. `docs/shared/16-readonly-docents-standing-grants.md`: **Nic ruling (2026-11-23): read-only (look-scope) helpers hold standing grants.** Docents (answer/tour) are issued without expiry and stay on once attached; suggest-or-higher helpers keep leased grants and owner approvals. Includes the on-load re-issue for stores whose seeded Docent lease already lapsed, and the expired-vs-absent panel label. Small fix; Astra's call whether it lands before G4 or with it.
 
-17. `docs/shared/17-boycott-interior.md`: **current work order — a Place you enter (Nic direction, 2026-11-23).** Give the boycott an interior: a hall holding the five G3 exhibits, a door crossing from the History Quarter (Enter becomes the primary action), Inside arrival landing in the hall, presence keyed to the hall. Reuse the exhibit kit; build the interior itself as a reusable kit. Page form, content, grants and proxy untouched. G4 and file 16 are complete.
+17. `docs/shared/17-boycott-interior.md`: a Place you enter (Nic direction, 2026-11-23). Give the boycott an interior: a hall holding the five G3 exhibits, a door crossing from the History Quarter (Enter becomes the primary action), Inside arrival landing in the hall, presence keyed to the hall. Reuse the exhibit kit; build the interior itself as a reusable kit. Page form, content, grants and proxy untouched. **Complete** (report 2026-11-23-02).
+
+18. `docs/shared/18-docent-identity-and-asking.md`: **current work order — Docents with their own names, a real ask box, and a phone live-path diagnosis (Nic direction, 2026-11-23).** Three items: (1) every helper gets its own record and name per Place — no helper is named Silver — with existing stores healing on load and the boycott Docent's standing grant and live path unregressed; (2) a free-text ask box in the Docent panel under the same grounding and validator rules, presets kept, single-question only; (3) diagnose why the live path falls back to simulated on Nic's phone and fix it if client-side. Voice for helpers is out of scope.
 
 ## Where things go
 
