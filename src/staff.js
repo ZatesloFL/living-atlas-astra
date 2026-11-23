@@ -1,6 +1,6 @@
 import {ai,PROPOSAL_SCHEMA,validateProposal} from './ai.js';
 import {ROOMS,EDGES} from './data.js';
-import {SEED_HELPERS,ROLE_ACTIONS,helperRecord} from './staff-data.js';
+import {SEED_HELPERS,ROLE_ACTIONS,helperRecord,helperScope} from './staff-data.js';
 import {permission,personId,scopeRank} from './permissions.js';
 import {viewRoom} from './audience.js';
 import {selectContent,blockAccess,roomEntry} from './content.js';
@@ -9,12 +9,46 @@ import {TRAILS} from './community-data.js';
 const lease=days=>new Date(Date.now()+days*86400000).toISOString();
 const actionKind={answer:'answer',tour:'tour',note:'note',flag:'score',curate:'curation',connect:'connection'};
 export class Staff {
- constructor(store,{aiClient=ai}={}){this.store=store;this.ai=aiClient;store.data.staffState??={helpers:[],proposals:[],initialized:false};this.seedPromise=null;}
+ constructor(store,{aiClient=ai}={}){this.store=store;this.ai=aiClient;store.data.staffState??={helpers:[],proposals:[],initialized:false};this.seedPromise=null;this.ready=this.seed();this.ready.catch(()=>{});}
  get data(){return this.store.data.staffState;}
- helpers(){return this.data.helpers.filter(a=>!a.revokedAt&&Date.parse(a.expires)>Date.now());}
- seed(){if(this.data.initialized)return Promise.resolve();if(this.seedPromise)return this.seedPromise;this.seedPromise=this.store.transaction(async()=>{if(this.data.initialized)return;const owner={profileId:'sample-place-owner',profileName:'Sample Place owner',playAs:'owner',isAgent:false};
-  for(const item of SEED_HELPERS){const actor=helperRecord(item,lease(7));for(const place of actor.places)await this.store.issue(place,{person:actor.id},actor.role==='Docent'?'look':'suggest',actor.expires,owner,'helper');this.data.helpers.push(actor);}this.data.initialized=true;});return this.seedPromise;}
- actor(id){const a=this.helpers().find(a=>a.id===id);if(!a)throw new Error('This helper lease is expired or revoked. Ask the Place owner for a grant.');return a;}
+ helpers(){return this.data.helpers.filter(a=>!a.revokedAt&&(!a.expires||Date.parse(a.expires)>Date.now()));}
+ attachments(place){
+  return this.data.helpers.filter(a=>!a.revokedAt&&a.places.includes(place)).flatMap(actor=>{
+   const grant=this.store.data.grants.findLast(g=>g.room===ROOMS[place]?.id&&g.to?.person===actor.id);
+   if(!grant||grant.revokedAt||grant.denied)return [];
+   const expires=[actor.expires,grant.expires].filter(Boolean).sort((a,b)=>Date.parse(a)-Date.parse(b))[0]??null;
+   return [{actor,grant,expires,expired:!!expires&&!(Date.parse(expires)>Date.now())}];
+  });
+ }
+ seed(){
+  if(this.seedPromise)return this.seedPromise;
+  if(this.data.initialized&&this.data.standingDocents===1)return Promise.resolve();
+  this.seedPromise=this.store.transaction(async()=>{
+   const owner={profileId:'sample-place-owner',profileName:'Sample Place owner',playAs:'owner',isAgent:false};
+   if(!this.data.initialized){
+    for(const item of SEED_HELPERS){const scope=helperScope(item),actor=helperRecord(item,scope==='look'?null:lease(7));for(const place of actor.places)await this.store.issue(place,{person:actor.id},scope,actor.expires,owner,'helper');this.data.helpers.push(actor);}
+    this.data.initialized=true;
+   }
+   if(this.data.standingDocents===1)return;
+   // Upgrade only known, platform-seeded look grants, active or expired. Issue
+   // replacements through the ledger; never resurrect revoked/denied grants,
+   // missing attachments, owner overrides or a helper with higher capabilities.
+   for(const item of SEED_HELPERS.filter(a=>helperScope(a)==='look')){
+    const actor=this.data.helpers.find(a=>a.id===item.id);
+    if(!actor||actor.revokedAt||helperScope(actor)!=='look')continue;
+    let standing=false;
+    for(const place of actor.places.filter(p=>item.places.includes(p))){
+     const grant=this.store.data.grants.findLast(g=>g.room===ROOMS[place]?.id&&g.to?.person===actor.id);
+     if(!grant||grant.revokedAt||grant.denied||grant.scope!=='look'||grant.kind!=='helper'||grant.approvedBy!==owner.profileId)continue;
+     if(grant.expires)await this.store.issue(place,{person:actor.id},'look',null,owner,'helper');
+     standing=true;
+    }
+    if(standing)actor.expires=null;
+   }
+   this.data.standingDocents=1;
+  });return this.seedPromise;
+ }
+ actor(id){const a=this.helpers().find(a=>a.id===id);if(!a)throw new Error('This helper grant is expired or revoked. Ask the Place owner for a grant.');return a;}
  check(actor,place,action,lens){if(lens.preview)throw new Error('Exit Preview as before a receipted helper crossing.');if(!actor.declaredCapabilities.includes(action))throw new Error('Capability gap: this helper did not declare '+action+'. A new owner-approved grant is needed.');if(!actor.places.includes(place)||!ROOMS[place]||!reachable(place,this.store.lens(lens)))throw new Error('This Place is outside the helper or visitor’s allowed path.');
   const agentLens={...lens,profileId:actor.id,playAs:'visitor',isAgent:true,identity:actor.identity,access:this.store.data},p=permission(ROOMS[place],agentLens);if(!p.grant||p.grant.to?.person!==actor.id||p.denied||scopeRank(p.scope)<scopeRank(['answer','tour'].includes(action)?'look':'suggest'))throw new Error('Grant missing, expired or revoked. This crossing needs the owner.');return p.grant;
  }
@@ -32,7 +66,7 @@ export class Staff {
  }
  async pendingSamples(lens){await this.seed();if(lens.playAs!=='owner'||lens.isAgent||lens.preview)return;
   for(const [key,id,place,action,extra] of [['timeline','maintainer-archive','boycott','note',{}],['gallery','maintainer-archive','boycott','note',{variant:1}],['sensory','steward-market','market','flag',{}],['curation','curator-silver','square','curate',{}],['connection','curator-silver','boycott','connect',{}]]){
-   if(this.data.proposals.some(p=>p.seedKey===key))continue;if(!reachable(place,this.store.lens(lens)))continue;try{await this.request(id,place,action,lens,{...extra,seedKey:key});}catch(error){if(!/unavailable Thing|outside.*grant/.test(error.message))throw error;}
+   if(this.data.proposals.some(p=>p.seedKey===key)||!this.helpers().some(a=>a.id===id))continue;if(!reachable(place,this.store.lens(lens)))continue;try{await this.request(id,place,action,lens,{...extra,seedKey:key});}catch(error){if(!/unavailable Thing|outside.*grant/.test(error.message))throw error;}
   }
  }
  visibleProposals(lens){return this.data.proposals.filter(p=>(p.proposal.kind!=='note'||['documentary','immersive'].includes(viewRoom(ROOMS[p.proposal.room],lens).version?.id))&&roomEntry(p.proposal.room,this.store.lens(lens),EDGES).state!=='hidden'&&permission(ROOMS[p.proposal.room],this.store.lens(lens)).canLook&&Date.parse(p.expires)>Date.now());}
@@ -40,6 +74,6 @@ export class Staff {
   if(decision==='approve'){const actor=this.actor(p.agentId),action=Object.keys(actionKind).find(a=>actionKind[a]===p.proposal.kind);this.validate(p.proposal,actor,this.context(actor,p.proposal.room,action,lens,{variant:p.proposal.blockId==='archive-image'?1:0}),lens);p.status='approved';p.publishedUntil=lease(90);}if(decision==='reject')p.status='rejected';if(decision==='contest')p.contested=true;
   await this.store.record(p.proposal.room,lens,'helper_'+({approve:'approved',reject:'rejected',why:'explanation_requested',contest:'contest_opened'}[decision]),{proposal:p.id,agent:p.agentId,model:p.model,reason:p.proposal.reason,publishedUntil:p.publishedUntil??null});return p;});}
  acceptOffer(id,lens){return this.store.transaction(async()=>{if(lens.preview)throw new Error('Exit Preview as first.');const p=this.data.proposals.find(p=>p.id===id);if(!p||p.status!=='offered'||Date.parse(p.expires)<=Date.now())throw new Error('Offer expired or already used');const actor=this.actor(p.agentId),action=p.proposal.kind==='tour'?'tour':'answer';this.validate(p.proposal,actor,this.context(actor,p.proposal.room,action,lens),lens);p.status='accepted';await this.store.record(p.proposal.room,lens,'helper_offer_accepted',{proposal:id,agent:p.agentId,model:p.model});return p;});}
- hire(place,role,capabilities,places,lens){return this.store.transaction(async()=>{this.store.owner(lens);if(!ROLE_ACTIONS[role]||!capabilities.length||capabilities.some(c=>!ROLE_ACTIONS[role].includes(c))||!places.includes(place)||places.some(id=>!ROOMS[id]?.blocks||!reachable(id,this.store.lens(lens))))throw new Error('Choose allowed Places and declared capabilities.');const actor=helperRecord({id:'helper-'+crypto.randomUUID(),name:role+' helper',role,places,capabilities},lease(7));for(const key of places)await this.store.issue(key,{person:actor.id},role==='Docent'?'look':'suggest',actor.expires,lens,'helper');this.data.helpers.push(actor);return actor;});}
- async revoke(id,lens){this.store.owner(lens);const actor=this.actor(id);for(const g of this.store.data.grants.filter(g=>g.to?.person===id&&!g.revokedAt))await this.store.revoke(g.id,lens);actor.revokedAt=new Date().toISOString();this.store.persist();}
+ hire(place,role,capabilities,places,lens){return this.store.transaction(async()=>{this.store.owner(lens);if(!ROLE_ACTIONS[role]||!capabilities.length||capabilities.some(c=>!ROLE_ACTIONS[role].includes(c))||!places.includes(place)||places.some(id=>!ROOMS[id]?.blocks||!reachable(id,this.store.lens(lens))))throw new Error('Choose allowed Places and declared capabilities.');const actor=helperRecord({id:'helper-'+crypto.randomUUID(),name:role+' helper',role,places,capabilities},role==='Docent'?null:lease(7));for(const key of places)await this.store.issue(key,{person:actor.id},helperScope(actor),actor.expires,lens,'helper');this.data.helpers.push(actor);return actor;});}
+ async revoke(id,lens){this.store.owner(lens);const actor=this.data.helpers.find(a=>a.id===id&&!a.revokedAt);if(!actor)throw new Error('Helper is missing or already revoked.');for(const g of this.store.data.grants.filter(g=>g.to?.person===id&&!g.revokedAt))await this.store.revoke(g.id,lens);actor.revokedAt=new Date().toISOString();this.store.persist();}
 }

@@ -7,3 +7,5 @@ export const SEED_HELPERS=[
 ];
 export const operator={name:'Nic',backing:'verified',backing_ref:null,simulated:true};
 export function helperRecord({id,name,role,places,capabilities},expires){return {primitive:'Thing',backing_ref:null,kind:'helper',id,name,role,places,declaredCapabilities:capabilities,measuredCapabilities:[],identity:{display:'pseudonym',backing:'verified'},badge:'Agent',isAgent:true,operator:{...operator},expires,revokedAt:null};}
+
+export const helperScope=actor=>{const actions=actor.declaredCapabilities??actor.capabilities??[];return actions.length&&actions.every(a=>['answer','tour'].includes(a))?'look':'suggest';};
