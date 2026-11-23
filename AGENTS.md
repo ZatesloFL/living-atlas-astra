@@ -23,6 +23,8 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 14. `docs/shared/14-database-operator-silver.md`: the Silver operator process. **Suspended during dev mode (rule 4)**; it returns at public launch. Silver's receipts in `lane/ops/` remain the record of what was done before.
 15. `docs/shared/15-round-2d-live-ai-docent-fix-and-client-wiring.md`: **round 2d work order (current round).** Stages A and B are complete and the proxy is live (receipts in `lane/ops/`). Item 1: diagnose and fix the Docent's rejected answers without weakening evidence validation. Item 2: wire the client to the live proxy with honest live/simulated provenance. File 14 boundaries stand; anything needing a redeploy or a live retest stops in your report for Silver. **Dev mode overrides file 15's live-action boundaries:** deploy and retest yourself instead of stopping for Silver.
 
+16. `docs/shared/16-readonly-docents-standing-grants.md`: **Nic ruling (2026-11-23): read-only (look-scope) helpers hold standing grants.** Docents (answer/tour) are issued without expiry and stay on once attached; suggest-or-higher helpers keep leased grants and owner approvals. Includes the on-load re-issue for stores whose seeded Docent lease already lapsed, and the expired-vs-absent panel label. Small fix; Astra's call whether it lands before G4 or with it.
+
 ## Where things go
 
 - **App code:** repo root. The app must be served at `index.html` via GitHub Pages. Three.js is vendored in `vendor/three/`; no runtime CDN. Generate all assets in code.
