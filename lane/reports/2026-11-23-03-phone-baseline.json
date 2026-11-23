@@ -1,0 +1,143 @@
+{
+  "captureType": "real deployed proxy response, synthetic question from a fresh phone-class Chromium browser",
+  "mode": "baseline",
+  "startedAt": "2026-11-23T21:15:04.527Z",
+  "url": "https://zateslofl.github.io/living-atlas-astra/?safe&form=3d&room=studio&test",
+  "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36",
+  "viewport": {
+    "width": 393,
+    "height": 851
+  },
+  "freshStorage": true,
+  "networkBridge": false,
+  "environmentCertificate": "Existing managed proxy CA pinned for this disposable Chromium process only; persistent trust store unchanged",
+  "network": [
+    {
+      "path": "session",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-23T21:15:23.269Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-23T21:15:25.759Z"
+    }
+  ],
+  "captures": [
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "3545938b-2d95-47a6-a47b-1f10827c02cb",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "203df5c3229c78d7f2c2bbceb3cf09327d19f696e8c3c2b466cbcc686a4ed704",
+          "visibleBlockIds": [
+            "lead",
+            "facts",
+            "sample"
+          ],
+          "lens": {
+            "limits": {
+              "violence": 1,
+              "sexual": 1,
+              "language": 2,
+              "disturbing": 1,
+              "viewpoint": 1,
+              "sensory": 1
+            },
+            "hard": {
+              "violence": 2,
+              "sexual": 2,
+              "language": 2,
+              "disturbing": 2,
+              "viewpoint": 2,
+              "sensory": 2
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is this Place?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "\"Place\":\"Tallahassee, Florida\"",
+          "citations": [
+            "facts"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "4885fea3-12cf-4947-8bd4-be9558106a66"
+        }
+      }
+    }
+  ],
+  "studioLabel": "Simulated \u00b7 local helper",
+  "label": "Live \u00b7 grounded answer",
+  "offer": {
+    "primitive": "Thing",
+    "backing_ref": null,
+    "pathKind": "door",
+    "placeId": "tallahassee/1956",
+    "id": "4841872c-68fc-4d0a-8faf-575d46402148",
+    "agentId": "docent-silver",
+    "agentName": "Docent Silver",
+    "model": "anthropic/claude-haiku-5-5",
+    "provenance": {
+      "provider": "proxy",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agentId": "docent-silver",
+      "result": "proposed",
+      "receiptId": "4885fea3-12cf-4947-8bd4-be9558106a66"
+    },
+    "proposal": {
+      "kind": "answer",
+      "room": "boycott",
+      "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+      "text": "\"Place\":\"Tallahassee, Florida\"",
+      "citations": [
+        "facts"
+      ]
+    },
+    "status": "offered",
+    "created": "2026-11-23T21:15:25.883Z",
+    "expires": "2026-11-30T21:15:25.883Z",
+    "declared": [
+      "answer",
+      "tour"
+    ],
+    "measured": "answer"
+  },
+  "scene": "hall:boycott",
+  "passed": true,
+  "serverReceipt": {
+    "id": "4885fea3-12cf-4947-8bd4-be9558106a66",
+    "result": "accepted",
+    "validation_passed": true,
+    "failure_class": null,
+    "cost_microusd": 289
+  }
+}

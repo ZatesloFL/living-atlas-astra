@@ -34,7 +34,7 @@ let previewState=null,compareWorld=null,previewRatio=null,buildUI,layerUI,discov
 const previewLens=id=>access.lens({...structuredClone(profiles.profiles.find(p=>p.id===id)??profiles.active()),profileId:id,profileName:profiles.profiles.find(p=>p.id===id)?.name,preview:true,testMode:true});
 const currentLens=()=>previewState?previewLens(previewState.left):access.lens(profiles.current());
 let profileUI,page,pageOrigin,selectedRoom,accessUI,travel,waypoint=null,place=null,expiryTimer,waypointRouteCache=null;
-let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>currentLens()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,titlePosition=null,active=true,near=null,contextKey='studio';
+let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>currentLens()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,lastContextUpdate=0,titlePosition=null,active=true,near=null,contextKey='studio';
 const startPrefs=lens.discovery??{},lastPlace=startPrefs.lastPlace,lastInterior=ROOMS[lastPlace?.room]?.layout.interior;
 const savedPlace=lastInterior&&lastPlace.space!==lastInterior.scene?{...lastPlace,room:lastInterior.parent,space:ROOMS[lastPlace.room].layout.scene,position:lastInterior.frontage.arrival,facing:spatialArrival(lastPlace.room,'door').facing}:lastPlace;kind=firstVisit||startPrefs.startAt==='square'?'square':startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)?(savedPlace.space===ROOMS[savedPlace.room].layout.interior?.scene?savedPlace.space:ROOMS[savedPlace.room].layout.scene):'studio';context={room:kind==='square'?'square':kind==='history'?'tallahassee':'studio'};
 const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110));
@@ -71,7 +71,7 @@ function enter(edge){
 }
 function selectId(id){
   mediaContext({mode:'3d',lens,scene:kind,position:controls.position});
-  if(id==='noticeboard'||id==='neighborhood-board'){communityUI.open('board');return;}if(id==='events-board'){communityUI.open('events');return;}if(id==='trails-kiosk'){communityUI.open('trails');return;}if(id==='guide'){staffUI.docent('square');return;}if(id?.startsWith('staff:')){staffUI.open(id.split(':')[1]);return;}if(id?.startsWith('person:')){communityUI.open('people');return;}
+  if(id==='noticeboard'||id==='neighborhood-board'){communityUI.open('board');return;}if(id==='events-board'){communityUI.open('events');return;}if(id==='trails-kiosk'){communityUI.open('trails');return;}if(id==='guide'){staffUI.docent('guide');return;}if(id?.startsWith('staff:')){staffUI.open(id.split(':')[1]);return;}if(id?.startsWith('person:')){communityUI.open('people');return;}
   if(id?.startsWith('exhibit:')){const [,room,block,photo]=id.split(':');ui.info(room);const node=ui.content.querySelector('[data-block-id="'+block+'"]');node?.scrollIntoView({block:'start'});if(photo!==undefined)node?.querySelector('[data-value="'+photo+'"]')?.click();else node?.querySelector('[data-kit-event=tap]')?.click();return;}
   if(id?.startsWith('layer:')){const [,room,layer]=id.split(':');layerUI.peek(room,layer);return;}
   if(id?.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e?.interior)ui.entrance(e.interior);else if(e?.interiorExit)enter(e);else if(e?.portal)startTravel(e.to);else if(e)ui.edge(e);}
@@ -103,7 +103,7 @@ function loop(time){
   try{graphics.render(world.scene,camera,Math.max(0,fade));}catch(error){diag.fallback('frame render',error);return;}
   if(labels&&previewState?.split)labels.visible=[];else if(labels)try{labels.update(world,camera);}catch(error){diag.record('labels update',error,'Nameplates disabled; object selection and Page form remain available.');labels=null;$('world-labels')?.replaceChildren();}
   frames++;period+=elapsed;
-  if(frames%8===0){mediaContext({mode:'3d',lens,scene:kind,position:controls.position});updateContext();if(!travel?.active&&!previewState)discovery?.progress({room:context.room,scene:kind,position:controls.position});const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
+  if(time-lastContextUpdate>=125){lastContextUpdate=time;mediaContext({mode:'3d',lens,scene:kind,position:controls.position});updateContext();if(!travel?.active&&!previewState)discovery?.progress({room:context.room,scene:kind,position:controls.position});const n=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);if(n?.id!==near?.id){near=n;ui.prompt(near);}}
   if(period>=1){refreshReminders();rememberPlace();fps=frames/period;ui.performance({fps,calls:graphics.calls,ratio:graphics.ratio,kind,level:graphics.status().label});if(time-lastTune>6000&&time>10000&&!ui.mode){graphics.adjust(fps);lastTune=time;}period=0;frames=0;}
 }
 function staticControls(){

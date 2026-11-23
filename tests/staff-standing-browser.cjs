@@ -6,7 +6,7 @@ const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core')
  const check=async(name,fn)=>{await fn();passed++;console.log('PASS '+name);};
  const room=async id=>{await p.locator('#page-places').click();await p.locator('#page-room').selectOption(id);for(let i=0;i<5&&await p.locator('[data-enter]').count();i++)await p.locator('[data-enter]').click();};
  const close=()=>p.locator('.access-overlay:not([hidden]) [data-dialog-close]').click();
- const docent=()=>p.locator('.helper-card').filter({has:p.locator('h3',{hasText:/^Docent Silver$/})});
+ const docent=()=>p.locator('.helper-card').filter({has:p.locator('h3',{hasText:/^Mara$/})});
  try{
   await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?page&test&ai=local');await p.waitForFunction(()=>window.__atlasPage);await p.evaluate(()=>__atlasPage.staff.ready);
   await p.locator('#page-setup [name=age]').fill('30');await p.locator('#page-setup button').click();await room('boycott');

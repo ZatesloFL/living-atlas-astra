@@ -34,13 +34,13 @@ const success=()=>({proposal:{kind:'answer',room:'boycott',reason:'Permitted pub
    if(url.pathname.endsWith('/session'))return reply(200,{session:'a'.repeat(64),holder:'b'.repeat(64),expiresAt:new Date(Date.now()+1800000).toISOString()});
    assert.equal(req.headers().authorization,'Bearer '+'a'.repeat(64));
    assert.deepEqual(Object.keys(body.context).sort(),['catalogRevision','lens','placeId','question','visibleBlockIds']);
-   assert.equal(body.context.placeId,'boycott');assert(body.context.visibleBlockIds.includes('lead'));assert.equal(body.context.lens.audience,'teen');
+   assert.equal(body.context.placeId,'boycott');if(mode==='unknown')assert.deepEqual(body.context.visibleBlockIds,[]);else assert(body.context.visibleBlockIds.includes('lead'));assert.equal(body.context.lens.audience,'teen');
    assert(!JSON.stringify(body).includes(source));assert(!JSON.stringify(body).includes('profileName'));
    if(mode==='quota')return reply(429,{code:'RATE_LIMITED'},{'retry-after':'60'});
    if(mode==='rejected')return reply(502,{code:'BAD_PROPOSAL',receiptId,failureClass:'evidence_quote_not_exact'});
    if(mode==='invalid')return reply(200,{...success(),proposal:{...success().proposal,text:'A fabricated account.'}});
    if(mode==='delayed')await new Promise(r=>{release=r;});
-   return reply(200,success()).catch(()=>{}); // An intentionally aborted fetch may no longer have a route.
+   return reply(200,mode==='unknown'?{...success(),proposal:{...success().proposal,text:"I don't know from the blocks available in this view.",citations:[]}}:success()).catch(()=>{}); // An intentionally aborted fetch may no longer have a route.
   });
   await p.goto(base+(form==='page'?'?page&test':'?test&safe')+query);
   if(form==='page'){
@@ -57,14 +57,14 @@ const success=()=>({proposal:{kind:'answer',room:'boycott',reason:'Permitted pub
  async function docent(p){await p.locator('#page-staff').click();await p.locator('[data-docent="docent-silver"]').click();await p.locator('[data-question=overview]').waitFor();}
  const closeDocent=p=>p.locator('.access-overlay:not([hidden]) [data-dialog-close]').click();
  try{
-  for(const mode of ['success','off','quota','rejected','offline','invalid','local']){
+  for(const mode of ['success','typed','unknown','off','quota','rejected','offline','invalid','local']){
    const {context,p,calls,errors}=await setup(mode,mode==='local'?'&ai=local':'');
-   await p.locator('[data-question=overview]').click();await p.locator('[data-ai-source]').waitFor();
-   const expected=mode==='success'?'Live · grounded answer':mode==='local'?'Simulated · local helper':mode==='quota'?'Simulated · live limit reached':'Simulated · live helper unavailable';
+   if(['typed','unknown'].includes(mode)){await p.locator('#docent-question').fill(mode==='typed'?'What bus service did residents boycott?':'What is the price of a ticket to Mars?');await p.locator('#docent-ask').click();}else await p.locator('[data-question=overview]').click();await p.locator('[data-ai-source]').waitFor();
+   const expected=['success','typed','unknown'].includes(mode)?'Live · grounded answer':mode==='local'?'Simulated · local helper':mode==='quota'?'Simulated · live limit reached':'Simulated · live helper unavailable';
    assert.equal(await p.locator('[data-ai-source]').innerText(),expected,mode);
-   assert.equal(await p.evaluate(()=>__atlasPage.staff.data.proposals.at(-1).provenance.provider),mode==='success'?'proxy':'simulated');
+   assert.equal(await p.evaluate(()=>__atlasPage.staff.data.proposals.at(-1).provenance.provider),['success','typed','unknown'].includes(mode)?'proxy':'simulated');
    if(mode==='local')assert.equal(calls.length,0);
-   else if(mode!=='success'){
+   else if(!['success','typed','unknown'].includes(mode)){
     const before=calls.length;await p.locator('[data-question=sources]').click();await p.waitForFunction(()=>document.querySelector('[data-ai-source]'));
     assert.equal(await p.locator('[data-ai-source]').innerText(),expected);assert.equal(calls.length,before,'Circuit must not retry generation');
    }else{
@@ -83,7 +83,7 @@ const success=()=>({proposal:{kind:'answer',room:'boycott',reason:'Permitted pub
    passed++;console.log('PASS 3D live answer shares the same transport and provenance');await context.close();
   }
   for(const change of ['navigate','reopen','lens']){
-   const s=await setup('delayed'),{p,context,calls,errors}=s;await p.locator('[data-question=overview]').click();
+   const s=await setup('delayed'),{p,context,calls,errors}=s;await p.locator('#docent-question').fill('What bus service did residents boycott?');await p.locator('#docent-ask').click();
    while(!calls.some(c=>c.path==='request'))await new Promise(r=>setTimeout(r,10));
    if(change==='lens')await p.evaluate(()=>{__atlasPage.lens.depth='Glance';});
    else {await closeDocent(p);if(change==='navigate')await visit(p,'studio');else await docent(p);}

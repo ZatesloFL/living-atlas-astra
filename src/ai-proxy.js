@@ -1,9 +1,12 @@
 // Public function endpoint only. Provider credentials never enter this client.
+import {HELPER_NAMES} from './staff-data.js';
 import {AI_CATALOG_REVISION} from './ai-catalog-revision.js';
+import {PRESET_QUESTIONS,typedQuestionBlockIds,normalizeQuestion} from './docent-questions.js';
 const ORIGIN='https://zateslofl.github.io';
 export const AI_PROXY_ENDPOINT='https://ftnxmuenqfqkodizyekk.supabase.co/functions/v1/ai-proxy';
 const unavailable=(code,retry=60)=>Object.assign(new Error(code),{code,retry});
 export function docentBlockIds(context){
+ if(!Object.hasOwn(PRESET_QUESTIONS,context.question))return typedQuestionBlockIds(context);
  // Narrow to authored Things relevant to the selected question. Sending the
  // entire article exceeds the approved input envelope; never raise that cap.
  const priorities=context.question==='sources'?['sample','research-note','kids-label','kids-citation','citation-0','citation-1','citation-2']:
@@ -14,10 +17,12 @@ export function createProxyTransport({endpoint,fetchImpl=globalThis.fetch,storag
  const url=new URL(endpoint);
  if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||!url.pathname.endsWith('/ai-proxy'))throw new Error('Invalid AI endpoint');
  let session=null,expires=0,holder=null,busy=false,blockedUntil=0,blockedReason='LIVE_UNAVAILABLE';
+ let diagnostic={stage:'ready',status:null};
  try{holder=storage?.getItem('atlas-ai-anonymous-holder')??null;}catch{/* session-only */}
  if(!/^[a-f0-9]{64}$/.test(holder??''))holder=null;
  return {
-  failed(){blockedUntil=Math.max(blockedUntil,now()+60000);},
+  diagnostics(){return {...diagnostic};},
+  failed(error){blockedUntil=Math.max(blockedUntil,now()+60000);if(!error?.code)diagnostic={stage:'validation',status:diagnostic.status};},
   eligible({job,agentId,context}){return job==='guide'&&agentId==='docent-silver'&&context?.place?.key==='boycott'&&context.action==='answer';},
   async request({job,agentId,context,signal}){
    if(now()<blockedUntil)throw unavailable(blockedReason,Math.ceil((blockedUntil-now())/1000));
@@ -26,7 +31,9 @@ export function createProxyTransport({endpoint,fetchImpl=globalThis.fetch,storag
    signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();
    const timer=setTimeout(abort,timeoutMs);
    const post=async(path,body,credential)=>{
+    diagnostic={stage:path==='/session'?'session':'request',status:null};
     const r=await fetchImpl(url.href+path,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',headers:{'Content-Type':'application/json',...(credential?{Authorization:'Bearer '+credential}:{})},body:JSON.stringify(body),signal:controller.signal});
+    diagnostic.status=r.status;
     if(!r.ok){const retry=Math.min(86400,Math.max(60,Number(r.headers.get('Retry-After'))||60));if(r.status===401){session=null;expires=0;}
      await r.body?.cancel();throw unavailable(r.status===429?'LIVE_LIMIT_REACHED':'LIVE_UNAVAILABLE',retry);}
     // Enforce response bounds before parsing untrusted remote JSON.
@@ -44,7 +51,7 @@ export function createProxyTransport({endpoint,fetchImpl=globalThis.fetch,storag
     controller.signal.throwIfAborted();
     const l=context.lens,child=l.ageBand==='child';
     const lens={limits:l.limits,hard:l.hard,depth:l.depth??'Standard',trustFrom:l.trustFrom??'Author',show:{real:l.show?.real??true,pseudonym:l.show?.pseudonym??true,anonymous:l.show?.anonymous??true,agents:l.show?.agent??l.show?.agents??true},audience:child?'child':'teen'};
-    const question=({overview:'What is this Place?',sources:'What needs verification?',rules:'What can this helper do?'})[context.question]??context.question;
+    const question=normalizeQuestion(PRESET_QUESTIONS[context.question]??context.question);
     return await post('/request',{requestId:crypto.randomUUID(),job,agentId,schemaId:'atlas-evidence-answer-v1',context:{placeId:'boycott',catalogRevision:AI_CATALOG_REVISION,visibleBlockIds:docentBlockIds(context),lens,question}},session);
    }catch(e){if(signal?.aborted)throw new DOMException('Request cancelled','AbortError');blockedUntil=now()+Math.max(60,e.retry??60)*1000;blockedReason=e.code==='LIVE_LIMIT_REACHED'?e.code:'LIVE_UNAVAILABLE';throw unavailable(blockedReason,e.retry);}
    finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);busy=false;}
@@ -59,3 +66,13 @@ export function createBrowserTransport({location=globalThis.location,storage,fet
  if(storage===undefined)try{storage=globalThis.localStorage;}catch{storage=null;}
  return createProxyTransport({endpoint:AI_PROXY_ENDPOINT,storage,fetchImpl});
 }
+export function browserLocalReason(location=globalThis.location){
+ return new URLSearchParams(location?.search).get('ai')==='local'?'local_selected':location?.origin!==ORIGIN?'preview_origin':null;
+}
+export function routeExplanation(reason){return ({
+ place_local:`This Place uses local answers. Live answers are available from ${HELPER_NAMES.Docent.boycott} in the boycott exhibition.`,
+ helper_local:`This helper uses local answers. ${HELPER_NAMES.Docent.boycott} is the live Docent at the boycott exhibition.`,
+ action_local:'Tours use local authored paths and checked grants.',
+ local_selected:'Local-only mode is selected in this link. Open the same Pages link without ai=local to use live help at the boycott.',
+ preview_origin:'This preview uses local answers. Live help is available on the published Atlas at the boycott exhibition.'
+})[reason]??'';}
