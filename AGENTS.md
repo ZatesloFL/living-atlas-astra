@@ -25,6 +25,8 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 
 16. `docs/shared/16-readonly-docents-standing-grants.md`: **Nic ruling (2026-11-23): read-only (look-scope) helpers hold standing grants.** Docents (answer/tour) are issued without expiry and stay on once attached; suggest-or-higher helpers keep leased grants and owner approvals. Includes the on-load re-issue for stores whose seeded Docent lease already lapsed, and the expired-vs-absent panel label. Small fix; Astra's call whether it lands before G4 or with it.
 
+17. `docs/shared/17-boycott-interior.md`: **current work order — a Place you enter (Nic direction, 2026-11-23).** Give the boycott an interior: a hall holding the five G3 exhibits, a door crossing from the History Quarter (Enter becomes the primary action), Inside arrival landing in the hall, presence keyed to the hall. Reuse the exhibit kit; build the interior itself as a reusable kit. Page form, content, grants and proxy untouched. G4 and file 16 are complete.
+
 ## Where things go
 
 - **App code:** repo root. The app must be served at `index.html` via GitHub Pages. Three.js is vendored in `vendor/three/`; no runtime CDN. Generate all assets in code.
