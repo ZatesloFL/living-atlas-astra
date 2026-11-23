@@ -1,0 +1,100 @@
+[
+  {
+    "file": "src/community-world.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "c27fe2207250197011c573aee2f4b376fe5c636fe85cc6df9f8c3be12c7535f5",
+    "servedSha256": "c27fe2207250197011c573aee2f4b376fe5c636fe85cc6df9f8c3be12c7535f5"
+  },
+  {
+    "file": "src/data.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "fbc15ade2666248ac51ee88946986862134700b241b7e7c273426d337950819d",
+    "servedSha256": "fbc15ade2666248ac51ee88946986862134700b241b7e7c273426d337950819d"
+  },
+  {
+    "file": "src/discovery.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "54fd64476e4f3a2754438f36d9c312670bda4ea22cdf17f6132f8b33608f6281",
+    "servedSha256": "54fd64476e4f3a2754438f36d9c312670bda4ea22cdf17f6132f8b33608f6281"
+  },
+  {
+    "file": "src/fast-travel.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "17c6c510b19a159f32d759d1fa6dc7698f53de32089b64f0abb4823c298368e9",
+    "servedSha256": "17c6c510b19a159f32d759d1fa6dc7698f53de32089b64f0abb4823c298368e9"
+  },
+  {
+    "file": "src/interior-data.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "d81f70fcccf1cc09324ad8a4b2f90e80bfdc21c738bfdf5ef806ebb8f03d4377",
+    "servedSha256": "d81f70fcccf1cc09324ad8a4b2f90e80bfdc21c738bfdf5ef806ebb8f03d4377"
+  },
+  {
+    "file": "src/interior-kit.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "19a6be1c0eec65d47e2388cf9ae6a7316b871a83481b05e60ef3e49959071a07",
+    "servedSha256": "19a6be1c0eec65d47e2388cf9ae6a7316b871a83481b05e60ef3e49959071a07"
+  },
+  {
+    "file": "src/interior-space.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "e9fe1f9fb5d692022bb6651ee58951e82b12abc723b4083f0492c8ae141599bf",
+    "servedSha256": "e9fe1f9fb5d692022bb6651ee58951e82b12abc723b4083f0492c8ae141599bf"
+  },
+  {
+    "file": "src/interior-world.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "9686cc83cae2576d2ae2bfe31b60f3808fe7ccfca5545056b7a1d87be26ffaa9",
+    "servedSha256": "9686cc83cae2576d2ae2bfe31b60f3808fe7ccfca5545056b7a1d87be26ffaa9"
+  },
+  {
+    "file": "src/kit-ui.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "49299c0842509ddca570ecf2c0049b5f51d169658a5617ecc22463e64d4cdfb6",
+    "servedSha256": "49299c0842509ddca570ecf2c0049b5f51d169658a5617ecc22463e64d4cdfb6"
+  },
+  {
+    "file": "src/kit-world.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "0af641f7d40203270e5fa9b5cf4827c6f4fb2001907753860b3def8a88afb529",
+    "servedSha256": "0af641f7d40203270e5fa9b5cf4827c6f4fb2001907753860b3def8a88afb529"
+  },
+  {
+    "file": "src/runtime.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "4d689a9434a4a15b7d156e07fdad7dfe4497bbe95c267510d681bfb7cc3cbba5",
+    "servedSha256": "4d689a9434a4a15b7d156e07fdad7dfe4497bbe95c267510d681bfb7cc3cbba5"
+  },
+  {
+    "file": "src/travel-plan.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "d074e6406d54136e90eea6c3e69012ca7b3942a0345b74d9ea1d5c599ce2e6a2",
+    "servedSha256": "d074e6406d54136e90eea6c3e69012ca7b3942a0345b74d9ea1d5c599ce2e6a2"
+  },
+  {
+    "file": "src/ui.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "4d866a598a00af50a67f0ec78ab78119ce7db3de5e2637326ad2c83f9db76163",
+    "servedSha256": "4d866a598a00af50a67f0ec78ab78119ce7db3de5e2637326ad2c83f9db76163"
+  },
+  {
+    "file": "src/world.js",
+    "status": 200,
+    "matches": true,
+    "localSha256": "d4fb1c767469ab00046ff918b879e1805fc32bed4993301b980d12d96bda433f",
+    "servedSha256": "d4fb1c767469ab00046ff918b879e1805fc32bed4993301b980d12d96bda433f"
+  }
+]

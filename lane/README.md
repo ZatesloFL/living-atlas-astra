@@ -6,15 +6,15 @@ Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest app build: [1fc0589](https://github.com/ZatesloFL/living-atlas-astra/commit/1fc0589) · [G4 and standing Docents](reports/2026-11-23-01.md), including grant fix [aebe42b](https://github.com/ZatesloFL/living-atlas-astra/commit/aebe42b). [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) includes the subsequent report.
+- Latest app build: [44d06dd](https://github.com/ZatesloFL/living-atlas-astra/commit/44d06dd) · [File 17: boycott hall](reports/2026-11-23-02.md). All 14 changed runtime files verified served. [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) includes the report and real proxy capture.
 
-Current work: G3 and G4 completion audits finished; physical phone checks remain Partial for Nic. File 16 is implemented: standing read-only Docents, automatic recovery of lapsed seeded grants and explicit expired-lease labels. One standing-grant synthetic live call passed with a receipted cost of $0.000212; see the current report. Stopped after reporting live actions. Round 2d is verified live, with three real proxy captures in [report 2026-11-16-01](reports/2026-11-16-01.md). The client uses the public proxy for eligible Boycott answers on Pages with honest provenance; `?ai=local` and local previews stay local. Rule 4's dev mode remains on. No builder head-to-head is authorized; later rounds stay queued.
+Current work: file 17 is complete functionally: a reusable enclosed hall, separate exhibit bays, mounted labels, Enter doorway, hall arrivals/presence/media distance, and recovery of old saved positions. 159 Node tests and 75 browser checks pass. One synthetic live Docent call passed with measured cost $0.000256; its receipt and real proxy response are in the current report. Physical Pixel checks remain Partial for Nic; Grok's live cold walk is pending. [G4 and file 16](reports/2026-11-23-01.md) remain intact. Rule 4 dev mode remains on. Work stops after logging these live actions; no builder head-to-head or later round is authorized.
 
 ## Run and verify
 
 No installation or compilation is needed for the static app. From the repository root, `npm start` serves `index.html` on port 8000. All runtime imports are local, including Three.js. Live processes do not survive environment restarts; restart this command when needed. Use this existing checkout; do not create a worktree for routine tasks.
 
-- `npm test`: 155 Node tests covering content, crossings, identity, profiles and receipts, plus the private AI proxy, accounting, provider validation and the actual Staff/client/server path with local Postgres and injected providers.
+- `npm test`: 159 Node tests covering content, crossings, identity, profiles and receipts, plus the private AI proxy, accounting, provider validation and the actual Staff/client/server path with local Postgres and injected providers.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/live-docent-browser.cjs`: shipped-origin client checks using local assets and intercepted proxy responses, with zero live calls. Covers both Page and 3D, fallback labels, local mode, mobile layouts and stale answers.
 - `ATLAS_PLAYWRIGHT_MODULE=/opt/codex/cua_node/lib/node_modules/playwright-core node tests/browser-smoke.cjs`: 22 functional checks using the cloud machine’s existing Chromium and Playwright. Start the local server first. In another environment, provide the path to its installed Playwright module and optionally `ATLAS_CHROMIUM`.
 - The ◈ button in the app toggles fps, draw calls, scene, and rendering resolution. The display uses actual elapsed time; a software renderer’s numbers do not predict Pixel performance.
@@ -103,8 +103,10 @@ What you'd do next with one more session.
 
 - `tests/staff-browser.cjs`: four simulated staff, proposal, hiring and Page/receipt checks. `tests/render-budget-browser.cjs`: three full-bloom/shadow scene-budget and picking checks, covering Square/History/Studio plus Commons/Night Market/After Dark views. Same Playwright module and URL variables; port 8003 default. Report `2026-11-12-11`.
 
-- Historical round 2b proposal: [report -12](reports/2026-11-12-12.md). The original SQL, common builder schema and ten synthetic requests remain in `lane/proposals/`. Later reports and operator receipts record approval, implementation and activation; current work is the G3/G4 audit above.
+- Historical round 2b proposal: [report -12](reports/2026-11-12-12.md). The original SQL, common builder schema and ten synthetic requests remain in `lane/proposals/`. Later reports and operator receipts record approval, implementation and activation; current work is the file-17 hall above.
 
 - `tests/kit-regression-browser.cjs`: nine additional G3 checks for glyph zoom, native video events/rebinding, capture-track cleanup, Lens changes, lightbox/source lifecycle, stale speech events, Child filtering, consistent procedural artwork and independent rotated kit instances. Same Playwright module and local port 8003 as the original kit suite; no external requests or live AI.
 
 - `tests/page-reading-browser.cjs`: eight G4 checks for reading anchors/focus, late hero media, responsive notes, readable components, audience/consent gates and local-only defaults. `tests/staff-standing-browser.cjs`: three fresh/legacy-store/expiry/revocation checks; `tests/staff-standing.test.js`: five local-store grant/receipt tests. Same local server and Playwright configuration as above.
+
+- `tests/interior-browser.cjs`: 13 hall checks, including physical exhibit taps, entry/exit receipts and presence, media distance, audience switching, Page return and Lens-hide recovery. `tests/interior-recovery-browser.cjs`: five maximum-scale/reuse/newspaper/legacy-save/door-barrier checks. Same Playwright module variable and local port 8003. [File-17 report and phone checklist](reports/2026-11-23-02.md).
