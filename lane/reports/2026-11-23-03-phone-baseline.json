@@ -138,6 +138,7 @@
     "result": "accepted",
     "validation_passed": true,
     "failure_class": null,
-    "cost_microusd": 289
+    "cost_microusd": 289,
+    "cost_basis": "measured"
   }
 }

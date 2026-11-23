@@ -1,0 +1,87 @@
+{
+  "captureType": "real deployed proxy response, synthetic question from a fresh phone-class Chromium browser",
+  "capturedAt": "2026-11-23T21:32:36.398Z",
+  "servedCommit": "cd8294e",
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36",
+    "viewport": {
+      "width": 393,
+      "height": 851
+    },
+    "freshStorage": true
+  },
+  "httpStatus": 200,
+  "request": {
+    "requestId": "ba1a2636-aa2c-4b52-b597-5023629f2b11",
+    "job": "guide",
+    "agentId": "docent-silver",
+    "schemaId": "atlas-evidence-answer-v1",
+    "context": {
+      "placeId": "boycott",
+      "catalogRevision": "203df5c3229c78d7f2c2bbceb3cf09327d19f696e8c3c2b466cbcc686a4ed704",
+      "visibleBlockIds": [
+        "lead",
+        "context",
+        "facts"
+      ],
+      "lens": {
+        "limits": {
+          "violence": 1,
+          "sexual": 1,
+          "language": 2,
+          "disturbing": 1,
+          "viewpoint": 1,
+          "sensory": 1
+        },
+        "hard": {
+          "violence": 2,
+          "sexual": 2,
+          "language": 2,
+          "disturbing": 2,
+          "viewpoint": 2,
+          "sensory": 2
+        },
+        "depth": "Standard",
+        "trustFrom": "Author",
+        "show": {
+          "real": true,
+          "pseudonym": true,
+          "anonymous": true,
+          "agents": true
+        },
+        "audience": "teen"
+      },
+      "question": "What bus service did residents boycott?"
+    }
+  },
+  "response": {
+    "proposal": {
+      "kind": "answer",
+      "room": "boycott",
+      "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+      "text": "organized a boycott of the city\u2019s segregated bus service",
+      "citations": [
+        "lead"
+      ]
+    },
+    "model": "anthropic/claude-haiku-5-5",
+    "agentId": "docent-silver",
+    "receiptData": {
+      "provider": "anthropic",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agentId": "docent-silver",
+      "result": "proposed",
+      "receiptId": "83a2c739-c810-4cca-a51e-e4adc194014b"
+    }
+  },
+  "serverReceipt": {
+    "id": "83a2c739-c810-4cca-a51e-e4adc194014b",
+    "time": "2026-11-23T21:32:36.322Z",
+    "result": "accepted",
+    "validation_passed": true,
+    "failure_class": null,
+    "cost_microusd": 190,
+    "cost_basis": "measured"
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "captureType": "real deployed proxy response, synthetic question from a fresh phone-class Chromium browser",
+  "mode": "typed",
+  "startedAt": "2026-11-23T21:32:14.505Z",
+  "url": "https://zateslofl.github.io/living-atlas-astra/?safe&form=3d&room=studio&test",
+  "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36",
+  "viewport": {
+    "width": 393,
+    "height": 851
+  },
+  "freshStorage": true,
+  "networkBridge": false,
+  "environmentCertificate": "Existing managed proxy CA pinned for this disposable Chromium process only; persistent trust store unchanged",
+  "network": [
+    {
+      "path": "session",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-23T21:32:34.242Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-23T21:32:36.398Z"
+    }
+  ],
+  "captures": [
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "ba1a2636-aa2c-4b52-b597-5023629f2b11",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "203df5c3229c78d7f2c2bbceb3cf09327d19f696e8c3c2b466cbcc686a4ed704",
+          "visibleBlockIds": [
+            "lead",
+            "context",
+            "facts"
+          ],
+          "lens": {
+            "limits": {
+              "violence": 1,
+              "sexual": 1,
+              "language": 2,
+              "disturbing": 1,
+              "viewpoint": 1,
+              "sensory": 1
+            },
+            "hard": {
+              "violence": 2,
+              "sexual": 2,
+              "language": 2,
+              "disturbing": 2,
+              "viewpoint": 2,
+              "sensory": 2
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What bus service did residents boycott?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "organized a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "83a2c739-c810-4cca-a51e-e4adc194014b"
+        }
+      }
+    }
+  ],
+  "studioLabel": "Simulated \u00b7 local helper",
+  "label": "Live \u00b7 grounded answer",
+  "offer": {
+    "primitive": "Thing",
+    "backing_ref": null,
+    "pathKind": "door",
+    "placeId": "tallahassee/1956",
+    "id": "f4478aa8-c96c-4955-bbb3-6d8d59719cd1",
+    "agentId": "docent-silver",
+    "agentName": "Mara",
+    "model": "anthropic/claude-haiku-5-5",
+    "provenance": {
+      "provider": "proxy",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agentId": "docent-silver",
+      "result": "proposed",
+      "receiptId": "83a2c739-c810-4cca-a51e-e4adc194014b"
+    },
+    "proposal": {
+      "kind": "answer",
+      "room": "boycott",
+      "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+      "text": "organized a boycott of the city\u2019s segregated bus service",
+      "citations": [
+        "lead"
+      ]
+    },
+    "status": "offered",
+    "created": "2026-11-23T21:32:36.481Z",
+    "expires": "2026-11-30T21:32:36.481Z",
+    "declared": [
+      "answer",
+      "tour"
+    ],
+    "measured": "answer"
+  },
+  "scene": "hall:boycott",
+  "passed": true,
+  "servedCommit": "cd8294e",
+  "serverReceipt": {
+    "id": "83a2c739-c810-4cca-a51e-e4adc194014b",
+    "time": "2026-11-23T21:32:36.322Z",
+    "result": "accepted",
+    "validation_passed": true,
+    "failure_class": null,
+    "cost_microusd": 190,
+    "cost_basis": "measured"
+  }
+}

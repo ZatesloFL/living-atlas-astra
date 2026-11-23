@@ -105,3 +105,15 @@ test('Connection diagnostics distinguish session, request and evidence validatio
   const diagnostic=JSON.stringify(result.receiptData.diagnostic);assert(!diagnostic.includes('QUESTION_CANARY'));assert(!diagnostic.includes('a'.repeat(64)));assert(!diagnostic.includes('b'.repeat(64)));
  }
 });
+
+test('Real typed proxy captures replay through the unchanged client evidence validator, including honest abstention',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ for(const which of ['typed','unknown']){
+  const capture=JSON.parse(await readFile(new URL(`./fixtures/docent-proxy-live-${which}.json`,import.meta.url),'utf8'));
+  assert.match(capture.captureType,/real deployed proxy/);assert.equal(capture.httpStatus,200);assert.equal(capture.serverReceipt.result,'accepted');assert.equal(capture.serverReceipt.id,capture.response.receiptData.receiptId);
+  const {blocks}=prepare(capture.request),context={place:{key:'boycott'},action:'answer',question:capture.request.context.question,blocks};
+  const client=createAI({transport:{eligible:()=>true,request:async()=>structuredClone(capture.response)}}),result=await client.request({job:'guide',agentId:'docent-silver',context});
+  assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');assert.equal(result.receiptData.receiptId,capture.serverReceipt.id);
+  if(which==='unknown'){assert.equal(result.proposal.text,DONT_KNOW);assert.deepEqual(result.proposal.citations,[]);}else assert(result.proposal.citations.length);
+ }
+});

@@ -1,0 +1,84 @@
+{
+  "commit": "cd8294e",
+  "checkedAt": "2026-11-23T21:31:35.782790+00:00",
+  "results": [
+    {
+      "path": "src/ai-proxy.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "e1bbcd8bc8aab3f96e26125806c49c32711177ad11dde9091cead65679b264de"
+    },
+    {
+      "path": "src/ai.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "431dae58fe8de16a9829eab8356a56d6ea0bd6ae7d90219dc77c9ffa83992ba9"
+    },
+    {
+      "path": "src/community-data.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "2ae98b5a65c804805b1eaf24e4399fc356ecfc0ac459908ea46be15de4b13bb1"
+    },
+    {
+      "path": "src/community-ui.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "423bbec4e411926177fe822fb183fafdc0ed75c451f06382665831f3ab0cd4ad"
+    },
+    {
+      "path": "src/community-world.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "0c9fc1c91a7d80f236483bd2c128ca94deccca9a04d89caf5146b80abff453e0"
+    },
+    {
+      "path": "src/discovery-state.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "88b250d699b4bcd6f8b22eba53ca4b9b8654b5e2864cea1a084cca7554bd3c1f"
+    },
+    {
+      "path": "src/docent-questions.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "c8aa8469cdcb1b83c9ce105e8afcf863554b895b8c39d03c2ebda709adafcc8b"
+    },
+    {
+      "path": "src/runtime.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "d3127ea25b1c659e082fe0ab2f73cfd39f19212d3939b3b6f29dbc2addf47756"
+    },
+    {
+      "path": "src/staff-data.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "88739459d5c313a1d84cd7e668290ca4b0c9178b4daea27f551efbbec947a7f8"
+    },
+    {
+      "path": "src/staff-identity.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "454e902351fa9e584f92101278901a63531b5332bbcfa7fbf2f6450e7c75ca84"
+    },
+    {
+      "path": "src/staff-ui.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "756386302721ceab084b4a16eafd1545e639ab5b4cf6fd04172aae394c68e7bb"
+    },
+    {
+      "path": "src/staff.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "c1fa835dfd38f560f18e9a2fef9580454c6c1821be531209f43a9f6ad5f90b86"
+    },
+    {
+      "path": "staff.css",
+      "status": 200,
+      "matches": true,
+      "sha256": "c32778e2dcb94a0347fc27192cfa5267598af60700865f085dd04e4d15ff258f"
+    }
+  ]
+}
