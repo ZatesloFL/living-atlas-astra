@@ -14,7 +14,7 @@ const measure=(s,ref,value,lens=person('checker'),options={})=>s.standing.measur
 test('audience requires verified identity and a crossing; edits retain receipts and one active reading',async()=>{
  const f=fixture(),visitor=person('visitor');try{
   assert.equal(identityTier(visitor),'verified-unnamed');assert.equal(identityTier({...visitor,identity:{display:'real',backing:'verified'}}),'verified-named');
-  await assert.rejects(measure(f.store,f.ref,{},person('anonymous',{identity:{display:'real',backing:'none'}})),/Anonymous/);
+  await assert.rejects(measure(f.store,f.ref,{},person('anonymous',{identity:{display:'real',backing:'none'}})),/Unverified/);
   await assert.rejects(measure(f.store,f.ref,{},visitor,{kind:'audience'}),/crossing receipt/);
   await f.store.use(f.key,'enter',visitor);const first=await measure(f.store,f.ref,{sensory:pair(1,0)},visitor,{kind:'audience',text:'First words'}),second=await measure(f.store,f.ref,{sensory:pair(0,0)},visitor,{kind:'audience',text:'Edited words'});
   const current=currentMeasurements(f.store.standing.data,f.ref);assert.equal(current.length,1);assert(current[0].edited);assert.deepEqual(current[0].supersedes,[first.hash]);assert.equal(current[0].id,second.hash);

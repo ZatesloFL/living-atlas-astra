@@ -1,3 +1,4 @@
+import {standingPreferences} from './standing-policy.js';
 import {asPair,asHard,validPair} from './scores.js';
 import {discoveryDefaults,discoveryState} from './discovery-state.js';
 import {PRESETS,DIMENSIONS} from './data.js';
@@ -6,15 +7,15 @@ export const STORAGE_KEY='living-atlas.profiles.v4';
 export const GROUPS=[['family','Family','made'],['writing-circle','Writing circle','made'],['tallahassee-resident','Verified Tallahassee resident','credential'],['neighborhood','My neighborhood','credential']];
 const clone=value=>structuredClone(value);
 export function makeProfile(name,extra={}){
-  return {id:crypto.randomUUID(),name,identity:{display:'pseudonym',backing:'none'},age:18,preset:'Teen',limits:clone(PRESETS.Teen.limits),hard:clone(PRESETS.Teen.hard),show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],layerConsents:{},layerMode:'Core only',layerTypes:['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'],itemStyles:{},discovery:discoveryDefaults(),groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
+  return {id:crypto.randomUUID(),name,identity:{display:'pseudonym',backing:'none'},age:18,preset:'Teen',limits:clone(PRESETS.Teen.limits),hard:clone(PRESETS.Teen.hard),show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],layerConsents:{},layerMode:'Core only',layerTypes:['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'],itemStyles:{},discovery:discoveryDefaults(),standingPreferences:standingPreferences(),groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
 }
 export function seedProfiles(){
   const base=(id,name,preset,extra={})=>makeProfile(name,{id,seed:true,isTest:true,preset,limits:clone(PRESETS[preset].limits),hard:clone(PRESETS[preset].hard),...extra});
-  return [base('seed-me','Me','Adult',{identity:{display:'real',backing:'verified'},age:35}),base('seed-verified','Verified adult','Adult',{identity:{display:'real',backing:'verified'},age:25}),base('seed-visitor','Unverified visitor','Teen',{identity:{display:'anonymous',backing:'none'},age:25}),base('seed-child','Child','Kids',{identity:{display:'anonymous',backing:'none'},age:10}),base('seed-agent','An agent','Adult',{identity:{display:'pseudonym',backing:'verified'},age:25,isAgent:true})];
+  return [base('seed-me','Me','Adult',{identity:{display:'real',backing:'verified'},age:35}),base('seed-verified','Verified adult','Adult',{identity:{display:'real',backing:'verified'},age:25}),base('seed-visitor','Unverified visitor','Teen',{identity:{display:'anonymous',backing:'none'},age:25}),base('seed-child','Under-13 rejection fixture','Kids',{identity:{display:'anonymous',backing:'none'},age:10}),base('seed-agent','An agent','Adult',{identity:{display:'pseudonym',backing:'verified'},age:25,isAgent:true})];
 }
 function sanitize(p){
   if(!p||typeof p.id!=='string'||typeof p.name!=='string'||!p.name.trim()||!Number.isFinite(p.age))return null;
-  const out=makeProfile(p.name.trim().slice(0,40));out.id=p.id.slice(0,100);out.age=Math.max(0,Math.min(120,Math.floor(p.age)));out.seed=seedIds.has(out.id);
+  const out=makeProfile(p.name.trim().slice(0,40));out.id=p.id.slice(0,100);out.age=Math.max(0,Math.min(120,Math.floor(p.age)));out.seed=seedIds.has(out.id);if(out.id==='seed-child')out.name='Under-13 rejection fixture';
   out.identity={display:['anonymous','pseudonym','real'].includes(p.identity?.display)?p.identity.display:'anonymous',backing:p.identity?.backing==='verified'?'verified':'none'};
   out.preset=[...Object.keys(PRESETS),'Custom'].includes(p.preset)?p.preset:'Teen';
   for(const [k] of DIMENSIONS){const l=asPair(p.limits?.[k]),h=asHard(p.hard?.[k]);out.limits[k]=validPair(l)?l:clone(PRESETS.Teen.limits[k]);out.hard[k]=validPair(h,{nullable:true})?h:clone(PRESETS.Teen.hard[k]);}
@@ -22,7 +23,7 @@ function sanitize(p){
   out.dialsMigrated=p.dialsMigrated||Object.values(p.limits??{}).some(v=>typeof v==='number');
   for(const k of ['real','pseudonym','anonymous','agent'])out.show[k]=p.show?.[k]!==false;
   for(const [k,values] of Object.entries({trustFrom:['Author','Vouched','Academic','Community'],depth:['Glance','Standard','Deep'],form:['3d','card','page','narration','text'],stylePreset:['Studio','Documentary','Gallery','Kids'],layerMode:['Core only','Vouched','Everything'],playAs:['visitor','owner']}))if(values.includes(p[k]))out[k]=p[k];
-  out.discovery=discoveryState(p.discovery);
+  out.discovery=discoveryState(p.discovery);out.standingPreferences=standingPreferences(p.standingPreferences);
   out.groups=Array.isArray(p.groups)?p.groups.filter(k=>GROUPS.some(g=>g[0]===k)):[];
   out.acceptedLayers=Array.isArray(p.acceptedLayers)?p.acceptedLayers.filter(k=>typeof k==='string').slice(0,200):[];
   out.layerTypes=Array.isArray(p.layerTypes)?p.layerTypes.filter(t=>['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'].includes(t)):out.layerTypes;out.itemStyles=p.itemStyles&&typeof p.itemStyles==='object'?clone(p.itemStyles):{};
@@ -77,7 +78,7 @@ export class ProfileStore {
     if(this.activeId===id){const next=this.profiles.find(p=>!p.seed&&!p.isTest)??this.profiles.find(p=>!p.seed);if(next)await this.record('profile_switched',{from:id,to:next.id});this.activeId=next?.id??null;this.override=null;this.completed=!!next;}
     if(this.regularId===id)this.regularId=this.profiles.find(p=>!p.seed&&!p.isTest)?.id??null;this.persist();
   });}
-  preferences(lens){const p=this.active();if(!p)return;for(const key of ['preset','limits','hard','show','trustFrom','depth','form','stylePreset','acceptedLayers','layerMode','layerTypes','itemStyles','layerConsents','discovery'])if(lens[key]!==undefined)p[key]=clone(lens[key]);this.persist();}
+  preferences(lens){const p=this.active();if(!p)return;for(const key of ['preset','limits','hard','show','trustFrom','depth','form','stylePreset','acceptedLayers','layerMode','layerTypes','itemStyles','layerConsents','discovery','standingPreferences'])if(lens[key]!==undefined)p[key]=clone(lens[key]);this.persist();}
   setDisplay(display){const p=this.active();if(!p||!['anonymous','pseudonym','real'].includes(display))return;p.identity.display=display;this.persist();}
   setOverride(changes){this.override={...this.override,...clone(changes),identity:{...this.current().identity,...changes.identity}};}
   async exitTest(){if(this.active()?.isTest){if(this.regularId)return this.switchProfile(this.regularId);this.completed=false;this.activeId=null;this.override=null;this.persist();return;}this.override=null;this.persist();}

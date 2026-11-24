@@ -1,3 +1,4 @@
+import {standingLensPolicy} from './standing-policy.js';
 import {AXES,asPair,validPair} from './scores.js';
 import {viewRoom,selectVersion} from './audience.js';
 import {permission} from './permissions.js';
@@ -18,7 +19,8 @@ export function crossing(edge,lens,rooms=ROOMS,inside=false) {
   if(DIMENSIONS.some(([key])=>!validPair(rating(target,key,null,lens))))return {state:'hidden',type:null,reasons:['Invalid content scores'],oddness:[]};
   const rights=permission(target,lens);if(!rights.visible)return {state:'hidden',type:null,reasons:['No grant to this hidden room'],oddness:[],rights};
   const identity=effectiveIdentity(lens),access=accessSettings(lens,target),admission=doorPolicy(target,lens);
-  const reasons=[],over=[],oddness=[];
+  const recordPreference=standingLensPolicy(target,lens);if(recordPreference.filter)return {state:'hidden',type:null,reasons:[recordPreference.warning],oddness:[],rights};
+  const reasons=[],over=recordPreference.warning?[recordPreference.warning]:[],oddness=[];
   if(identity.age<target.minAge) reasons.push(`Minimum age ${target.minAge}`);
   if(target.visibility==='verified-only'&&!identity.verified) reasons.push('Verified adults only');
   for(const [key,label] of DIMENSIONS)for(const axis of AXES) {
@@ -29,11 +31,11 @@ export function crossing(edge,lens,rooms=ROOMS,inside=false) {
     if(admission.measuredMinimum[key][axis]>admission.declaredMinimum[key][axis])oddness.push(`Entrance ${label} ${axis} ${admission.measuredMinimum[key][axis]} (declared ${admission.declaredMinimum[key][axis]})`);
   }
   if(reasons.length) return {state:'hidden',type:null,reasons,oddness,rights};
-  if(admission.blocked&&rights.canLook)return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,...admission.unmet.map(({key,axis})=>`${DIMENSIONS.find(([k])=>k===key)[1]} ${axis}: ${access.limits[key][axis]}, entrance needs ${admission.minimum[key][axis]}`)],oddness,rights,admission};
-  if(!rights.canLook)return {state:'private',type:'door',reasons:[rights.reason,'Knock to request access'],oddness:[],rights};
+  if(admission.blocked&&rights.canLook)return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,...admission.standing.reasons,...admission.unmet.map(({key,axis})=>`${DIMENSIONS.find(([k])=>k===key)[1]} ${axis}: ${access.limits[key][axis]}, entrance needs ${admission.minimum[key][axis]}`)],oddness,rights,admission};
+  if(!rights.canLook)return {state:'private',type:'door',reasons:[rights.reason,...admission.standing.reasons,'Knock to request access'],oddness:[],rights,admission};
   if(!rights.canEnter)return {state:over.length?'door':'pass',type:'window',reasons:[rights.reason,'Look only · entering is not granted',...over],oddness,rights,admission};
-  if(rights.visibility!=='public')return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,rights.reason,...over],oddness,rights,admission};
-  if(admission.explicit)return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,...over],oddness,rights,admission};
+  if(rights.visibility!=='public')return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,...admission.standing.reasons,rights.reason,...over],oddness,rights,admission};
+  if(admission.explicit||admission.standing.rules.length)return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,...admission.standing.reasons,...over],oddness,rights,admission};
   // With no hard limit, any amount over a soft limit requires explicit informed entry.
   // A view-only window never becomes an enterable door.
   if(over.length) return {state:'door',type:edge.type==='window'?'window':'door',reasons:over,oddness,rights,admission};

@@ -41,7 +41,7 @@ test('private acts do not accrue standing and browsing choice does not change th
 test('observed fulfillment uses actual successful crossings without publishing visitor identity or Lens',async()=>{
  const f=fixture();try{
   await f.store.standing.declare(f.ref,scores(),person('creator'));await f.store.admission(f.key,{mode:'threshold',minimum:scores()},person('creator'));await f.store.use(f.key,'enter',person('PRIVATE_VISITOR_CANARY'));
-  const r=deriveStanding(f.store.standing.data,{actor:'creator'});assert.equal(r.facets.commitment.reading,'held');assert(!JSON.stringify(f.store.standing.data).includes('PRIVATE_VISITOR_CANARY'));assert(!JSON.stringify(f.store.standing.data).includes('crossingReceipt'));assert(f.store.data.ledgers[f.key].some(e=>e.action==='commitment_proved'));
+  await f.store.commitTravel([{key:f.key,scope:'enter'}],person('PRIVATE_VISITOR_CANARY'),{arrival:{choice:'inside',room:f.key}});const r=deriveStanding(f.store.standing.data,{actor:'creator'});assert.equal(r.facets.commitment.reading,'held');assert.equal(r.facets.commitment.history.length,2);assert(!JSON.stringify(f.store.standing.data).includes('PRIVATE_VISITOR_CANARY'));assert(!JSON.stringify(f.store.standing.data).includes('crossingReceipt'));assert(f.store.data.ledgers[f.key].some(e=>e.action==='commitment_proved'));
  }finally{f.cleanup();}
 });
 test('an accepted tour is not a completion; every authored stop and a matching private offer are required',async()=>{

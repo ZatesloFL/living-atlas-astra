@@ -31,10 +31,10 @@ export class ProfileUI {
   switcher(){
     this.ui.open('profiles','Saved ways of seeing','Your profiles');const current=this.store.active();
     const profiles=[...this.store.profiles].sort((a,b)=>Number(!!a.seed)-Number(!!b.seed));
-    this.ui.content.innerHTML=`<p class="muted">Tap a profile to switch. Built-in profiles simulate identity and access; TEST MODE stays visible while you use them.</p>
+    this.ui.content.innerHTML=`<p class="muted">Tap a profile to switch. These are local view and account-state previews, not additional accounts. Built-in fixtures simulate identity and access; TEST MODE stays visible. The under-13 fixture tests rejection only and is not an account state.</p>
       <div class="profile-list">${profiles.map(p=>`<button data-profile="${p.id}" class="profile-option ${p.id===this.store.activeId?'selected':''}" aria-pressed="${p.id===this.store.activeId}"><span><strong>${esc(p.name)}</strong><small>${esc(identityBadge(p))}</small></span><span class="profile-tag">${p.isTest?'TEST':'6 dimensions'}</span></button>`).join('')}</div>
-      <span class="section-label">This profile</span><p class="muted">${esc(identityBadge(this.api.state().lens))} · Age ${this.api.state().lens.age}</p>
-      <div class="settings-form"><label>Display<select id="profile-display"><option value="anonymous" ${current?.identity.display==='anonymous'?'selected':''}>Anonymous</option><option value="pseudonym" ${current?.identity.display==='pseudonym'?'selected':''}>Pseudonym</option><option value="real" ${current?.identity.display==='real'?'selected':''}>Real name</option></select></label>
+      <span class="section-label">This profile</span><p class="muted">${esc(identityBadge(this.api.state().lens))}</p>
+      <div class="settings-form"><label>Presentation<select id="profile-display"><option value="anonymous" ${current?.identity.display==='anonymous'?'selected':''}>Anonymous presentation</option><option value="pseudonym" ${current?.identity.display==='pseudonym'?'selected':''}>Pseudonymous</option><option value="real" ${current?.identity.display==='real'?'selected':''}>Named</option></select></label>
       <label>Profile name<input id="profile-name" maxlength="40" value="${esc(current?.name??'My profile')}" autocomplete="off"></label></div>
       <button id="profile-save-as" class="primary">Save current view as a new profile</button>
       ${current&&!current.seed?'<div class="form-columns"><button id="profile-rename" class="secondary">Rename this profile</button><button id="profile-delete" class="secondary">Delete this profile</button></div>':''}
@@ -60,7 +60,7 @@ export class ProfileUI {
     this.ui.open('test','Developer tool · simulated only','Identity & access');const l=this.api.state().lens;
     this.ui.content.innerHTML=`<p class="reason">TEST MODE is visible while this panel is open or simulated identity/access is active. These switches do not verify anyone.</p>
       <div class="settings-form"><label>Simulated age<input id="test-age" type="number" min="0" max="120" step="1" inputmode="numeric" value="${l.age}"></label>
-      <label>Display<select id="test-display"><option value="anonymous" ${l.identity.display==='anonymous'?'selected':''}>Anonymous</option><option value="pseudonym" ${l.identity.display==='pseudonym'?'selected':''}>Pseudonym</option><option value="real" ${l.identity.display==='real'?'selected':''}>Real name</option></select></label>
+      <label>Presentation<select id="test-display"><option value="anonymous" ${l.identity.display==='anonymous'?'selected':''}>Anonymous presentation</option><option value="pseudonym" ${l.identity.display==='pseudonym'?'selected':''}>Pseudonymous</option><option value="real" ${l.identity.display==='real'?'selected':''}>Named</option></select></label>
       <label>Backing<select id="test-backing"><option value="none" ${l.identity.backing==='none'?'selected':''}>None</option><option value="verified" ${l.identity.backing==='verified'?'selected':''}>Verified person (simulated)</option></select></label>
       <label>Visitor kind<select id="test-agent"><option value="person" ${!l.isAgent?'selected':''}>Person</option><option value="agent" ${l.isAgent?'selected':''}>Agent</option></select></label>
       <label>Play as<select id="test-role"><option value="visitor" ${l.playAs==='visitor'?'selected':''}>Visitor</option><option value="owner" ${l.playAs==='owner'?'selected':''}>Owner</option></select></label></div>
