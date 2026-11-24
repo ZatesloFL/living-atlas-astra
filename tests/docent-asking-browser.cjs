@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 // Local-only UI regression: no provider or Supabase calls.
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core'),assert=require('node:assert/strict');
 (async()=>{
@@ -9,7 +10,7 @@ const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core')
  const room=async key=>{await p.locator('#page-places').click();await p.locator('#page-room').selectOption(key);for(let i=0;i<5&&await p.locator('[data-enter]').count();i++)await p.locator('[data-enter]').click();};
  const ask=async q=>{await p.locator('#docent-question').fill(q);await p.locator('#docent-ask').click();await p.locator('#docent-keep').waitFor();};
  try{
-  await p.goto(base+'?page&test&ai=local');await p.waitForFunction(()=>window.__atlasPage);await p.locator('#page-setup [name=age]').fill('30');await p.locator('#page-setup button[type=submit]').click();
+  await p.goto(base+'?page&test&ai=local');await p.waitForFunction(()=>window.__atlasPage);await p.locator('#setup-form [name=age]').fill('30');await completeArrival(p);
   await check('Three Places show separate names in Staff, badges and answer bylines; starters still work',async()=>{
    for(const [key,name] of [['studio','Ellis'],['square','Rowan'],['boycott','Mara']]){
     await room(key);await p.locator('#page-staff').click();await p.locator('[data-docent]').first().waitFor();assert(!/Silver/.test(await p.locator('.staff-sheet').innerText()));await p.locator('[data-docent]').first().click();

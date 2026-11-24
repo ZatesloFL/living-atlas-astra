@@ -1,16 +1,17 @@
+const completeArrival=require('./arrival-setup.cjs');
 // G3 lifecycle, reusable rendering and readable media checks. Entirely local.
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
 const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({executablePath:process.env.ATLAS_CHROMIUM||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
  const page=await browser.newPage({viewport:{width:524,height:1166},hasTouch:true,isMobile:true});
- const errors=[],external=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith('http://127.0.0.1:8003/'))external.push(r.url());});
+ const errors=[],external=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith(process.env.ATLAS_URL||'http://127.0.0.1:8003/'))external.push(r.url());});
  let passed=0;const check=async(name,fn)=>{await fn();passed++;console.log('PASS '+name);};
  const film=()=>page.locator('[data-kind=screen]'),listen=()=>page.locator('[data-kind=listening]');
  const visit=async room=>{await page.locator('#page-places').click();await page.locator('#page-room').selectOption(room);for(let i=0;i<5&&await page.locator('[data-enter]').count();i++)await page.locator('[data-enter]').click();};
  try{
   await page.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?page&test&ai=local');await page.waitForFunction(()=>window.__atlasPage);
-  await page.locator('#page-setup [name=age]').fill('30');await page.locator('#page-setup button[type=submit]').click();await visit('boycott');
+  await page.locator('#setup-form [name=age]').fill('30');await completeArrival(page);await visit('boycott');
   await check('Newspaper zoom enlarges glyphs and permits panning at both phone orientations',async()=>{
    for(const size of [{width:524,height:1166},{width:1166,height:524}]){
     await page.setViewportSize(size);

@@ -1,37 +1,43 @@
+import {AXES,asPair,validPair} from './scores.js';
 import {viewRoom,selectVersion} from './audience.js';
 import {permission} from './permissions.js';
 import {accessSettings,identityOf} from './identity.js';
 import { DIMENSIONS, PRESETS, ROOMS } from './data.js';
+import {rating,doorPolicy,containingPlaces} from './admission.js';
 export function setPreset(lens, name) {
-  lens.preset=name; lens.limits={...PRESETS[name].limits}; lens.hard={...PRESETS[name].hard};
+  lens.preset=name; lens.limits=structuredClone(PRESETS[name].limits); lens.hard=structuredClone(PRESETS[name].hard);
 }
 export function effectiveIdentity(lens) {const a=accessSettings(lens);return {age:a.age,verified:a.verified};}
-export function contentScore(room,key) { return Math.max(room.content?.[key]??0,room.measured?.[key]??0); }
-export function crossing(edge,lens,rooms=ROOMS) {
+export function contentScore(room,key) { return rating(room,key); }
+export function crossing(edge,lens,rooms=ROOMS,inside=false) {
   const original=rooms[edge.to],target=original&&viewRoom(original,lens);
+  if(!inside&&original){const chain=containingPlaces(edge.to,rooms,edge.host);if(!chain)return {state:'hidden',type:null,reasons:['Invalid containing path'],oddness:[]};for(const key of chain.slice(0,-1)){const parent=crossing({to:key,type:'door'},lens,rooms,true);if(parent.state==='hidden'||parent.state==='private'||parent.admission?.blocked)return {...parent,state:'hidden',type:null,reasons:['Containing Place is not admitted',...parent.reasons]};}}
   if(original?.versions?.length&&!selectVersion(original,lens))return {state:'hidden',type:null,reasons:['No audience version fits this lens'],oddness:[]};
   if(!target) return {state:'hidden',type:null,reasons:['Missing room'],oddness:[]};
+  if(edge.reference&&edge.consent==='Source inclusion policy checked at use'&&(permission(target,lens).visibility!=='public'||(lens.access?.policies?.[target.id]?.embed??target.permissions?.embed)!=='anyone'))return {state:'hidden',type:null,reasons:['Source inclusion is unavailable'],oddness:[]};
+  if(DIMENSIONS.some(([key])=>!validPair(rating(target,key))))return {state:'hidden',type:null,reasons:['Invalid content scores'],oddness:[]};
   const rights=permission(target,lens);if(!rights.visible)return {state:'hidden',type:null,reasons:['No grant to this hidden room'],oddness:[],rights};
-  const identity=effectiveIdentity(lens),access=accessSettings(lens);
+  const identity=effectiveIdentity(lens),access=accessSettings(lens,target),admission=doorPolicy(target,lens);
   const reasons=[],over=[],oddness=[];
   if(identity.age<target.minAge) reasons.push(`Minimum age ${target.minAge}`);
   if(target.visibility==='verified-only'&&!identity.verified) reasons.push('Verified adults only');
-  const host=edge.host?viewRoom(rooms[edge.host],lens):null;
-  for(const [key,label] of DIMENSIONS) {
-    const score=contentScore(target,key),effective=host?Math.max(score,contentScore(host,key)):score;
-    if(host&&score>contentScore(host,key)) reasons.push(`${label} exceeds the host’s score`);
-    if(access.hard[key]!==null&&effective>access.hard[key]) reasons.push(`${label}: ${effective}, hard limit ${access.hard[key]}`);
-    if(effective>access.limits[key]) over.push(`${label}: ${effective}, your limit ${access.limits[key]}`);
-    if((target.measured?.[key]??0)>(target.content?.[key]??0)) oddness.push(`${label} ${target.measured[key]} (declared ${target.content[key]})`);
+  for(const [key,label] of DIMENSIONS)for(const axis of AXES) {
+    const effective=contentScore(target,key)[axis],hard=access.hard[key][axis],limit=access.limits[key][axis],declared=asPair(target.content?.[key])[axis],measured=asPair(target.measured?.[key])[axis];
+    if(hard!==null&&effective>hard&&admission.mode!=='filtered') reasons.push(`${label} ${axis}: ${effective}, hard limit ${hard}`);
+    if(effective>limit) over.push(`${label} ${axis}: ${effective}, your limit ${limit}`);
+    if(measured>declared) oddness.push(`${label} ${axis} ${measured} (declared ${declared})`);
+    if(admission.measuredMinimum[key][axis]>admission.declaredMinimum[key][axis])oddness.push(`Entrance ${label} ${axis} ${admission.measuredMinimum[key][axis]} (declared ${admission.declaredMinimum[key][axis]})`);
   }
   if(reasons.length) return {state:'hidden',type:null,reasons,oddness,rights};
+  if(admission.blocked&&rights.canLook)return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,...admission.unmet.map(({key,axis})=>`${DIMENSIONS.find(([k])=>k===key)[1]} ${axis}: ${access.limits[key][axis]}, entrance needs ${admission.minimum[key][axis]}`)],oddness,rights,admission};
   if(!rights.canLook)return {state:'private',type:'door',reasons:[rights.reason,'Knock to request access'],oddness:[],rights};
-  if(!rights.canEnter)return {state:over.length?'door':'pass',type:'window',reasons:[rights.reason,'Look only · entering is not granted',...over],oddness,rights};
-  if(rights.visibility!=='public')return {state:'door',type:edge.type==='window'?'window':'door',reasons:[rights.reason,...over],oddness,rights};
+  if(!rights.canEnter)return {state:over.length?'door':'pass',type:'window',reasons:[rights.reason,'Look only · entering is not granted',...over],oddness,rights,admission};
+  if(rights.visibility!=='public')return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,rights.reason,...over],oddness,rights,admission};
+  if(admission.explicit)return {state:'door',type:edge.type==='window'?'window':'door',reasons:[admission.description,...over],oddness,rights,admission};
   // With no hard limit, any amount over a soft limit requires explicit informed entry.
   // A view-only window never becomes an enterable door.
-  if(over.length) return {state:'door',type:edge.type==='window'?'window':'door',reasons:over,oddness,rights};
-  return {state:'pass',type:edge.type,reasons:[],oddness,rights};
+  if(over.length) return {state:'door',type:edge.type==='window'?'window':'door',reasons:over,oddness,rights,admission};
+  return {state:'pass',type:edge.type,reasons:[],oddness,rights,admission};
 }
 export function roomVisible(key,lens) {
   const room=ROOMS[key];

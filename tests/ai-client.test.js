@@ -1,3 +1,4 @@
+import {DIMENSIONS,asPair,asHard} from '../src/scores.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ai,createAI,PROPOSAL_SCHEMA,provenanceLabel} from '../src/ai.js';
@@ -85,7 +86,9 @@ test('real deployed proxy captures replay through client evidence and provenance
   const client=createAI({transport:createProxyTransport({endpoint:AI_PROXY_ENDPOINT,fetchImpl:async(url,opts)=>{
    if(url.endsWith('/session'))return session();
    calls++;const sent=JSON.parse(opts.body);delete sent.requestId;
-   const expected=structuredClone(capture.request);delete expected.requestId;
+   // Captures retain their real historical wire shape. Only this replay request
+   // is upgraded to the current paired catalog; the recorded response stays exact.
+   const expected=structuredClone(capture.request);delete expected.requestId;expected.context.catalogRevision=catalog.revision;expected.context.lens.limits=Object.fromEntries(DIMENSIONS.map(([k])=>[k,asPair(expected.context.lens.limits[k])]));expected.context.lens.hard=Object.fromEntries(DIMENSIONS.map(([k])=>[k,asHard(expected.context.lens.hard[k])]));
    assert.deepEqual(sent,expected);return Response.json(capture.response);
   }})});
   const result=await client.request(request(c));

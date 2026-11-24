@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 // File 19's Page selection/Staff contract. Local assets, no live AI calls.
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
 const assert=require('node:assert/strict');
@@ -12,7 +13,7 @@ const assert=require('node:assert/strict');
  const staff=()=>p.locator('.access-overlay:not([hidden])');
  try{
   await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?page&test&ai=local');await p.waitForFunction(()=>window.__atlasPage);
-  await p.locator('#page-setup [name=age]').fill('30');await p.locator('#page-setup button').click();await select('studio');await enter();
+  await p.locator('#setup-form [name=age]').fill('30');await completeArrival(p);await select('studio');await enter();
   await check('Current Staff button and panel both name the current Place and its own helper',async()=>{
    assert.match(await p.locator('#page-staff').innerText(),/Nic’s Studio/);await p.locator('#page-staff').click();assert.match(await staff().innerText(),/Staff · Nic’s Studio/);assert.match(await staff().innerText(),/Ellis/);await close();
   });

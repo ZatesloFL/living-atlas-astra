@@ -1,3 +1,4 @@
+import legacyCatalog from './catalog-legacy.js';
 import catalog from './catalog.js';
 import cases from './builder-cases.json' with {type:'json'};
 import builderSchema from './builder-schema.json' with {type:'json'};
@@ -21,20 +22,26 @@ export function checkRequest(v){
   if(!['primary','challenger'].includes(v.context.candidate)||!cases.cases.some(x=>x.id===v.context.caseId))fail('BAD_REQUEST');
  }else fail('OUT_OF_SCOPE',403);
  if(v.context.placeId!=='boycott')fail('OUT_OF_SCOPE',403);
- if(v.context.catalogRevision!==catalog.revision)fail('STALE_CATALOG',409);
+ if(v.context.catalogRevision!==catalog.revision&&!(v.job==='guide'&&v.context.catalogRevision===legacyCatalog.revision))fail('STALE_CATALOG',409);
  return v;
 }
 export function allowedBlocks(context){
  const l=context.lens;exact(l,['limits','hard','depth','trustFrom','show','audience']);
  exact(l.limits,dims);exact(l.hard,dims);exact(l.show,['real','pseudonym','anonymous','agents']);
  if(!Object.hasOwn(rank,l.depth)||!['Author','Academic','Vouched','Community'].includes(l.trustFrom)||!['child','teen'].includes(l.audience)||Object.values(l.show).some(v=>typeof v!=='boolean'))fail('BAD_REQUEST');
- const limits={},hard={};for(const d of dims){
-  if(!Number.isInteger(l.limits[d])||l.limits[d]<0||l.limits[d]>3||l.hard[d]!==null&&(!Number.isInteger(l.hard[d])||l.hard[d]<0||l.hard[d]>3))fail('BAD_REQUEST');
-  const ceiling=l.audience==='child'?(d==='sensory'?1:0):d==='language'?2:1;
-  limits[d]=Math.min(ceiling,l.limits[d]);hard[d]=Math.min(l.audience==='child'?ceiling:2,l.hard[d]??3);
+ const legacy=context.catalogRevision===legacyCatalog.revision,axes=legacy?['scalar']:['amount','graphicness'];
+ const source=legacy?legacyCatalog:catalog,limits={},hard={},valid=n=>Number.isInteger(n)&&n>=0&&n<=3;
+ for(const d of dims){
+  if(!legacy){exact(l.limits[d],axes);exact(l.hard[d],axes);}
+  limits[d]={};hard[d]={};for(const axis of axes){
+   const soft=legacy?l.limits[d]:l.limits[d][axis],lock=legacy?l.hard[d]:l.hard[d][axis];
+   if(!valid(soft)||lock!==null&&!valid(lock))fail('BAD_REQUEST');
+   const ceiling=l.audience==='child'?(d==='sensory'?1:0):d==='language'?2:1;
+   limits[d][axis]=Math.min(ceiling,soft);hard[d][axis]=Math.min(l.audience==='child'?ceiling:2,lock??3);
+  }
  }
- const within=s=>dims.every(d=>(s[d]??0)<=limits[d]&&(s[d]??0)<=hard[d]);
- const v=[...catalog.versions].sort((a,b)=>b.rank-a.rank).find(v=>(l.audience!=='child'||v.minAge<13)&&within(v.content));
+ const within=s=>dims.every(d=>axes.every(axis=>{const n=legacy?(s[d]??0):(s[d]?.[axis]??0);return n<=limits[d][axis]&&n<=hard[d][axis];}));
+ const v=[...source.versions].sort((a,b)=>b.rank-a.rank).find(v=>(l.audience!=='child'||v.minAge<13)&&within(v.content));
  if(!v)return [];
  return v.blocks.filter(b=>context.visibleBlockIds.includes(b.id)&&within(b.content)&&importance[b.importance]<=rank[l.depth]&&l.show[b.authorDisplay]!==false&&(b.importance==='core'||l.trustFrom==='Author'||l.trustFrom==='Academic'&&b.trust.academic||l.trustFrom==='Vouched'&&b.trust.vouches>0||l.trustFrom==='Community'&&b.trust.community>0));
 }

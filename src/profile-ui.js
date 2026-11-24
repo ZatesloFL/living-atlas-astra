@@ -1,6 +1,7 @@
+import {ArrivalFlow} from './arrival-ui.js';
 import {PRESETS} from './data.js';
 import {GROUPS} from './profiles.js';
-import {identityBadge,appliedPreset,accessSettings} from './identity.js';
+import {identityBadge,appliedPreset,accessSettings,lensSummary} from './identity.js';
 import {verifyChain} from './ledger.js';
 import {escapeHTML as esc} from './ui.js';
 const $=id=>document.getElementById(id);
@@ -21,40 +22,24 @@ export class ProfileUI {
   }
   async run(fn){try{await fn();this.refresh();if(this.store.storageWarning)this.ui.toast(this.store.storageWarning);}catch(e){this.ui.toast(e.message);}}
   refresh(){
-    const l=this.api.state().lens,p=this.store.active();$('profile-chip').textContent=`${l.preview?'Preview as':'Viewing as'}: ${l.preview?l.profileName:p?.name??'New visitor'} · ${appliedPreset(l)}`;$('profile-chip').title=identityBadge(l);$('lens-badge').textContent=appliedPreset(l);
+    const l=this.api.state().lens,p=this.store.active();$('profile-chip').textContent=`${l.preview?'Preview as':'Viewing as'}: ${l.preview?l.profileName:p?.name??'New visitor'}`;$('profile-chip').title=identityBadge(l)+' · '+lensSummary(l);$('lens-badge').textContent='6 dimensions';
     const test=this.store.testActive()||l.testMode||this.ui.mode==='test';$('test-banner').hidden=!test;document.body.classList.toggle('test-active',test);$('test-banner').textContent=`TEST MODE · ${this.store.testActive()||l.testMode?'Simulated identity / access':'Developer panel open'} · Manage`;
   }
-  setup(){
-    this.ui.open('setup','Welcome to your Atlas','Make yourself at home');
-    this.ui.content.innerHTML=`<p>Choose how you’d like to visit. Your profile stays in this browser.</p><form id="setup-form" class="settings-form">
-      <label>Profile name<input name="name" value="My visit" maxlength="40" required autocomplete="off"></label>
-      <label>Your age<input name="age" type="number" min="0" max="120" step="1" required inputmode="numeric" autocomplete="off" placeholder="Age in years"></label>
-      <label>Display<select name="display"><option value="anonymous">Anonymous</option><option value="pseudonym" selected>Pseudonym</option><option value="real">Real name</option></select></label>
-      <p class="muted">Backing: none. Choosing a name or entering an age does not verify you.</p>
-      <label>Default content lens<select name="preset">${options(Object.keys(PRESETS),'Teen')}</select></label>
-      <p class="summary" id="setup-cap">Without verified backing, content is capped at Teen. Children under 13 are capped at Kids. After Dark remains hidden.</p>
-      <div class="form-columns"><label>Depth<select name="depth">${options(['Glance','Standard','Deep'],'Standard')}</select></label><label>Preferred form<select name="form"><option value="3d">3D</option><option value="card">Cards</option><option value="page">Page</option><option value="narration">Narrate</option><option value="text">Text</option></select></label></div>
-      <p class="muted">3D, cards and Page are available now. Narration and Text are saved for later.</p>
-      ${this.store.storageWarning?`<p class="reason">${esc(this.store.storageWarning)}</p>`:''}<p id="setup-error" role="alert"></p><button class="primary" type="submit">Save profile & enter the Atlas ↗</button></form>`;
-    $('setup-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,submit=form.querySelector('button[type=submit]');submit.disabled=true;
-      try{const data=Object.fromEntries(new FormData(form));data.age=Number(data.age);await this.store.setup(data);await this.api.apply();this.ui.close();this.ui.title(this.api.state().kind);this.refresh();if(this.store.storageWarning)this.ui.toast(this.store.storageWarning);}
-      catch(error){$('setup-error').textContent=error.message;}finally{submit.disabled=false;}
-    };
-    this.refresh();
-  }
+  setup(){this.arrival=new ArrivalFlow(this.ui,this.store,{apply:this.api.apply,staff:this.api.staff});this.arrival.start();this.refresh();}
+
   async choose(id){await this.api.switchProfile(id);this.ui.close();this.refresh();}
   switcher(){
     this.ui.open('profiles','Saved ways of seeing','Your profiles');const current=this.store.active();
     const profiles=[...this.store.profiles].sort((a,b)=>Number(!!a.seed)-Number(!!b.seed));
     this.ui.content.innerHTML=`<p class="muted">Tap a profile to switch. Built-in profiles simulate identity and access; TEST MODE stays visible while you use them.</p>
-      <div class="profile-list">${profiles.map(p=>`<button data-profile="${p.id}" class="profile-option ${p.id===this.store.activeId?'selected':''}" aria-pressed="${p.id===this.store.activeId}"><span><strong>${esc(p.name)}</strong><small>${esc(identityBadge(p))}</small></span><span class="profile-tag">${p.isTest?'TEST':esc(appliedPreset(p))}</span></button>`).join('')}</div>
+      <div class="profile-list">${profiles.map(p=>`<button data-profile="${p.id}" class="profile-option ${p.id===this.store.activeId?'selected':''}" aria-pressed="${p.id===this.store.activeId}"><span><strong>${esc(p.name)}</strong><small>${esc(identityBadge(p))}</small></span><span class="profile-tag">${p.isTest?'TEST':'6 dimensions'}</span></button>`).join('')}</div>
       <span class="section-label">This profile</span><p class="muted">${esc(identityBadge(this.api.state().lens))} · Age ${this.api.state().lens.age}</p>
       <div class="settings-form"><label>Display<select id="profile-display"><option value="anonymous" ${current?.identity.display==='anonymous'?'selected':''}>Anonymous</option><option value="pseudonym" ${current?.identity.display==='pseudonym'?'selected':''}>Pseudonym</option><option value="real" ${current?.identity.display==='real'?'selected':''}>Real name</option></select></label>
       <label>Profile name<input id="profile-name" maxlength="40" value="${esc(current?.name??'My profile')}" autocomplete="off"></label></div>
       <button id="profile-save-as" class="primary">Save current view as a new profile</button>
       ${current&&!current.seed?'<div class="form-columns"><button id="profile-rename" class="secondary">Rename this profile</button><button id="profile-delete" class="secondary">Delete this profile</button></div>':''}
       <div id="delete-confirm"></div><button id="profile-history" class="secondary">Profile receipts · ${this.store.entries.filter(e=>e.action==='profile_switched').length} switches</button><button id="open-test" class="secondary">Developer test panel</button>
-      ${this.store.storageWarning?`<p class="reason">${esc(this.store.storageWarning)}</p>`:''}`;
+      ${this.store.active()?.dialsMigrated?'<p class="reason">Your saved scalar limits now apply to both amount and graphicness. Adjust either dial in Lens whenever you want.</p>':''}${this.store.storageWarning?`<p class="reason">${esc(this.store.storageWarning)}</p>`:''}`;
     this.ui.content.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>this.run(()=>this.choose(b.dataset.profile)));
     $('profile-display').onchange=e=>this.run(async()=>{this.store.setDisplay(e.target.value);await this.api.apply();this.switcher();});
     $('profile-save-as').onclick=()=>this.run(async()=>{await this.store.saveAs($('profile-name').value);await this.api.apply();this.switcher();this.ui.toast('Profile saved.');});
@@ -67,7 +52,7 @@ export class ProfileUI {
     this.ui.open('profiles-wheel','Hold Lens to return here','Choose a profile');
     const list=[...this.store.profiles].sort((a,b)=>Number(!!a.seed)-Number(!!b.seed)),pages=Math.ceil(list.length/6);this.wheelPage%=pages;
     const visible=list.slice(this.wheelPage*6,this.wheelPage*6+6);
-    this.ui.content.innerHTML=`<p class="muted">Lift your thumb, then tap a saved view.</p><div class="profile-wheel"><div class="wheel-center">YOUR<br>ATLAS</div>${visible.map((p,i)=>{const angle=-Math.PI/2+i*Math.PI*2/visible.length;return `<button class="wheel-item ${p.id===this.store.activeId?'selected':''}" style="--wx:${50+Math.cos(angle)*33}%;--wy:${50+Math.sin(angle)*33}%" data-wheel="${p.id}"><strong>${esc(p.name)}</strong><small>${p.isTest?'TEST PROFILE':esc(appliedPreset(p))}</small></button>`;}).join('')}</div>${pages>1?`<button class="secondary" id="wheel-more">More profiles · ${this.wheelPage+1} / ${pages}</button>`:''}<button class="secondary" id="wheel-manage">Manage profiles</button>`;
+    this.ui.content.innerHTML=`<p class="muted">Lift your thumb, then tap a saved view.</p><div class="profile-wheel"><div class="wheel-center">YOUR<br>ATLAS</div>${visible.map((p,i)=>{const angle=-Math.PI/2+i*Math.PI*2/visible.length;return `<button class="wheel-item ${p.id===this.store.activeId?'selected':''}" style="--wx:${50+Math.cos(angle)*33}%;--wy:${50+Math.sin(angle)*33}%" data-wheel="${p.id}"><strong>${esc(p.name)}</strong><small>${p.isTest?'TEST PROFILE':'6 dimensions'}</small></button>`;}).join('')}</div>${pages>1?`<button class="secondary" id="wheel-more">More profiles · ${this.wheelPage+1} / ${pages}</button>`:''}<button class="secondary" id="wheel-manage">Manage profiles</button>`;
     this.ui.content.querySelectorAll('[data-wheel]').forEach(b=>b.onclick=()=>this.run(()=>this.choose(b.dataset.wheel)));
     if($('wheel-more'))$('wheel-more').onclick=()=>{this.wheelPage++;this.wheel();};$('wheel-manage').onclick=()=>this.switcher();this.refresh();
   }

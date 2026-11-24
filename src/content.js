@@ -1,29 +1,33 @@
+import {AXES,exceeds,validPair} from './scores.js';
 import {ROOMS,DIMENSIONS} from './data.js';
 import {accessSettings,identityOf} from './identity.js';
 import {contentScore,roomVisible,visibleEdge} from './rules.js';
+import {rating,admissionPolicy} from './admission.js';
 const order={core:0,supporting:1,detail:2},depths={Glance:0,Standard:1,Deep:2};
 export function blockAccess(block,room,lens){
- const access=accessSettings(lens),hard=[],soft=[];
- for(const [key,label] of DIMENSIONS){const score=block.content?.[key]??contentScore(room,key);if(access.hard[key]!==null&&score>access.hard[key])hard.push(label);if(score>access.limits[key])soft.push(label);}
- return {hidden:hard.length>0,soft:soft.length>0,reasons:hard.length?hard:soft};
+ const access=accessSettings(lens,room),hard=[],soft=[];
+ for(const [key,label] of DIMENSIONS){const score=rating(block,key,room);if(!validPair(score)){hard.push(label+' invalid score');soft.push(label+' invalid score');continue;}for(const axis of AXES){if(access.hard[key][axis]!==null&&score[axis]>access.hard[key][axis])hard.push(label+' '+axis);if(score[axis]>access.limits[key][axis])soft.push(label+' '+axis);}}
+ return {hidden:hard.length>0,soft:soft.length>0,withheld:admissionPolicy(room,lens).mode==='filtered'&&(hard.length>0||soft.length>0),reasons:hard.length?hard:soft};
 }
 // The hero and the block reader share exactly the same soft-preview boundary.
 // Hard limits are checked separately and can never be approved away.
 export function blockNeedsPreview(block,room,lens,{approved=false,softApproved=new Set()}={}){
- const covered=approved&&DIMENSIONS.every(([k])=>(block.content?.[k]??0)<=Math.max(room.content?.[k]??0,room.measured?.[k]??0));
+ const covered=approved&&DIMENSIONS.every(([k])=>!exceeds(rating(block,k,room),contentScore(room,k)));
  return blockAccess(block,room,lens).soft&&!covered&&!softApproved.has(block.id);
 }
 export function selectContent(room,lens,blocks=room.blocks??[]){
  const shown=[],omitted={depth:0,content:0,show:0,trust:0};
  for(const block of blocks){
   if((order[block.importance]??1)>(depths[lens.depth]??1)){omitted.depth++;continue;}
-  if(blockAccess(block,room,lens).hidden){omitted.content++;continue;}
   const author=block.author??room.author;
   if(author&&!author.isAgent&&lens.show?.[identityOf(author).display]===false){omitted.show++;continue;}
   const trust=block.trust??{},kind=lens.trustFrom??'Author';
   // Core authored material remains visible and labeled. Trust narrows supporting material,
   // never manufactures a review or changes identity/content access.
   if(block.importance!=='core'&&((kind==='Academic'&&!trust.academic)||(kind==='Vouched'&&!(trust.vouches>0))||(kind==='Community'&&!(trust.community>0)))){omitted.trust++;continue;}
+  const gate=blockAccess(block,room,lens);
+  if(gate.withheld){omitted.content++;shown.push({id:block.id,type:'withheld',importance:block.importance,filtered:true});continue;}
+  if(gate.hidden){omitted.content++;continue;}
   shown.push(block);
  }
  return {blocks:shown,omitted};

@@ -4,6 +4,7 @@ import {viewRoom,versionLabel} from './audience.js';
 import {layerSelection,mergedLayers,layerBlock,layerConsentKey} from './layers.js';
 import {permission} from './permissions.js';
 import {ROOMS} from './data.js';
+import {doorPolicy} from './admission.js';
 import {blockAccess,blockNeedsPreview,selectContent,contentStore} from './content.js';
 export const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function safeURL(value){if(typeof value!=='string'||!value.trim())return null;try{const url=new URL(value,globalThis.location?.href??'https://atlas.invalid/');return ['https:','http:'].includes(url.protocol)?url.href:null;}catch{return null;}}
@@ -22,7 +23,8 @@ function media(block){
  return `<figure>${visual}<figcaption>${esc(block.body)} · ${(image||file)&&!unavailable?'Media representation':'Generated placeholder, not archival media'}<br>Credit: ${esc((image||file)&&!unavailable?r.credit??'Not supplied · to verify':'Generated placeholder by Living Atlas')}</figcaption><p>${esc(fallback)}</p>${r.alt?`<p class="muted">Description: ${esc(r.alt)}</p>`:''}</figure>`;
 }
 export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()}={}){
- const access=blockAccess(block,room,lens);if(access.hidden)return '';
+ if(block.filtered)return `<section class="content-block block-withheld" data-block-id="${esc(block.id)}"><p>Filtered view · this Thing is withheld by your Lens. The original has not been changed.</p></section>`;
+ const access=blockAccess(block,room,lens);if(access.withheld)return blockHTML({id:block.id,filtered:true},room,lens);if(access.hidden)return '';
  if(blockNeedsPreview(block,room,lens,{approved,softApproved}))return `<section class="content-block block-preview" data-block-id="${esc(block.id)}"><p>Preview required · ${esc(access.reasons.join(', '))} exceeds your soft limit.</p><button data-allow-block="${esc(block.id)}">Show this block</button></section>`;
  const body=block.body;let html='';
  if(block.state==='pending'||block.state==='error'||block.state==='unavailable')html+=`<p class="block-load-status" role="status">${block.state==='pending'?'Content is arriving. Showing the available fallback.':block.state==='error'?'Content could not be loaded. Showing the available fallback.':'Media is not attached. Showing the available fallback.'}</p>`;
@@ -43,6 +45,7 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
 }
 export function articleHTML(id,lens,options={}){
  const original=ROOMS[id],room=original&&viewRoom(original,lens);if(!room||room.visibility==='private'||!permission(room,lens).canLook)return '<p>Private space, something is here.</p>';if(!roomVisible(id,lens))return '<p>This room is outside your lens.</p>';
+ if(doorPolicy(room,lens).blocked)return '<p>Entrance threshold not met. Review this Place’s doorway before reading.</p>';
  const merged=mergedLayers(room,lens),accepted=layerSelection(room,lens).filter(x=>x.accepted&&!merged.includes(x.layer)).map(x=>x.layer);
  const softApproved=new Set([...(options.softApproved??[]),...accepted.filter(l=>lens.layerConsents?.[l.id]===layerConsentKey(lens)).map(l=>'layer-'+l.id)]);
  const view=selectContent(room,lens,[...contentStore.blocks(id,room.blocks),...merged.map(l=>layerBlock(l,true)),...accepted.map(l=>layerBlock(l))]);

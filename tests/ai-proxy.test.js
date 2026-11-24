@@ -1,3 +1,4 @@
+import {pair} from '../src/scores.js';
 import test,{before,after,beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,writeFile,stat,mkdir,mkdtemp,rm} from 'node:fs/promises';
@@ -36,7 +37,7 @@ const docentJSON=docentFixture.content[0].text.slice('```json\n'.length,-'\n```'
 const docentAnswer=JSON.parse(docentJSON);
 const validateBuilderSchema=new Ajv2020({strict:false}).compile(builderSchema);
 const dimensions=['violence','sexual','language','disturbing','viewpoint','sensory'];
-const lens=()=>({limits:Object.fromEntries(dimensions.map(d=>[d,1])),hard:Object.fromEntries(dimensions.map(d=>[d,2])),depth:'Deep',trustFrom:'Author',show:{real:true,pseudonym:true,anonymous:true,agents:true},audience:'teen'});
+const lens=()=>({limits:Object.fromEntries(dimensions.map(d=>[d,pair(1,1)])),hard:Object.fromEntries(dimensions.map(d=>[d,pair(2,2)])),depth:'Deep',trustFrom:'Author',show:{real:true,pseudonym:true,anonymous:true,agents:true},audience:'teen'});
 const request=()=>({requestId:id(),job:'guide',agentId:'docent-silver',schemaId:GUIDE_SCHEMA,context:{placeId:'boycott',catalogRevision:catalog.revision,visibleBlockIds:['lead'],lens:lens(),question:'What is this Place?'}});
 const usage={input_tokens:100,output_tokens:20,cache_read_tokens:0,cache_write_tokens:0,reasoning_tokens:0};
 const secrets=n=>n==='ALLOWED_ORIGINS'?ORIGIN:'mock-value-never-a-provider-key';
@@ -213,10 +214,10 @@ test('strict envelopes reject role/schema injection, excessive questions, histor
 test('server catalog enforces unverified ceiling, child lens, hard locks, visible IDs, Depth, Trust and Show',()=>{
  const c=request().context;c.visibleBlockIds=catalog.versions.flatMap(v=>v.blocks.map(b=>b.id)).concat('immersive-placeholder','private');
  assert(!allowedBlocks(c).some(b=>['immersive-placeholder','private'].includes(b.id)));
- c.lens.audience='child';assert(allowedBlocks(c).every(b=>Object.values(b.content).every(v=>v<=1)));assert(allowedBlocks(c).some(b=>b.id==='kids-lead'));
+ c.lens.audience='child';assert(allowedBlocks(c).every(b=>Object.values(b.content).every(v=>v.amount<=1&&v.graphicness<=1)));assert(allowedBlocks(c).some(b=>b.id==='kids-lead'));
  c.lens.show.real=false;assert.deepEqual(allowedBlocks(c),[]);c.lens.show.real=true;c.lens.depth='Glance';assert(allowedBlocks(c).every(b=>b.importance==='core'));
  c.lens.trustFrom='Academic';c.lens.depth='Deep';assert(allowedBlocks(c).every(b=>b.importance==='core'||b.trust.academic));
- c.lens.hard.disturbing=0;assert(allowedBlocks(c).every(b=>b.content.disturbing===0));
+ c.lens.hard.disturbing=pair(0,0);assert(allowedBlocks(c).every(b=>b.content.disturbing.amount===0&&b.content.disturbing.graphicness===0));
 });
 test('stale catalog and browser-provided source text are rejected before accounting',async()=>{
  await enabled();const s=await store.bootstrap(),r=request();r.context.catalogRevision='old';assert.equal((await handler()(req('/request',r,s.session))).status,409);

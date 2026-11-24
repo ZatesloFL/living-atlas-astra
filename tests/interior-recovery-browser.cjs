@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -5,7 +6,7 @@ const assert=require('node:assert/strict');
  const p=await browser.newPage({viewport:{width:524,height:1166}}),errors=[];p.on('pageerror',e=>errors.push(e.message));let passed=0;
  const check=async(name,fn)=>{await fn();passed++;console.log('PASS '+name);};
  try{
-  await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?test&safe&ai=local');await p.waitForFunction(()=>window.__atlas);await p.locator('[name=age]').fill('30');await p.getByRole('button',{name:/Save profile & enter/}).click();
+  await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?test&safe&ai=local');await p.waitForFunction(()=>window.__atlas);await p.locator('[name=age]').fill('30');await completeArrival(p);
   await check('The Quarter approach and all hall bays remain walkable at maximum exhibit scale',async()=>{
    const r=await p.evaluate(async()=>{const {ROOMS}=await import('./src/data.js'),{World}=await import('./src/world.js'),{walkingPath}=await import('./src/navigation.js'),room=ROOMS.boycott,h=room.layout.interior,lens=__atlas.state().lens;lens.itemStyles={[room.id]:{scale:1.25}};
     const outside=new World('history',lens),hall=new World(h.scene,lens),result={approach:!!walkingPath(outside,[0,1],h.frontage.arrival)&&!!walkingPath(outside,[0,1],h.frontage.outside),bays:h.bays.map(b=>!!walkingPath(hall,h.arrival.position,b.approach)),behindBus:!!walkingPath(hall,h.arrival.position,[0,-10.8])};outside.dispose();hall.dispose();return result;});

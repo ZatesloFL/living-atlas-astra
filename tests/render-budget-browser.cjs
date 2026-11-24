@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -7,7 +8,7 @@ const assert=require('node:assert/strict');
  const settle=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(r)))));
  try{
   await page.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?test');await page.waitForFunction(()=>window.__atlas);
-  await page.locator('[name=age]').fill('30');await page.getByRole('button',{name:/Save profile & enter/}).click();
+  await page.locator('[name=age]').fill('30');await completeArrival(page);
   await page.locator('#profile-chip').click();await page.locator('[data-profile=seed-me]').click();await page.waitForTimeout(700);
   await page.locator('#test-button').click();await page.locator('#test-role').selectOption('owner');await page.waitForTimeout(500);await page.locator('#test-close').click();
   const results=[];

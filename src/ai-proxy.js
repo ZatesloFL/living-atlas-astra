@@ -1,3 +1,4 @@
+import {DIMENSIONS,asPair,asHard} from './scores.js';
 // Public function endpoint only. Provider credentials never enter this client.
 import {HELPER_NAMES} from './staff-data.js';
 import {AI_CATALOG_REVISION} from './ai-catalog-revision.js';
@@ -50,7 +51,7 @@ export function createProxyTransport({endpoint,fetchImpl=globalThis.fetch,storag
     }
     controller.signal.throwIfAborted();
     const l=context.lens,child=l.ageBand==='child';
-    const lens={limits:l.limits,hard:l.hard,depth:l.depth??'Standard',trustFrom:l.trustFrom??'Author',show:{real:l.show?.real??true,pseudonym:l.show?.pseudonym??true,anonymous:l.show?.anonymous??true,agents:l.show?.agent??l.show?.agents??true},audience:child?'child':'teen'};
+    const lens={limits:Object.fromEntries(DIMENSIONS.map(([k])=>[k,asPair(l.limits?.[k])])),hard:Object.fromEntries(DIMENSIONS.map(([k])=>[k,asHard(l.hard?.[k])])),depth:l.depth??'Standard',trustFrom:l.trustFrom??'Author',show:{real:l.show?.real??true,pseudonym:l.show?.pseudonym??true,anonymous:l.show?.anonymous??true,agents:l.show?.agent??l.show?.agents??true},audience:child?'child':'teen'};
     const question=normalizeQuestion(PRESET_QUESTIONS[context.question]??context.question);
     return await post('/request',{requestId:crypto.randomUUID(),job,agentId,schemaId:'atlas-evidence-answer-v1',context:{placeId:'boycott',catalogRevision:AI_CATALOG_REVISION,visibleBlockIds:docentBlockIds(context),lens,question}},session);
    }catch(e){if(signal?.aborted)throw new DOMException('Request cancelled','AbortError');blockedUntil=now()+Math.max(60,e.retry??60)*1000;blockedReason=e.code==='LIVE_LIMIT_REACHED'?e.code:'LIVE_UNAVAILABLE';throw unavailable(blockedReason,e.retry);}

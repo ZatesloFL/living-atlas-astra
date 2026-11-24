@@ -1,0 +1,45 @@
+import {scores} from './scores.js';
+import {resolvePublicReference} from './public-references.js';
+export const STARTS=[['generated','From your interview'],['scratch','From scratch'],['reading','Reading garden template']];
+export const WORKSHOP_COPY={
+ about:'Second Look helps you set up and run your own AI assistants, with written project briefs, approvals and honest monitoring. This workshop is its front door in the Atlas.',
+ account:'A free Second Look account is the starting point. This local Atlas profile has not created or linked an account. Live Second Look backing is not connected here yet.',
+ pricing:'Static beta pricing, filed November 8, 2026: personal Standard setup $49; Premium $99. Maintenance is optional from day 61: $7/month for the first agent and $5/month per added agent, or $70/year plus $50/year. No automatic maintenance billing. A Project Pass and a 30-minute Gus Live Pack are $10 each. Purchases and account setup happen in Second Look; this room cannot charge you.',
+ staff:'Penny and Gus belong to Second Look. They are not connected in this room, and no Atlas helper is impersonating them.'
+};
+const ideas=[[/garden|plant|grow|horticultur/i,'A growing notebook','Try a simple growing notebook: sowing date, light, watering and what changed. Different plants need different care; use your own observations and a species-specific source.'],[/music|guitar|piano|sing|drum/i,'A listening shelf','Try a listening shelf with a piece, what you notice, and a small practice goal. Repeating a short passage slowly can help you hear changes.'],[/photo|camera/i,'A light study','Try a light study: photograph the same subject in two kinds of light and note what changed. Keep the original files and your own captions together.'],[/read|book|history|research/i,'A reading notebook','Try a reading notebook with a source, a short quotation and your own question. Keep an author’s claim separate from your interpretation.'],[/cook|bak|food/i,'A recipe notebook','Try a recipe notebook: source, quantities, changes and what you would try next. Preserve the original recipe beside your own version.']];
+export function starterProposals(interview){
+ const declared=[interview.hobbies,interview.interests].filter(Boolean).join(' · ');if(!declared)return [];
+ const idea=ideas.find(([re])=>re.test(declared));const [,title,body]=idea??[null,'An interest notebook','Try a small notebook with one question, a source you chose, and your next experiment. Start with one item and build from there.'];
+ return [{id:interview.id+'-idea',title,body,provenance:'System proposal · general hobby knowledge, authored locally; not a fact about you',model:'authored-knowledge-v1',input:'Only your declared hobbies and interests',backing_ref:null,status:'pending'}];
+}
+const block=(id,body,extra={})=>({id,type:'text',importance:'core',body,reps:{text:body},content:scores(),sources:[],backing_ref:null,...extra});
+const layout=(slot,kind='booth',scale=1)=>({kind,model:kind,slot,approach:[slot[0],slot[1]+1.4],scale,facing:0,arrivals:{inside:{position:[slot[0],slot[1]+1.4],facing:0},door:{position:[slot[0],slot[1]+2],facing:0},outside:{position:[slot[0],slot[1]+2.5],facing:0}}});
+export function starterDraft({profile,interview,start='generated',proposals=[],references=[],lens=profile,now=Date.now()}){
+ if(interview.holderId!==profile.id||!STARTS.some(([id])=>id===start))throw new Error('Choose a start for this profile.');
+ const root='home/'+profile.id,drive=root+'/drive',workshop=root+'/workshop',changes=[],rooms=[];
+ const author={name:profile.name,identity:{display:profile.identity.display,backing:'none'},isAgent:false,backing_ref:null};
+ const provenanceRef=interview.receiptId??null;
+ const add=(kind,ref,fields)=>changes.push({op:'create',kind,ref,fields,provenanceRef});
+ const place=(id,parent,title,body,where,blocks)=>{add('Place',{placeId:id},{title,address:'local/'+id,district:'makers',author,visibility:'hidden',permissions:{substance:'none',style:'open',embed:'none'},styleControl:'open',approvedLooks:['Studio','Gallery','Documentary'],style:{preset:'Studio',palette:'dusk',scale:1},content:scores(),measured:scores(),minAge:0,admission:{mode:'filtered',minimum:scores()},substance:{summary:body,body,claims:[]},forms:['3d','card','page'],forks:[],blocks,sources:[],layers:[],ratings:{author:'Your local Place',vouched:[],academic:'Not reviewed',community:'Not rated'},backing_ref:null,layout:{...where,scene:root}});const room={placeId:id,parentPlaceId:parent,layout:{...where,scene:root},pathIds:[],pieces:[],behaviors:[]};rooms.push(room);return room;};
+ const summary='Your space starts here. The interview and sources are yours; optional furnishings are system proposals you can keep, edit or remove.';
+ const facts={Hobbies:interview.hobbies??'not set yet',Interests:interview.interests??'not set yet','Include my local area':interview.includeLocal??'not set yet','Local area':interview.localArea??'not set yet'};
+ const homeLayout={...layout([0,0],'booth',3.2),approach:[0,7.5],arrivals:{inside:{position:[0,7.5],facing:0},door:{position:[0,8.5],facing:0},outside:{position:[0,9.5],facing:0}},sign:[profile.name+'’s space','YOUR LOCAL PLACE',[0,1.3,-1.8]]};
+ const home=place(root,null,profile.name+'’s space',summary,homeLayout,[block('welcome',summary),block('interview',facts,{type:'infobox',reps:{text:Object.entries(facts).map(([k,v])=>k+': '+v).join('\n')}})]);
+ place(drive,root,'Drive room','Your personal archive · archive not synced',layout([-2.6,-3],'gallery-wall'),[block('archive-state','Archive not synced. Organize source references into collections here. No Google Drive connection, photos, files or live source data have been imported.'),block('archive-inbox','Inbox is ready. Sources stay as references until you choose a connection in a later round.')]);
+ place(workshop,root,'Second Look workshop',WORKSHOP_COPY.about,layout([2.6,-3],'workbench'),[...Object.entries(WORKSHOP_COPY).map(([id,body])=>block(id,body)),block('second-look-link',{label:'Visit Second Look',url:'https://getasecondlook.co/',status:'External product',note:'Opens Second Look itself; this room has no live account connection.'},{type:'citation'})]);
+ const path=(id,from,to,fields={})=>{add('Path',{pathId:id},{from,to,type:'door',...fields});rooms.find(r=>r.placeId===from)?.pathIds.push(id);};
+ path(root+'/drive-door',root,drive,{position:[-2.6,.8],before:[-2.6,2.2],zone:{x:[-4.2,-1],z:[-4.5,.7]},contextPriority:0});
+ path(root+'/workshop-door',root,workshop,{position:[2.6,.8],before:[2.6,2.2],zone:{x:[1,4.2],z:[-4.5,.7]},contextPriority:0});
+ path(root+'/square',root,'square',{position:[4.7,4],before:[3,4],axis:'x',contextPriority:-1});
+ const thing=(placeId,id,fields,position=[0,0,0])=>{add('Thing',{placeId,thingId:id},fields);rooms.find(r=>r.placeId===placeId).pieces.push({id,kind:'thing-reference',ref:{placeId,thingId:id},transform:{position,yaw:0,scale:1},settings:{},behaviors:[]});};
+ if(start==='generated')for(const p of proposals.filter(p=>['keep','edit'].includes(p.status)).slice(0,1))thing(root,p.id,block(p.id,(p.status==='edit'?p.editedBody:p.body),{provenance:p.provenance,proposalId:p.id,author:{name:'Atlas system',identity:{display:'pseudonym',backing:'none'},isAgent:true},contribution:{type:'System proposal · '+p.status,name:'Atlas system',merged:true}}));
+ if(start==='reading')thing(root,'reading-template',block('reading-template','Reading garden template · a system-authored starting point. Keep a source, one note and one question together. Edit or remove this furnishing whenever you want.',{provenance:'System template · not a fact about you'}));
+ for(const [i,url] of interview.sources.entries())thing(drive,'source-'+i,block('source-'+i,{label:'Your source '+(i+1),url,status:'not connected',note:'Provided by you; no source content has been fetched or copied.'},{type:'citation',source:{sourceId:interview.id+'-source-'+i,itemId:url,url,syncedAt:null,rights:'not set yet'},state:'unavailable',reps:{text:'Your source · not connected'}}));
+ if(start!=='scratch')for(const [i,ref] of references.entries()){
+  const resolved=resolvePublicReference(ref,lens);if(!resolved.allowed)throw new Error(resolved.reason);
+  if(ref.thingId)home.pieces.push({id:'public-'+i,kind:'thing-reference',ref:{placeId:ref.placeId,thingId:ref.thingId},transform:{position:[0,0,-1],yaw:0,scale:1},settings:{},behaviors:[]});
+  else path(root+'/public-'+i,root,ref.placeId,{consent:'Source inclusion policy checked at use',position:[-4.7,3],before:[-3,3],axis:'x',contextPriority:-1});
+ }
+ return {id:'arrival-'+interview.id,holderId:profile.id,expiresAt:new Date(now+7*86400000).toISOString(),basedOn:null,projection:{schemaVersion:1,rootPlaceId:root,rooms},changes};
+}

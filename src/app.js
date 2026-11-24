@@ -22,8 +22,8 @@ try{
   const {HUD}=await import('./hud.js');if(!window.atlasHud)new HUD();
   if(diagnostics.params.has('page')){
     try{
-      const {ProfileStore}=await diagnostics.asyncRun('Page profiles module',()=>import('./profiles.js'));const profiles=diagnostics.run('Page profiles',()=>new ProfileStore());await profiles.ready;const {AccessStore}=await import('./access-store.js');const access=new AccessStore();await access.ready;
-      diagnostics.pageState=()=>({access,profiles,lens:access.lens(profiles.current()),room:diagnostics.params.get('room')??'studio',onLensChange:lens=>profiles.preferences(lens),onAgeChange:async age=>{if(!profiles.completed)await profiles.setup({name:'My reading visit',age,preset:age<13?'Kids':'Teen',depth:'Standard',form:'page',display:'anonymous'});return profiles.current();}});
+      const {ProfileStore}=await diagnostics.asyncRun('Page profiles module',()=>import('./profiles.js'));const profiles=diagnostics.run('Page profiles',()=>new ProfileStore());await profiles.ready;const {AccessStore}=await import('./access-store.js');const access=new AccessStore();await access.ready;const {ArrivalRecords}=await import('./arrival-records.js');const {loadArrivalSeed}=await import('./arrival-seed.js');profiles.arrivalRecords=new ArrivalRecords();await profiles.arrivalRecords.ready;const starter=profiles.arrivalRecords.starter(profiles.activeId);if(starter)loadArrivalSeed(starter);
+      diagnostics.pageState=()=>({access,profiles,lens:access.lens(profiles.current()),room:diagnostics.params.get('room')??profiles.active()?.homePlaceId??'studio',approvedRooms:profiles.active()?.homePlaceId?[profiles.active().homePlaceId]:[],onLensChange:lens=>profiles.preferences(lens),onAgeChange:async age=>{if(!profiles.completed)await profiles.setup({name:'My reading visit',age,preset:age<13?'Kids':'Teen',depth:'Standard',form:'page',display:'anonymous'});return profiles.current();}});
     }catch(error){diagnostics.record('Page profiles',error,'Reading without saved profiles.');}
     await diagnostics.fallback('Page URL selected');
   }else{

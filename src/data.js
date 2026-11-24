@@ -4,16 +4,13 @@ import {addExhibits} from './exhibit-data.js';
 import {addArrivals} from './arrivals.js';
 import {addAudienceData} from './audience-data.js';
 import {enrichRooms} from './content-data.js';
-export const DIMENSIONS = [
-  ['violence', 'Violence'], ['sexual', 'Sexual content'], ['language', 'Language'],
-  ['disturbing', 'Disturbing themes'], ['viewpoint', 'Viewpoint'], ['sensory', 'Sensory'],
-];
-export const scores = (changes = {}) => Object.assign(Object.fromEntries(DIMENSIONS.map(([k]) => [k, 0])), changes);
+import {DIMENSIONS,scores,pair} from './scores.js';
+export {DIMENSIONS,scores} from './scores.js';
 export const DISTRICTS = {
-  makers: { name: 'Makers Row', color: '#f2a541', max: scores({ violence:1, sexual:1, language:1, disturbing:1, viewpoint:1, sensory:2 }) },
-  commons: { name: 'Commons', color: '#7bd389', max: scores({ violence:1, sexual:1, language:1, disturbing:1, viewpoint:1, sensory:1 }) },
-  history: { name: 'History Quarter', color: '#7aa7ff', max: scores({ violence:1, sexual:1, language:1, disturbing:2, viewpoint:2, sensory:1 }) },
-  night: { name: 'After Dark', color: '#e58be8', max: scores({ violence:3, sexual:3, language:3, disturbing:3, viewpoint:3, sensory:3 }) },
+  makers: { name: 'Makers Row', color: '#f2a541' },
+  commons: { name: 'Commons', color: '#7bd389' },
+  history: { name: 'History Quarter', color: '#7aa7ff' },
+  night: { name: 'After Dark', color: '#e58be8' },
 };
 const nic = { name: 'Nic', tier: 'verified', verifiedHuman: true, isAgent: false, identity:{display:'real',backing:'verified'} };
 const named = name => ({ name, tier: 'named', verifiedHuman: false, isAgent: false, identity:{display:'pseudonym',backing:'none'} });
@@ -35,22 +32,22 @@ export const ROOMS = {
   silver:room('studio/silver','Silver','makers','An agent, operated by a verified person. Agents stay visible in every lens.',{author:agent}),
   governance:room('studio/governance','Governance desk','makers','Sterling: approvals and receipts for human authority over AI agents.',{permissions:{substance:'suggest',style:'open',embed:'approved'}}),
   research:room('studio/research','Research wall','makers','Research threads, with their sources kept close.',{substance:sample('Research threads, with their sources kept close.','https://www.talgov.com/')}),
-  lab:room('studio/lab','Lab bench','makers','Sixteen mesh nodes, one wave. Look through the observation window; this edge is view-only.',{content:scores({sensory:1}),measured:scores({sensory:1})}),
-  broadcast:room('studio/broadcast','Broadcast booth','makers','Dangerously Reasonable. A daily news briefing, with a smaller listening room inside.',{content:scores({sensory:1}),measured:scores({sensory:1})}),
-  listening:room('studio/listening','Listening booth','makers','A quiet space nested inside the broadcast booth. It inherits the host’s rules.',{content:scores({sensory:1}),measured:scores({sensory:1})}),
+  lab:room('studio/lab','Lab bench','makers','Sixteen mesh nodes, one wave. Look through the observation window; this edge is view-only.',{content:scores({sensory:pair(1,1)}),measured:scores({sensory:pair(1,1)})}),
+  broadcast:room('studio/broadcast','Broadcast booth','makers','Dangerously Reasonable. A daily news briefing, with a smaller listening room inside.',{content:scores({sensory:pair(1,1)}),measured:scores({sensory:pair(1,1)})}),
+  listening:room('studio/listening','Listening booth','makers','A quiet space nested inside the broadcast booth. It inherits the host’s rules.',{content:scores({sensory:pair(1,1)}),measured:scores({sensory:pair(1,1)})}),
   civic:room('studio/civic','Civic table','makers','A community-owned civic data hub: a place to put public knowledge together.',{author:named('Civic contributors (sample)'),permissions:{substance:'open',style:'open',embed:'anyone'}}),
   // Deliberately no private interior, people, body, scores, or provenance in the public payload.
   family:{id:'studio/family',address:'tlh/studio/family',title:'Private space',visibility:'private',district:'makers'},
   writing:room('studio/writing','Writing room (sample)','makers','A fictional shared room for testing access. No private personal material is stored here.',{visibility:'listed',layout:{kind:'booth',scene:'studio',slot:[-7,8],approach:[-7,9.1],scale:1,facing:0}}),
   archive:room('commons/archive','Archive alcove (sample)','commons','A fictional hidden alcove containing only this sample note.',{visibility:'hidden',layout:{kind:'gallery-wall',scene:'studio',slot:[20,6],approach:[20,7.2],scale:1,facing:0}}),
   commons:room('commons','The Commons','commons','Paths meet here. Your lens decides which connections appear.'),
-  market:room('commons/market','Night Market','commons','Lanterns and late conversations. Visitors say it is livelier than its author declares.',{author:named('Market collective (sample)'),content:scores({sensory:1}),measured:scores({sensory:2})}),
-  night:room('after-dark','After Dark','night','An adults-only district. This is a simulated identity check, not real verification.',{minAge:18,visibility:'verified-only',content:scores({viewpoint:2,sensory:2}),measured:scores({viewpoint:2,sensory:2})}),
+  market:room('commons/market','Night Market','commons','Lanterns and late conversations. Visitors say it is livelier than its author declares.',{author:named('Market collective (sample)'),content:scores({sensory:pair(1,1)}),measured:scores({sensory:pair(2,1)})}),
+  night:room('after-dark','After Dark','night','An adults-only district. This is a simulated identity check, not real verification.',{minAge:18,visibility:'verified-only',content:scores({viewpoint:pair(2,1),sensory:pair(2,2)}),measured:scores({viewpoint:pair(2,1),sensory:pair(2,2)})}),
   tallahassee:room('tallahassee','Welcome to Tallahassee','history','A small walk through canopy roads, public places, and shared history. All stops are sample content; verify the sources.'),
   canopy:room('tallahassee/canopy','Canopy roads','history','Live oaks shelter the road. A city seen at walking speed.',{substance:sample('Live oaks shelter the road. A city seen at walking speed.','https://www.leoncountyfl.gov/'),authors:[nic,named('Local contributor (sample)')]}),
   capitol:room('tallahassee/capitol','The two Capitols','history','The historic Capitol and the modern tower share a skyline.',{substance:sample('The historic Capitol and the modern tower share a skyline.','https://www.flhistoriccapitol.gov/'),authors:[nic,anonymous]}),
   mission:room('tallahassee/mission','Mission San Luis','history','A place to learn about Apalachee and Spanish life in the seventeenth century.',{substance:sample('A place to learn about Apalachee and Spanish life in the seventeenth century.','https://www.missionsanluis.org/'),authors:[nic,named('History contributor (sample)')]}),
-  boycott:room('tallahassee/1956','The 1956 bus boycott','history','A community’s campaign against segregated public transport. This sample discusses racial injustice.',{content:scores({disturbing:2,viewpoint:1}),measured:scores({disturbing:2,viewpoint:1}),aliases:['tlh/tallahassee/boycott'],substance:sample('A community’s campaign against segregated public transport. This sample discusses racial injustice.','https://www.floridamemory.com/'),authors:[nic,named('Archive contributor (sample)'),anonymous]}),
+  boycott:room('tallahassee/1956','The 1956 bus boycott','history','A community’s campaign against segregated public transport. This sample discusses racial injustice.',{content:scores({disturbing:pair(2,1),viewpoint:pair(1,1)}),measured:scores({disturbing:pair(2,1),viewpoint:pair(1,1)}),aliases:['tlh/tallahassee/boycott'],substance:sample('A community’s campaign against segregated public transport. This sample discusses racial injustice.','https://www.floridamemory.com/'),authors:[nic,named('Archive contributor (sample)'),anonymous]}),
   cascades:room('tallahassee/cascades','Cascades Park','history','Water, open sky, and a place to gather.',{substance:sample('Water, open sky, and a place to gather.','https://www.talgov.com/'),authors:[nic,anonymous]}),
 };
 enrichRooms(ROOMS);addAudienceData(ROOMS);
@@ -86,11 +83,11 @@ addArrivals(ROOMS,EDGES);
 addInteriors(ROOMS);
 
 export const PRESETS = {
-  Kids:{limits:scores({sensory:1}),hard:scores({sensory:1})},
-  Teen:{limits:scores({violence:1,sexual:1,language:2,disturbing:1,viewpoint:1,sensory:1}),hard:scores({violence:2,sexual:2,language:2,disturbing:2,viewpoint:2,sensory:2})},
-  Adult:{limits:scores({violence:2,sexual:2,language:2,disturbing:2,viewpoint:2,sensory:2}),hard:Object.fromEntries(DIMENSIONS.map(([k])=>[k,null]))},
-  Everything:{limits:scores({violence:3,sexual:3,language:3,disturbing:3,viewpoint:3,sensory:3}),hard:Object.fromEntries(DIMENSIONS.map(([k])=>[k,null]))},
+  Kids:{limits:scores({sensory:pair(1,1)}),hard:scores({sensory:pair(1,1)})},
+  Teen:{limits:scores({violence:pair(1,1),sexual:pair(1,1),language:pair(2,2),disturbing:pair(1,1),viewpoint:pair(1,1),sensory:pair(1,1)}),hard:scores(Object.fromEntries(DIMENSIONS.map(([k])=>[k,pair(2,2)])))},
+  Adult:{limits:scores(Object.fromEntries(DIMENSIONS.map(([k])=>[k,pair(2,2)]))),hard:Object.fromEntries(DIMENSIONS.map(([k])=>[k,pair(null,null)]))},
+  Everything:{limits:scores(Object.fromEntries(DIMENSIONS.map(([k])=>[k,pair(3,3)]))),hard:Object.fromEntries(DIMENSIONS.map(([k])=>[k,pair(null,null)]))},
 };
 export function createLens() {
-  return {viewAs:'me',identity:{display:'real',backing:'none'},age:25,isAgent:false,preset:'Adult',limits:{...PRESETS.Adult.limits},hard:{...PRESETS.Adult.hard},show:{real:true,pseudonym:true,anonymous:true,agent:true}};
+  return {viewAs:'me',identity:{display:'real',backing:'none'},age:25,isAgent:false,preset:'Adult',limits:structuredClone(PRESETS.Adult.limits),hard:structuredClone(PRESETS.Adult.hard),show:{real:true,pseudonym:true,anonymous:true,agent:true}};
 }

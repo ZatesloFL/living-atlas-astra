@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core'),assert=require('node:assert/strict');
 (async()=>{
  const b=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -9,7 +10,7 @@ const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core')
  const docent=()=>p.locator('.helper-card').filter({has:p.locator('h3',{hasText:/^Mara$/})});
  try{
   await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?page&test&ai=local');await p.waitForFunction(()=>window.__atlasPage);await p.evaluate(()=>__atlasPage.staff.ready);
-  await p.locator('#page-setup [name=age]').fill('30');await p.locator('#page-setup button').click();await room('boycott');
+  await p.locator('#setup-form [name=age]').fill('30');await completeArrival(p);await room('boycott');
   await check('Fresh Page startup seeds a standing Docent; answering and keeping an offer write receipts',async()=>{
    assert.equal(await p.evaluate(()=>__atlasPage.staff.actor('docent-silver').expires),null);
    await p.locator('#page-staff').click();await docent().waitFor();assert.match(await docent().innerText(),/look · Standing · no expiry/);

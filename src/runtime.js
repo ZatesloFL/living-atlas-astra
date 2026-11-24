@@ -23,12 +23,15 @@ const {Discovery,reachable}=await import('./discovery.js');
 const {CommunityUI}=await import('./community-ui.js');
 const {permission,roomTitle,personId}=await import('./permissions.js');
 const {versionLabel}=await import('./audience.js');
+const {doorPolicy}=await import('./admission.js');
 const {LayerUI}=await import('./experience-ui.js');
 const {BuildUI}=await import('./build-ui.js');
 const {visibleEdge}=await diag.asyncRun('rules module',()=>import('./rules.js'));
 const $=id=>document.getElementById(id);
 const reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
 const profiles=diag.run('profiles',()=>new ProfileStore());
+const {ArrivalRecords}=await import('./arrival-records.js');const {loadArrivalSeed}=await import('./arrival-seed.js');
+profiles.arrivalRecords=new ArrivalRecords();await profiles.arrivalRecords.ready;const savedStarter=profiles.arrivalRecords.starter(profiles.activeId);if(savedStarter)loadArrivalSeed(savedStarter);
 const access=diag.run('room access',()=>new AccessStore());await diag.asyncRun('room receipts',()=>access.ready);
 let previewState=null,compareWorld=null,previewRatio=null,buildUI,layerUI,discovery,communityUI,staffUI;const staff=new Staff(access);const firstVisit=!profiles.completed;let firstArrivalPending=firstVisit;
 const previewLens=id=>access.lens({...structuredClone(profiles.profiles.find(p=>p.id===id)??profiles.active()),profileId:id,profileName:profiles.profiles.find(p=>p.id===id)?.name,preview:true,testMode:true});
@@ -41,9 +44,14 @@ const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>inner
 let labels=null;
 const raycaster=new THREE.Raycaster(),tapPoint=new THREE.Vector2();
 function state(){return {kind,lens,context,profiles,access,travel,position:controls?.position,near,approvedRooms:[...(world?.granted??[])].map(id=>EDGES.find(e=>e.id===id)?.to)};}
-function rebuild(next=kind){
+function retainDoors(nextWorld){
+ if(nextWorld.kind!==world?.kind)return;
+ for(const id of world.granted){const edge=EDGES.find(e=>e.id===id);if(!edge)continue;const gate=visibleEdge(edge,lens),before=world.edgeObjects.find(e=>e.id===id)?.result;const signature=g=>JSON.stringify([g?.state,g?.type,g?.reasons,g?.admission?.minimum]);if(gate.state!=='hidden'&&!gate.admission?.blocked&&gate.rights?.canEnter&&signature(before)===signature(gate))nextWorld.granted.add(id);}
+}
+function rebuild(next=kind,{keepDoors=false}={}){
   const hall=hallRoom(next);if(hall&&(visibleEdge(hallEntry(hall),lens).state==='hidden'||!permission(ROOMS[hall],lens).canEnter)){const landing=spatialArrival(hall,'door');next=landing.scene;place=null;stopMedia();if(!lens.preview&&access.data.presence.some(p=>p.person===personId(lens)&&p.room===ROOMS[hall].id))access.leave(hall,lens).catch(error=>ui.toast(error.message));controls.teleport(...landing.position,landing.facing);}
   const nextWorld=diag.run(world?'scene rebuild':'first scene',()=>new World(next,lens,reducedQuery.matches,previewState?.diff?previewLens(previewState.right):null));
+  if(keepDoors)retainDoors(nextWorld);
   try{world?.dispose();}catch(error){diag.record('scene disposal',error,'The new scene remains available.');}
   world=nextWorld;kind=next;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;if(previewState?.split){compareWorld=new World(next,previewLens(previewState.right),reducedQuery.matches);graphics.comparison={scene:compareWorld.scene,split:previewState.fraction};}graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;
   if(!world.canStand(controls.position.x,controls.position.z)){controls.teleport(...(world.hall?ROOMS[world.hall].layout.interior.arrival.position:[0,SPAWN_Z]));ui.toast('Your lens changed this path. You’re back at a safe entrance.');}
@@ -52,10 +60,14 @@ function rebuild(next=kind){
 function fadeTo(action){if(reducedQuery.matches){action();return;}transition={start:performance.now(),action,done:false};controls.resetInput();}
 function changeScene(next){stopMedia();fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':next==='square'?'Town Square':'Makers Row'}`);});}
 function lensChanged(){travel?.cancel();place=null;if(!previewState)profiles.preferences(lens);lens=currentLens();profileUI?.refresh();controls.resetInput();if(page&&!page.root.hidden)rebuild();else fadeTo(()=>rebuild());}
-async function applyProfile(){travel?.cancel();place=null;waypoint=null;lens=currentLens();controls?.resetInput();if(firstArrivalPending&&profiles.completed){firstArrivalPending=false;controls.teleport(0,6);rebuild('square');ui.title('square');}if(lens.form==='page'){rebuild();setTimeout(()=>openPage(context.room),0);}else fadeTo(()=>rebuild());profileUI?.refresh();}
+function arriveHome(id){const draft=profiles.arrivalRecords.starter(profiles.activeId),registered=loadArrivalSeed(draft),r=ROOMS[id];rebuild(registered.arrival.scene);for(const e of EDGES.filter(e=>e.to===id))world.granted.add(e.id);const a=registered.arrival;controls.teleport(...a.position,a.facing);place={id,scene:kind,x:a.position[0],z:a.position[1]};updateContext();}
+async function applyProfile(arrival){await access.endVisits(lens);travel?.cancel();place=null;waypoint=null;const draft=profiles.arrivalRecords.starter(profiles.activeId);if(draft)loadArrivalSeed(draft);lens=currentLens();controls?.resetInput();
+ if(typeof arrival==='string'&&ROOMS[arrival]){firstArrivalPending=false;arriveHome(arrival);}else if(firstArrivalPending&&profiles.completed){firstArrivalPending=false;controls.teleport(0,6);rebuild('square');ui.title('square');}else if(ROOMS[context.room]?.arrivalSeed&&!permission(ROOMS[context.room],lens).canEnter){if(draft)arriveHome(draft.projection.rootPlaceId);else {controls.teleport(0,6);rebuild('square');}}else rebuild();
+ if(lens.form==='page')setTimeout(()=>openPage(typeof arrival==='string'?arrival:context.room),0);profileUI?.refresh();expiryState=expirySignature();}
+
 async function switchProfile(id){if(previewState)buildUI.exit();await profiles.switchProfile(id);await applyProfile();}
 function enter(edge){
-  const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window')return;
+  const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window'||result.admission?.blocked)return;
   if(edge.interiorExit){startTravel(edge.interiorExit,{choice:'door'});return;}
   if(edge.interior){startTravel(edge.interior,{choice:'inside'});return;}
   if(edge.travel){travel.start(edge.to);return;}
@@ -86,9 +98,9 @@ function select(x,y){
   }
 }
 function updateContext(){
-  if(place&&(place.scene!==kind||Math.hypot(place.x-controls.position.x,place.z-controls.position.z)>1.8||!permission(ROOMS[place.id],lens).canEnter))place=null;context=place?{room:place.id,...(world.hall?{inside:ROOMS[world.hall].title}:{})}:world.context(controls.position.x,controls.position.z);ui.location(context);const label=versionLabel(ROOMS[context.room],lens),badge=document.getElementById('audience-hud');if(badge){const hideBadge=!label||!!previewState;if(badge.hidden!==hideBadge)badge.hidden=hideBadge;if(badge.textContent!==label)badge.textContent=label;}
-  if(context.room!==contextKey){contextKey=context.room;const name=ROOMS[context.room].title;if(profiles.completed&&!lens.preview&&!travel?.active&&!document.body.classList.contains('page-mode')&&permission(ROOMS[context.room],lens).canEnter){access.use(context.room,'enter',lens).catch(error=>ui.toast(error.message));access.recent(context.room,lens);}
-    if(context.room==='market')ui.toast('Night Market reads louder than it says: Sensory 2.');else if(context.inside)ui.toast(world.hall?'Inside: '+context.inside:'Inside: Broadcast booth · host rules apply');else ui.toast(`Entered ${DISTRICT_NAME(context.room)}`);
+  if(place&&(place.scene!==kind||Math.hypot(place.x-controls.position.x,place.z-controls.position.z)>1.8||!permission(ROOMS[place.id],lens).canEnter))place=null;context=place?{room:place.id,...(world.hall?{inside:ROOMS[world.hall].title}:{})}:world.context(controls.position.x,controls.position.z);ui.location(context);const label=doorPolicy(ROOMS[context.room],lens).filtered?'Filtered view · Things above your Lens are withheld':versionLabel(ROOMS[context.room],lens),badge=document.getElementById('audience-hud');if(badge){const hideBadge=!label||!!previewState;if(badge.hidden!==hideBadge)badge.hidden=hideBadge;if(badge.textContent!==label)badge.textContent=label;}
+  if(context.room!==contextKey){contextKey=context.room;const name=ROOMS[context.room].title;if(profiles.completed&&!lens.preview&&!travel?.active&&!document.body.classList.contains('page-mode')&&permission(ROOMS[context.room],lens).canEnter){const raised=access.visitGrants.length;access.use(context.room,'enter',lens).then(()=>{if(raised!==access.visitGrants.length){lens=currentLens();rebuild(kind,{keepDoors:true});}}).catch(error=>ui.toast(error.message));access.recent(context.room,lens);}
+    if(context.room==='market')ui.toast('Night Market reads louder than it says: Sensory amount 2 · graphicness 1.');else if(context.inside)ui.toast(world.hall?'Inside: '+context.inside:'Inside: Broadcast booth · host rules apply');else ui.toast(`Entered ${DISTRICT_NAME(context.room)}`);
   }
 }
 function DISTRICT_NAME(id){return {square:'Town Square',studio:'Makers Row',commons:'the Commons',night:'After Dark',tallahassee:'History Quarter',capitol:'the Capitol grounds'}[id]??ROOMS[id].title;}
@@ -137,11 +149,11 @@ graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
-ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>lens.homePlaceId?startTravel(lens.homePlaceId,{choice:'inside'}):changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
-profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
+profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,staff,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
-rebuild();controls.apply();
+rebuild();controls.apply();if(savedStarter&&startPrefs.startAt!=='square'&&!(startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)))arriveHome(savedStarter.projection.rootPlaceId);
 if(!firstVisit&&startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)&&Array.isArray(savedPlace.position)&&savedPlace.position.length===2&&savedPlace.position.every(Number.isFinite)&&world.canStand(...savedPlace.position)){controls.teleport(...savedPlace.position,Number(savedPlace.facing)||0);place=ROOMS[savedPlace.room].layout.interior&&kind!==ROOMS[savedPlace.room].layout.interior.scene?null:{id:savedPlace.room,scene:kind,x:savedPlace.position[0],z:savedPlace.position[1]};updateContext();}
 accessUI=new AccessUI(ui,access,{state,changed:refreshAccess});
 layerUI=new LayerUI(ui,access,{state,changed:experienceChanged});
@@ -151,9 +163,9 @@ const audienceBadge=document.createElement('aside');audienceBadge.id='audience-h
 function experienceChanged(next){if(next.preview){ui.toast('Exit Preview as to save changes.');return;}profiles.preferences(next);lens=currentLens();rebuild();profileUI.refresh();}
 function applyPreview(config){travel?.cancel();place=null;waypoint=null;previewState=config;lens=currentLens();if(config.split){if(previewRatio===null)previewRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}else if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
 function exitPreview(){previewState=null;place=null;lens=currentLens();if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
-travel=new FastTravel(ui,access,{hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);updateContext();}});
+travel=new FastTravel(ui,access,{hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
 function landArrival(arrival,route,confirmed){
- const next=new World(arrival.scene,lens,reducedQuery.matches);for(const e of EDGES)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.id);
+ const next=new World(arrival.scene,lens,reducedQuery.matches);retainDoors(next);for(const e of EDGES)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.id);
  for(const e of route)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.originalId??e.id);
  if(!next.canStand(...arrival.position)){next.dispose();throw new Error('That landing point is obstructed. Choose Outside or Door.');}
  stopMedia();world.dispose();world=next;kind=arrival.scene;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.teleport(...arrival.position,arrival.facing);place=arrival.contextRoom?null:{id:arrival.room,scene:kind,x:arrival.position[0],z:arrival.position[1]};near=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);ui.prompt(near);ui.fadeTitle();
@@ -168,8 +180,8 @@ function rememberPlace(force=false){if(!profiles.completed||lens.preview||travel
 window.addEventListener('pagehide',()=>rememberPlace(true));
 const compass=document.createElement('aside');compass.id='compass';compass.hidden=true;compass.innerHTML='<span data-bearing>↑</span><button data-status></button><button data-cancel>Clear</button>';hud.mount(compass,60);compass.querySelector('[data-cancel]').onclick=()=>{travel.cancel();waypoint=null;world.setWaypoint(null);compass.hidden=true;ui.close();};compass.querySelector('[data-status]').onclick=()=>{if(waypoint)startTravel(waypoint);};
 let expiryState=expirySignature();expiryTimer=setInterval(()=>{const next=expirySignature();if(next!==expiryState){expiryState=next;refreshAccess();ui.toast('Access changed or expired; the scene has been checked again.');}},1000);
-function expirySignature(){return access.data.grants.map(g=>g.id+':'+!!g.revokedAt+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|');}
-function refreshAccess({preserveAccess=false}={}){place=null;lens=currentLens();if(world)rebuild();if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
+function expirySignature(){return access.visitGrants.map(g=>g.id+':'+g.state+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|')+'#'+access.data.grants.map(g=>g.id+':'+!!g.revokedAt+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|');}
+function refreshAccess({preserveAccess=false}={}){place=null;lens=currentLens();if(world)rebuild(kind,{keepDoors:true});if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
 function setWaypoint(id){if(planRoute(context.room,id,lens)===null||!permission(ROOMS[id],lens).canLook){ui.toast('No permitted route for a waypoint.');return;}waypoint=id;ui.fadeTitle();updateWaypoint();}
 function startTravel(id,options){ui.close();if(previewState)buildUI.exit();if(page){page.close();resume3D(pageOrigin);}travel.start(id,options);}
 function goAddress(value){const id=resolveAddress(value,lens);if(!id||roomEntry(id,lens,EDGES).state==='hidden'){ui.toast('No accessible room at that address.');return;}if(planRoute(context.room,id,lens)===null){accessUI.open(id);return;}startTravel(id);}

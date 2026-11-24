@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
 const assert=require('node:assert/strict');
 (async()=>{
@@ -19,7 +20,7 @@ const assert=require('node:assert/strict');
  try{
   await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?page&test&ai=local');
   await p.waitForFunction(()=>window.__atlasPage);
-  await p.locator('#page-setup [name=age]').fill('30');await p.locator('#page-setup button[type=submit]').click();await room('boycott');
+  await p.locator('#setup-form [name=age]').fill('30');await completeArrival(p);await room('boycott');
   await check('Reading components have a bounded measure, real citation list, related cards and sample credits',async()=>{
    await depth('Deep');
    for(const selector of ['.article-infobox','.article-timeline','blockquote','.article-map','.geo-note','.article-citations','.article-related'])assert.ok(await p.locator(selector).count(),selector);

@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 // A fresh visitor crosses the physical doorway. Synthetic/local content only.
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
 const assert=require('node:assert/strict');
@@ -16,7 +17,7 @@ const assert=require('node:assert/strict');
  const clickPoint=async(point,yaw)=>{const xy=await p.evaluate(async([point,yaw])=>{const T=await import('./vendor/three/three.module.min.js'),pos=atlasStatus().position,c=new T.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110);c.position.set(pos.x,1.88,pos.z);c.rotation.set(.065,yaw,0,'YXZ');c.updateMatrixWorld();const v=new T.Vector3(...point).project(c);return [(v.x+1)*innerWidth/2,(1-v.y)*innerHeight/2];},[point,yaw]);await p.mouse.click(...xy);};
  try{
   await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?test&ai=local');await p.waitForFunction(()=>window.__atlas);
-  await p.locator('[name=age]').fill('30');await p.getByRole('button',{name:/Save profile & enter/}).click();
+  await p.locator('[name=age]').fill('30');await completeArrival(p);
   await check('Door arrival keeps the visitor in the Quarter; no outdoor exhibit duplicates',async()=>{
    await arrive('door');const s=await p.evaluate(()=>atlasStatus());assert.equal(s.scene,'history');assert.equal(s.room,'tallahassee');assert.deepEqual(await sceneIds(),[]);
    assert.equal(await p.evaluate(()=>__atlas.access.data.presence.find(p=>p.person===__atlas.state().activeProfile).room),'tallahassee');

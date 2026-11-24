@@ -1,3 +1,4 @@
+const completeArrival=require('./arrival-setup.cjs');
 // Shipped-origin browser tests with local assets and intercepted proxy responses.
 // No request in this suite reaches Supabase or a provider.
 const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
@@ -44,10 +45,10 @@ const success=()=>({proposal:{kind:'answer',room:'boycott',reason:'Permitted pub
   });
   await p.goto(base+(form==='page'?'?page&test':'?test&safe')+query);
   if(form==='page'){
-   await p.waitForFunction(()=>window.__atlasPage);await p.locator('#page-setup [name=age]').fill('30');await p.locator('#page-setup button[type=submit]').click();
+   await p.waitForFunction(()=>window.__atlasPage);await p.locator('#setup-form [name=age]').fill('30');await completeArrival(p);
    await visit(p,'boycott');await docent(p);
   }else{
-   await p.waitForFunction(()=>window.__atlas);await p.locator('[name=age]').fill('30');await p.getByRole('button',{name:/Save profile & enter/}).click();
+   await p.waitForFunction(()=>window.__atlas);await p.locator('[name=age]').fill('30');await completeArrival(p);
    await p.waitForFunction(()=>document.getElementById('sheet').hidden);await p.evaluate(()=>__atlas.go('boycott',{choice:'inside'}));for(let i=0;i<8&&await p.locator('[data-preview]').count();i++){await p.locator('[data-preview]').first().click();await p.locator('[data-confirm]').click();}await p.locator('#travel-go').click();await p.waitForFunction(()=>!__atlas.travel.active);assert.equal(await p.evaluate(()=>atlasStatus().scene),'hall:boycott');await p.evaluate(()=>__atlas.staffUI.docent(__atlas.state().context.room));
   }
   assert.equal(calls.length,0);

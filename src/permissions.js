@@ -3,7 +3,7 @@ export const scopeRank=scope=>SCOPES.indexOf(scope);
 export const personId=lens=>lens.profileId??lens.id??'visitor';
 export const visibilityOf=(room,lens)=>lens.access?.policies?.[room.id]?.visibility??(room.visibility==='private'?'listed':room.visibility==='verified-only'?'public':room.visibility??'public');
 export function permission(room,lens,now=Date.now()){
- const visibility=visibilityOf(room,lens),owner=lens.playAs==='owner'&&!lens.isAgent;
+ const visibility=visibilityOf(room,lens),owner=!lens.isAgent&&(room.ownerId?room.ownerId===personId(lens):lens.playAs==='owner');
  const groups=lens.access?.groups??[];
  const member=id=>{const g=groups.find(g=>g.id===id);return !!g&&(g.kind!=='credential'||lens.identity?.backing==='verified')&&((lens.groups??[]).includes(id)||(g?.members??[]).includes(personId(lens)));};
  const valid=(lens.access?.grants??room.grants??[]).filter(g=>g.room===room.id&&!g.revokedAt&&(!g.expires||Date.parse(g.expires)>now)&&(!g.createdAt||Date.parse(g.createdAt)<=now));

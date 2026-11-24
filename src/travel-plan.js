@@ -19,7 +19,7 @@ export function travelPlan(from,target,lens,{confirmed=new Set(),invites=new Set
    const accepted=p.grant.kind!=='invite'||invites.has(p.grant.id)||(lens.access?.ledgers?.[room.id]??[]).some(r=>r.action==='invite_opened'&&r.actor===personId(lens)&&r.diff.grant===p.grant.id);
    rows.push({id:'grant:'+p.grant.id,kind:p.grant.kind==='invite'?'invite':'pass',edge,grant:p.grant,state:accepted?'Ready':'Needs you',reason:`${p.scope} pass${p.grant.expires?' · expires '+new Date(p.grant.expires).toLocaleTimeString():''}`});
   }
-  if(gate.type==='door')rows.push({id:'door:'+edge.id,kind:'door',edge,state:confirmed.has(edge.id)?'Ready':'Needs you',reason:gate.reasons.join(' · ')||'Confirm this doorway before departure.'});
+  if(gate.type==='door'||gate.admission?.explicit)rows.push({id:'door:'+edge.id,kind:'door',edge,admission:gate.admission,state:confirmed.has(edge.id)&&!gate.admission?.blocked?'Ready':'Needs you',reason:gate.reasons.join(' · ')||'Confirm this doorway before departure.'});
   if(gate.type==='window')rows.push({id:'window:'+edge.id,kind:'window',edge,state:'Ready',reason:'View-only stop: arrive outside the window.'});
  }
  return {route,rows,ready:rows.every(r=>r.state==='Ready')};

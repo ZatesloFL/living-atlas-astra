@@ -1,3 +1,4 @@
+import {exceeds} from './scores.js';
 import {ROOMS} from './data.js';
 import {roomVisible} from './rules.js';
 import {blockAccess} from './content.js';
@@ -9,7 +10,7 @@ export const LAYER_TYPES=['More detail','Counterpoint','Expert deep-dive','Viewp
 export function layerAccess(room,layer,lens){
  const gate=blockAccess({content:layer.content},viewRoom(room,lens),lens),types=lens.layerTypes??LAYER_TYPES;
  const trust=layer.trust??{},from=lens.trustFrom??'Author',mode=lens.layerMode??'Core only',expert=layer.type==='Expert deep-dive'&&lens.depth==='Deep';
- const visible=roomVisible(Object.keys(ROOMS).find(id=>ROOMS[id].id===room.id),lens)&&permission(room,lens).canLook&&!gate.hidden&&types.includes(layer.type)&&(layer.author.isAgent||lens.show?.[identityOf(layer.author).display]!==false)&&(expert||mode==='Everything'||mode==='Vouched'&&trust.vouches>0)&&!(from==='Academic'&&!trust.academic||from==='Vouched'&&!trust.vouches||from==='Community'&&!trust.community);
+ const visible=roomVisible(Object.keys(ROOMS).find(id=>ROOMS[id].id===room.id),lens)&&permission(room,lens).canLook&&!gate.hidden&&!gate.withheld&&types.includes(layer.type)&&(layer.author.isAgent||lens.show?.[identityOf(layer.author).display]!==false)&&(expert||mode==='Everything'||mode==='Vouched'&&trust.vouches>0)&&!(from==='Academic'&&!trust.academic||from==='Vouched'&&!trust.vouches||from==='Community'&&!trust.community);
  return {...gate,visible,expert,accepted:(lens.acceptedLayers??[]).includes(layer.id)};
 }
 export function layerSelection(room,lens){return (room.layers??[]).map(layer=>({layer,...layerAccess(room,layer,lens)})).filter(x=>x.visible);}
@@ -21,7 +22,7 @@ export async function proposeLayer(store,key,layerId,lens){return store.transact
  const state=store.data.layerState[layerId]??={merges:[]};if(state.proposed)return;state.proposed=true;state.by=lens.profileId;state.at=new Date().toISOString();await store.record(key,lens,'layer_proposed',{layer:layerId,contributor:layer.author,by:lens.profileId});
  });}
 export async function mergeLayer(store,key,layerId,version,lens){return store.transaction(async()=>{
- store.owner(lens);const room=store.room(key),layer=room.layers?.find(l=>l.id===layerId),state=store.data.layerState[layerId];if(!layer||!state?.proposed)throw new Error('Propose this layer before merging.');const target=room.versions?.find(v=>v.id===version);if(room.versions?.length&&!target)throw new Error('Choose an audience version.');
- if(target&&Object.entries(layer.content).some(([k,n])=>n>(target.content[k]??0)))throw new Error('Layer scores exceed that audience version. Choose a qualified version.');
+ store.owner(lens,key);const room=store.room(key),layer=room.layers?.find(l=>l.id===layerId),state=store.data.layerState[layerId];if(!layer||!state?.proposed)throw new Error('Propose this layer before merging.');const target=room.versions?.find(v=>v.id===version);if(room.versions?.length&&!target)throw new Error('Choose an audience version.');
+ if(target&&Object.entries(layer.content).some(([k,n])=>exceeds(n,target.content[k])))throw new Error('Layer scores exceed that audience version. Choose a qualified version.');
  if(state.merges.some(m=>m.version===version))return;const merge={version,by:lens.profileId,at:new Date().toISOString(),contributor:layer.author};await store.record(key,lens,'layer_merged',{layer:layerId,...merge});state.merges.push(merge);
  });}
