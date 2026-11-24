@@ -25,6 +25,8 @@ const rollback=await readFile(new URL('../supabase/migrations/rollback/202611131
 const diagnosticsMigration=await readFile(new URL('../supabase/migrations/20261113204500_ai_failure_class.sql',import.meta.url),'utf8');
 const diagnosticsRollback=await readFile(new URL('../supabase/migrations/rollback/20261113204500_ai_failure_class.rollback.sql',import.meta.url),'utf8');
 const diagnosticsVerify=await readFile(new URL('../supabase/operators/verify-failure-diagnostics.sql',import.meta.url),'utf8');
+const headroomPatch=await readFile(new URL('../supabase/operators/20261124004812_docent_output_headroom.sql',import.meta.url),'utf8');
+const headroomRollback=await readFile(new URL('../supabase/operators/20261124004812_docent_output_headroom.rollback.sql',import.meta.url),'utf8');
 // Hand-authored Anthropic-shaped fixture using public catalog text, never a
 // capture of Silver's deleted live response. Token counts are synthetic.
 const docentFixture=JSON.parse(await readFile(new URL('./fixtures/docent-haiku-response.json',import.meta.url),'utf8'));
@@ -109,6 +111,38 @@ test('diagnostic migration preserves historical receipts and allows the previous
  assert.equal((await legacyReceipt(true)).failure_class,null);
  const conn=await sql.reserve();try{await assert.rejects(conn.unsafe(diagnosticsMigration));await conn.unsafe('ROLLBACK');}finally{conn.release();}
  assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,4);assert.equal((await sql`SELECT id FROM public.sentinel`)[0].id,7);
+});
+test('guide headroom patch changes only output allowance, rolls back exactly, and refuses drift or in-flight calls',async()=>{
+ await enabled();await sql`UPDATE atlas_ai.routing_config SET model_id='claude-haiku-5-5' WHERE route_key='guide'`;
+ const snapshot=async()=>({runtime:await sql`SELECT * FROM atlas_ai.runtime_config`,routes:await sql`SELECT * FROM atlas_ai.routing_config ORDER BY route_key`});
+ const prior=await snapshot();await sql.unsafe(headroomPatch);const changed=await snapshot();
+ assert.equal(changed.routes.find(r=>r.route_key==='guide').output_token_cap,2048);
+ changed.routes.find(r=>r.route_key==='guide').output_token_cap=512;assert.deepEqual(changed,prior);
+ const refuses=async patch=>{const conn=await sql.reserve();try{await assert.rejects(conn.unsafe(patch));await conn.unsafe('ROLLBACK');}finally{conn.release();}};
+ await refuses(headroomPatch);await sql.unsafe(headroomRollback);assert.deepEqual(await snapshot(),prior);
+ const s=await store.bootstrap(),a=await reserve(s);await refuses(headroomPatch);assert.deepEqual(await snapshot(),prior);
+ await store.settle(a.id,{usage,accepted:false,failureClass:'provider_output_incomplete'});
+ await sql.unsafe(headroomPatch);await sql.unsafe(headroomRollback);assert.deepEqual(await snapshot(),prior);
+});
+test('guide headroom reaches provider and accounting without relaxing incomplete or exact-evidence rejection',async()=>{
+ await enabled();await sql`UPDATE atlas_ai.routing_config SET model_id='claude-haiku-5-5' WHERE route_key='guide'`;
+ const s=await store.bootstrap();let expectedCap=512,stop='max_tokens',text=docentThinkingFixture.content[1].text;
+ const h=handler(async(url,options)=>{
+  assert.equal(JSON.parse(options.body).max_tokens,expectedCap);
+  return Response.json({...docentThinkingFixture,stop_reason:stop,content:[docentThinkingFixture.content[0],{type:'text',text}],usage:{input_tokens:600,output_tokens:stop==='max_tokens'?expectedCap:768,output_tokens_details:{thinking_tokens:458}}});
+ });
+ const run=async(expected,status)=>{
+  const response=await h(req('/request',request(),s.session)),json=await response.json();assert.equal(response.status,status);
+  const [receipt]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptData?.receiptId??json.receiptId}`;
+  assert.equal(receipt.failure_class,expected);assert.equal(receipt.reasoning_tokens,458);
+  assert.equal(Number(receipt.cost_microusd),600+2*receipt.output_tokens);assert.equal(receipt.cost_basis,'measured');
+  assert(!JSON.stringify([json,receipt]).includes('CANARY'));return receipt;
+ };
+ await run('provider_output_incomplete',502);await sql.unsafe(headroomPatch);expectedCap=2048;stop='end_turn';
+ assert.equal((await run(null,200)).output_tokens,768);
+ text=JSON.stringify({excerpts:[{blockId:'lead',quote:'FABRICATED_CANARY'}]});await run('evidence_quote_not_exact',502);
+ stop='max_tokens';await run('provider_output_incomplete',502);
+ assert.equal((await store.config()).enabled,true);assert((await sql`SELECT * FROM atlas_ai.quota_windows`).every(q=>Number(q.reserved_microusd)===0));
 });
 test('diagnostic SQL vocabulary accepts every fixed class and rejects arbitrary text or a failure on an accepted receipt',async()=>{
  const r=await legacyReceipt();
