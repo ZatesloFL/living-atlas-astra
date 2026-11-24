@@ -89,3 +89,33 @@ Silver raised splitting each dimension into presence (how much of a
 room a theme is) × peak (its most graphic moment). Nic: that is not
 the model. It prompted the granularity point above and is set aside —
 do not build it.
+
+## Ruling, 2026-11-24: two dials per dimension
+
+Nic ruled: every dimension is scored on **two dials, each 0–3** —
+**amount** (how much of it there is: 0 none · 1 a mention or trace ·
+2 a real presence — a scene, a section, an element you encounter ·
+3 pervasive or central, the place is substantially about it) and
+**graphicness** (how explicit it is: 0 none · 1 mild — implied,
+innuendo, off-screen · 2 shown plainly, not graphic · 3 graphic or
+explicit). This supersedes the single blended 0–3 scalar as the
+score shape everywhere: declarations, measurements, info-card
+chips, Lens limits (soft and hard, per axis), presets (now paired
+starting positions), door thresholds, and crossing checks — a
+crossing compares BOTH axes of the exact room/Thing against the
+visitor's limits for that dimension, using the higher of declared
+and measured, per axis.
+
+This is **not** the presence × peak split set aside below:
+graphicness is the explicitness character of the content present,
+not a worst-single-moment detector, and amount binds independently.
+A work can be (amount 1, graphicness 3) — barely any, but explicit —
+or (3, 1) — everywhere, but mild. The bikini bar is high amount,
+low graphicness; the strip club runs high on both. Both axes always
+bind; neither collapses into the other.
+
+Existing authored content (the demo world) is re-declared under the
+pair by the lanes as they touch it — the corpus is small and
+authored in-house. The old ladder's rungs are guidance, not a
+mechanical conversion: mentioned ≈ amount 1 at low graphicness;
+shown-not-graphic ≈ graphicness 2; graphic ≈ graphicness 3.
