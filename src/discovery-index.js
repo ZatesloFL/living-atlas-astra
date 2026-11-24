@@ -1,6 +1,8 @@
 import {ROOMS,DIMENSIONS} from './data.js';
 import {AXES} from './scores.js';
 import {viewRoom} from './audience.js';
+import {sourcedRoom} from './source-catalog.js';
+import {sourceVisible,sourceStateMessage} from './source-media.js';
 import {selectContent,blockAccess} from './content.js';
 import {rating,doorPolicy} from './admission.js';
 import {accessSettings,authorName,identityOf} from './identity.js';
@@ -23,10 +25,10 @@ const pairRanges = ranges => DIMENSIONS.flatMap(([key,label])=>AXES.filter(axis=
 // Neither query nor preview mutates the catalog, grants, profile or visiting history.
 function recordMetadata(node,room,lens,standing,ref=targetRef(room,node===room?null:node)) {
  const subject={placeId:ref.placeId,...(ref.thingId?{thingId:ref.thingId}:{})};
- const references=node.standing??{
-  declarationRef:null,
-  measurementRecordsRef:{kind:'atlas-measurements-v1',subject},
-  declarationRecordReadingRef:{kind:'atlas-declaration-reading-v1',subject}
+ const references={
+  declarationRef:node.standing?.declarationRef??null,
+  measurementRecordsRef:node.standing?.measurementRecordsRef??{kind:'atlas-measurements-v1',subject},
+  declarationRecordReadingRef:node.standing?.declarationRecordReadingRef??{kind:'atlas-declaration-reading-v1',subject}
  };
  const state=standingState(lens),publishedOnly=visibilityOf(room,lens)==='public';
  const reading=standing?standing.resolveMeasurements(references.measurementRecordsRef,lens):readingsFor(state,ref,{publishedOnly});
@@ -55,7 +57,7 @@ function ownerOf(room) {
 function baseEntry(key,lens,{paths,standing}) {
  const gate=discoveryGate(key,lens);if(!gate)return null;
  const path=paths.get(key);if(!path)return null;
- const room=viewRoom(ROOMS[key],lens),owner=ownerOf(room);
+ const room=sourcedRoom(viewRoom(ROOMS[key],lens),lens),owner=ownerOf(room);
  const routeRooms=[...new Set([...path.map(e=>e.to),key])];
  const softGaps=[...new Set(routeRooms.flatMap(id=>gapsFor(viewRoom(ROOMS[id],lens),viewRoom(ROOMS[id],lens),lens)))];
  return {id:'place:'+room.id,type:'room',target:key,room:key,title:room.title,summary:room.substance?.summary??'',
@@ -81,9 +83,9 @@ export function catalogIndex(lens,{from='square',standing,now=Date.now()}={}) {
   if(visibilityOf(ROOMS[key],lens)!=='public')continue;
   const entry=baseEntry(key,lens,{paths,standing});if(!entry)continue;places.set(key,entry);entries.push(entry);
   for(const block of selectContent(entry.view,lens).blocks){
-   if(block.filtered)continue;
+   if(block.filtered||!sourceVisible(block,entry.view,lens))continue;
    entries.push({...entry,...recordMetadata(block,entry.view,lens,standing),id:'thing:'+entry.view.id+':'+(entry.view.version?.id??'original')+':'+block.id,
-    type:'thing',target:block.id,node:block,title:block.title??block.label??`${entry.title} · ${block.id.replace(/[-_]/g,' ')}`,summary:'',
+    type:'thing',target:block.id,node:block,title:block.title??block.label??(block.source&&typeof block.body==='string'?block.body:`${entry.title} · ${block.id.replace(/[-_]/g,' ')}`),summary:'',sourceState:sourceStateMessage(block),
     // The card contains metadata only. A soft preview never discloses the Thing body.
     publishedAt:validTime(block.publishedAt),vouches:Number.isInteger(block.vouches)&&block.vouches>=0?block.vouches:null,
     softGaps:[...new Set([...entry.softGaps,...gapsFor(block,entry.view,lens)])],sourceBadge:block.sourceBadge??entry.sourceBadge,

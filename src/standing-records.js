@@ -40,6 +40,8 @@ export function pendingMeasurements(state,ref,{publishedOnly=true}={}){
 }
 export function declarationSnapshot(state,ref,node,room,{publishedOnly=true}={}){
  const current=latestDeclaration(state,ref,{publishedOnly});
+ const external=node.standing?.declarationRef;
+ if(!current&&typeof external?.receiptRef==='string'&&typeof external.versionId==='string')return {id:external.receiptRef,versionId:external.versionId,scores:scores(node.content??room.content),owner:node.ownerId??room.ownerId??null,creator:node.creatorId??room.creatorId??room.ownerId??null,source:'referenced declaration receipt'};
  return current?{id:current.id,versionId:current.versionId,scores:current.scores,owner:current.owner,creator:current.creator,source:'receipt'}:
   {id:null,versionId:node.recordVersionId??null,scores:scores(node.content??room.content),owner:room.ownerId??null,creator:node.creatorId??room.creatorId??room.ownerId??null,source:'authored catalog · no declaration receipt'};
 }

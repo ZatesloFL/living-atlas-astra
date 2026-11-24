@@ -3,6 +3,8 @@ import {permission,personId,visibilityOf} from './permissions.js';
 import {crossing} from './rules.js';
 import {blockAccess} from './content.js';
 import {viewRoom} from './audience.js';
+import {sourcedRoom} from './source-catalog.js';
+import {sourceVisible} from './source-media.js';
 import {appendEntry,entryHash} from './ledger.js';
 import {events,targetId,targetRef,identityTier,validateScores,declarationSnapshot,currentMeasurements,readingsFor,pendingMeasurements,gapBetween,underDeclared} from './standing-records.js';
 import {deriveStanding,recordBrowsing,readingSummary} from './standing-facets.js';
@@ -71,9 +73,11 @@ export class StandingStore {
   const current=this.access.lens(lens),gate=crossing({to:key,type:'door'},current);
   const publicMetadata=metadataOnly&&this.published(room);
   if(!publicMetadata&&(gate.state==='hidden'||gate.admission?.blocked||!permission(room,current).canLook))throw new Error('This record is outside your current crossing.');
-  const view=viewRoom(room,current);let node=room;
+  const view=sourcedRoom(viewRoom(room,current),current);let node=room;
   if(ref.thingId){if(ref.audienceVersion!==undefined&&(view.version?.id??null)!==(ref.audienceVersion??null))throw new Error('Choose a Thing in the current audience version.');node=view.blocks?.find(b=>b.id===ref.thingId);if(!node||!publicMetadata&&(blockAccess(node,view,current).hidden||blockAccess(node,view,current).withheld))throw new Error('This Thing is outside your Lens.');}
+  if(ref.thingId&&!sourceVisible(node,view,current))throw new Error('This source Thing is outside your access.');
   let published=true,at=room,seen=new Set();while(at){if(seen.has(at.id))throw new Error('Invalid containing Place.');seen.add(at.id);if(visibilityOf(at,current)!=='public')published=false;const parent=at.parentPlaceId;at=parent?Object.values(ROOMS).find(r=>r.id===parent):null;if(parent&&!at)throw new Error('Missing containing Place.');}
+  if(node.source?.visibility==='private')published=false;
   return {key,room,node,view,ref:targetRef(ref.thingId?view:room,ref.thingId?node:null),published};
  }
  actor(lens){
