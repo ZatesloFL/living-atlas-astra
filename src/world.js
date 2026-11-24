@@ -42,7 +42,20 @@ export class World {
     this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;this.portalSurfaces=[];this.groundBands=[];
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
     const sun=new THREE.DirectionalLight(0xffdfad,2.2);sun.position.set(-13,23,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=29;sun.shadow.camera.bottom=-29;sun.shadow.camera.near=1;sun.shadow.camera.far=80;sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;this.scene.add(sun);this.sun=sun;
-    this.gate=e=>visibleEdge(e,this.lens);if(this.hall)drawHall(this,this.hall);else {this.ground();if(kind==='studio')this.studio();else if(kind==='square')drawSquare(this);else this.history();}
+    this.gate=e=>visibleEdge(e,this.lens);
+    if(this.hall)drawHall(this,this.hall);
+    else {
+      this.ground();
+      if(kind==='studio')this.studio();
+      else if(kind==='square')drawSquare(this);
+      else if(kind==='history')this.history();
+      else if(Object.values(ROOMS).some(room=>room.kitPieces&&room.layout.root&&room.layout.scene===kind)){
+        for(const path of EDGES.filter(edge=>edge.scene===kind)){
+          const entry=hallEntry(path.to);
+          this.edge(entry?.id===path.id?entry:path);
+        }
+      } else this.history();
+    }
     this.renderRooms();drawPresence(this);if(!this.hall)this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);flushHallSigns(this);flushCrossingSurfaces(this,stoneTexture);
     this.scene.userData.view={profile:lens.profileId,rooms:this.renderedRooms};this.scene.updateMatrixWorld(true);
   }

@@ -164,3 +164,6 @@ One line per call the brief did not settle, with the reason.
 - 2026-11-24 / Builder v1 — Separate the arrangement from governed authored records so reset and restore preserve data and capabilities. Carry record changes in the draft and resolve bindings by stable authored IDs at the existing API boundaries.
 - 2026-11-24 / Builder v1 — Keep public Place inclusion as a checked Path and public Thing inclusion as an origin-scoped reference. Both resolve under origin consent and the visitor’s Lens.
 - 2026-11-24 / Builder v1 — Reuse hall bay transforms and G3 block settings as the authored mapping. The registry owns cost and transform bounds so a draft cannot lower its own costs.
+
+- 2026-11-24 / Builder registration — Point the initial kit projection at the existing session catalogs. Bind canonical ownerId from the approved local claim, keep parentPlaceId canonical, and return the normal inside arrival for the caller.
+- 2026-11-24 / Builder scores — Apply file 20’s latest two-dial ruling to the v2 contract. Accept the v1 envelope with paired Arrival data during coordination and hand the pairs to the shared crossing rules.
