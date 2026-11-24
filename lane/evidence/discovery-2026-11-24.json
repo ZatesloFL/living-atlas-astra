@@ -1,0 +1,506 @@
+{
+  "date": "2026-11-24",
+  "lane": "A",
+  "order": 29,
+  "verifiedAt": "2026-11-24T18:52:16.890770+00:00",
+  "runtimeCommit": "a73626e378b4f72ee3f8422d865b532c35528fbc",
+  "node": {
+    "passed": 249,
+    "failed": 0,
+    "command": "npm test",
+    "fullSuiteCommit": "2da563c10166b5079b5754837ff5a44144930254",
+    "finalTargetedRecheck": {
+      "suite": "discovery-answer",
+      "passed": 3,
+      "failed": 0,
+      "log": "work/discovery/final-answer-recheck.log"
+    }
+  },
+  "browser": {
+    "fullSuiteCommit": "2da563c10166b5079b5754837ff5a44144930254",
+    "finalTargetedRecheck": {
+      "suite": "discovery",
+      "passed": 6,
+      "failed": 0,
+      "log": "work/discovery/final-discovery-recheck.log"
+    },
+    "suites": [
+      {
+        "suite": "staff-standing",
+        "exit": 0,
+        "passes": 3,
+        "seconds": 8.9,
+        "log": "work/discovery/final-staff-standing.log"
+      },
+      {
+        "suite": "docent-asking",
+        "exit": 0,
+        "passes": 4,
+        "seconds": 25.4,
+        "log": "work/discovery/final-docent-asking.log"
+      },
+      {
+        "suite": "live-docent",
+        "exit": 0,
+        "passes": 13,
+        "seconds": 114.0,
+        "log": "work/discovery/final-live-docent.log"
+      },
+      {
+        "suite": "interior-recovery",
+        "exit": 0,
+        "passes": 5,
+        "seconds": 39.0,
+        "log": "work/discovery/final-interior-recovery.log"
+      },
+      {
+        "suite": "page-reading",
+        "exit": 0,
+        "passes": 8,
+        "seconds": 12.8,
+        "log": "work/discovery/final-page-reading.log"
+      },
+      {
+        "suite": "docent-reliability",
+        "exit": 0,
+        "passes": 4,
+        "seconds": 7.8,
+        "log": "work/discovery/final-docent-reliability.log"
+      },
+      {
+        "suite": "interior",
+        "exit": 0,
+        "passes": 13,
+        "seconds": 202.5,
+        "log": "work/discovery/final-interior.log"
+      },
+      {
+        "suite": "fast-travel",
+        "exit": 0,
+        "passes": 5,
+        "seconds": 129.6,
+        "log": "work/discovery/final-fast-travel.log"
+      },
+      {
+        "suite": "staff",
+        "exit": 0,
+        "passes": 4,
+        "seconds": 101.6,
+        "log": "work/discovery/final-staff.log"
+      },
+      {
+        "suite": "render-budget",
+        "exit": 0,
+        "passes": 3,
+        "seconds": 105.8,
+        "log": "work/discovery/final-render-budget.log"
+      },
+      {
+        "suite": "arrival-doors",
+        "exit": 0,
+        "passes": 3,
+        "seconds": 7.6,
+        "log": "work/discovery/final-arrival-doors.log"
+      },
+      {
+        "suite": "community",
+        "exit": 0,
+        "passes": 5,
+        "seconds": 156.3,
+        "log": "work/discovery/final-community.log"
+      },
+      {
+        "suite": "arrival",
+        "exit": 0,
+        "passes": 7,
+        "seconds": 69.8,
+        "log": "work/discovery/final-arrival.log"
+      },
+      {
+        "suite": "kit-regression",
+        "exit": 0,
+        "passes": 9,
+        "seconds": 11.2,
+        "log": "work/discovery/final-kit-regression.log"
+      },
+      {
+        "suite": "page-design",
+        "exit": 0,
+        "passes": 4,
+        "seconds": 7.9,
+        "log": "work/discovery/final-page-design.log"
+      },
+      {
+        "suite": "kit",
+        "exit": 0,
+        "passes": 5,
+        "seconds": 84.2,
+        "log": "work/discovery/final-kit.log"
+      },
+      {
+        "suite": "hud",
+        "exit": 0,
+        "passes": 4,
+        "seconds": 52.8,
+        "log": "work/discovery/final-hud.log"
+      },
+      {
+        "suite": "polish",
+        "exit": 0,
+        "passes": 5,
+        "seconds": 48.8,
+        "log": "work/discovery/final-polish.log"
+      },
+      {
+        "suite": "standing",
+        "exit": 0,
+        "passes": 13,
+        "seconds": 17.4,
+        "log": "work/discovery/final-standing.log"
+      },
+      {
+        "suite": "presence",
+        "exit": 0,
+        "passes": 2,
+        "seconds": 4.2,
+        "log": "work/discovery/final-presence.log"
+      },
+      {
+        "suite": "discovery",
+        "exit": 0,
+        "passes": 6,
+        "seconds": 7.6,
+        "log": "work/discovery/final-discovery.log"
+      },
+      {
+        "suite": "discovery-inbox",
+        "exit": 0,
+        "passes": 2,
+        "seconds": 5.9,
+        "log": "work/discovery/final-discovery-inbox.log"
+      }
+    ],
+    "passed": 127,
+    "failedSuites": 0,
+    "priorFloor": 117,
+    "newFlows": 10,
+    "liveAICalls": 0
+  },
+  "served": {
+    "checkedAt": "2026-11-24T18:51:16.092199+00:00",
+    "commit": "a73626e378b4f72ee3f8422d865b532c35528fbc",
+    "method": "HTTPS source byte comparison; not a rendered browser/device acceptance",
+    "results": [
+      {
+        "path": "community.css",
+        "status": 200,
+        "expected": "4bb8a6a100be05fb27f475afef1b5ba7c28f4768050ee7e86aa2107687c2853f",
+        "served": "4bb8a6a100be05fb27f475afef1b5ba7c28f4768050ee7e86aa2107687c2853f",
+        "matches": true
+      },
+      {
+        "path": "kit.css",
+        "status": 200,
+        "expected": "b9826bb4e87e7638599668e14b0d23bfca824fb65b52a9c5a8f6234a7d34009a",
+        "served": "b9826bb4e87e7638599668e14b0d23bfca824fb65b52a9c5a8f6234a7d34009a",
+        "matches": true
+      },
+      {
+        "path": "sources.css",
+        "status": 200,
+        "expected": "28f7954ff61a1974d09ecf4471990af22073dd5ac4d175f69203bfb3b3a5ec60",
+        "served": "28f7954ff61a1974d09ecf4471990af22073dd5ac4d175f69203bfb3b3a5ec60",
+        "matches": true
+      },
+      {
+        "path": "src/access-store.js",
+        "status": 200,
+        "expected": "aaf3703dd2ec7aa19642a86b83f06158c9972e479672e196debb8ade12b243c5",
+        "served": "aaf3703dd2ec7aa19642a86b83f06158c9972e479672e196debb8ade12b243c5",
+        "matches": true
+      },
+      {
+        "path": "src/admission.js",
+        "status": 200,
+        "expected": "75100e73cb411235b3a3aee409bcde64ac0f5642eedc333f3d51654eca5506f1",
+        "served": "75100e73cb411235b3a3aee409bcde64ac0f5642eedc333f3d51654eca5506f1",
+        "matches": true
+      },
+      {
+        "path": "src/age-policy.js",
+        "status": 200,
+        "expected": "ec626e940a544f360857449bd718a0545ded332eb5da09c530cfeafb1de73cd6",
+        "served": "ec626e940a544f360857449bd718a0545ded332eb5da09c530cfeafb1de73cd6",
+        "matches": true
+      },
+      {
+        "path": "src/ai-proxy.js",
+        "status": 200,
+        "expected": "2d8b72b61203d512cb5c923960233ad7c4cead6558b8079f7914d2a9cb28f79a",
+        "served": "2d8b72b61203d512cb5c923960233ad7c4cead6558b8079f7914d2a9cb28f79a",
+        "matches": true
+      },
+      {
+        "path": "src/ai.js",
+        "status": 200,
+        "expected": "666ff2a285087bf5a6169a5f08f787ee863ee1ffb55f5cb79ce32970e99aeffe",
+        "served": "666ff2a285087bf5a6169a5f08f787ee863ee1ffb55f5cb79ce32970e99aeffe",
+        "matches": true
+      },
+      {
+        "path": "src/audience-data.js",
+        "status": 200,
+        "expected": "7891b3828c8a75b2337ddca749315b3c1447fc18253bfe4f178c062d32f9df66",
+        "served": "7891b3828c8a75b2337ddca749315b3c1447fc18253bfe4f178c062d32f9df66",
+        "matches": true
+      },
+      {
+        "path": "src/block-renderer.js",
+        "status": 200,
+        "expected": "c16a9076a87bb1d86d0d3eb7d9f42b613e69608ac01e8a1eacab22719e12a67f",
+        "served": "c16a9076a87bb1d86d0d3eb7d9f42b613e69608ac01e8a1eacab22719e12a67f",
+        "matches": true
+      },
+      {
+        "path": "src/build-ui.js",
+        "status": 200,
+        "expected": "28d1e988c18df79efdf8b11dd20b5db0dbb7c9f85c23c500b97e2c281e3fab70",
+        "served": "28d1e988c18df79efdf8b11dd20b5db0dbb7c9f85c23c500b97e2c281e3fab70",
+        "matches": true
+      },
+      {
+        "path": "src/community-data.js",
+        "status": 200,
+        "expected": "aa6adf2ac73591e8e53f0e5b41e7448dce154e4361fb2865791d05979406129d",
+        "served": "aa6adf2ac73591e8e53f0e5b41e7448dce154e4361fb2865791d05979406129d",
+        "matches": true
+      },
+      {
+        "path": "src/community-ui.js",
+        "status": 200,
+        "expected": "2b40abefc7376e61fae5fa7bf160941f0d60569fd32f0e378064cafe2a4498f0",
+        "served": "2b40abefc7376e61fae5fa7bf160941f0d60569fd32f0e378064cafe2a4498f0",
+        "matches": true
+      },
+      {
+        "path": "src/community-world.js",
+        "status": 200,
+        "expected": "314184b9a552118904b503c40fe9f2a04cce191fec5d720674b0494d3a5732f8",
+        "served": "314184b9a552118904b503c40fe9f2a04cce191fec5d720674b0494d3a5732f8",
+        "matches": true
+      },
+      {
+        "path": "src/connected-sources.js",
+        "status": 200,
+        "expected": "caedd9840e97c2328e64145f97b6c6bff8c3ee60fa3ce91fb62a6ed960d54849",
+        "served": "caedd9840e97c2328e64145f97b6c6bff8c3ee60fa3ce91fb62a6ed960d54849",
+        "matches": true
+      },
+      {
+        "path": "src/content-data.js",
+        "status": 200,
+        "expected": "c051d88b5c5a509832c26073c95819fb502a9664f44dd05eca6c9241d7c65751",
+        "served": "c051d88b5c5a509832c26073c95819fb502a9664f44dd05eca6c9241d7c65751",
+        "matches": true
+      },
+      {
+        "path": "src/content.js",
+        "status": 200,
+        "expected": "55fc7b3813ed577c5602a6d81303bb78d5c20d63425bc5587e762c69fc11908f",
+        "served": "55fc7b3813ed577c5602a6d81303bb78d5c20d63425bc5587e762c69fc11908f",
+        "matches": true
+      },
+      {
+        "path": "src/data.js",
+        "status": 200,
+        "expected": "13797913af464895e9dbbcdb729ceb42eaa0cab9b470d305be6ccc1f858c9cf3",
+        "served": "13797913af464895e9dbbcdb729ceb42eaa0cab9b470d305be6ccc1f858c9cf3",
+        "matches": true
+      },
+      {
+        "path": "src/discovery-answer.js",
+        "status": 200,
+        "expected": "e9db6e67c09d68a25d6558483cb5d325b30536ec09b40268355ceb52578c5be5",
+        "served": "e9db6e67c09d68a25d6558483cb5d325b30536ec09b40268355ceb52578c5be5",
+        "matches": true
+      },
+      {
+        "path": "src/discovery-index.js",
+        "status": 200,
+        "expected": "e25c66a3e7eb832a71fc459879350711a0e34719b6767c91f401e7de46001a8f",
+        "served": "e25c66a3e7eb832a71fc459879350711a0e34719b6767c91f401e7de46001a8f",
+        "matches": true
+      },
+      {
+        "path": "src/discovery-policy.js",
+        "status": 200,
+        "expected": "6b0794090261d6d5177c040eeeef098eb9287b293275dfaafea1768d0667e214",
+        "served": "6b0794090261d6d5177c040eeeef098eb9287b293275dfaafea1768d0667e214",
+        "matches": true
+      },
+      {
+        "path": "src/discovery-view.js",
+        "status": 200,
+        "expected": "e9e609b6c32200f2c3ed0d81f25eaef98b2846346f17b9cee66374b85ed0992a",
+        "served": "e9e609b6c32200f2c3ed0d81f25eaef98b2846346f17b9cee66374b85ed0992a",
+        "matches": true
+      },
+      {
+        "path": "src/discovery.js",
+        "status": 200,
+        "expected": "cc3aac324ac9fe85e04595ff3393397b88078888de99ae2d840c6ebc4dc483f8",
+        "served": "cc3aac324ac9fe85e04595ff3393397b88078888de99ae2d840c6ebc4dc483f8",
+        "matches": true
+      },
+      {
+        "path": "src/mock-gallery.json",
+        "status": 200,
+        "expected": "a78fb4247c25151a1ef65959dcc40c447d8cb594face4aa4bae70a13d563e45a",
+        "served": "a78fb4247c25151a1ef65959dcc40c447d8cb594face4aa4bae70a13d563e45a",
+        "matches": true
+      },
+      {
+        "path": "src/page.js",
+        "status": 200,
+        "expected": "6ea1acfc7283e0f7db53a994749dcc42d1e98a7b0c5f5fd46fa03a3b8de4cf17",
+        "served": "6ea1acfc7283e0f7db53a994749dcc42d1e98a7b0c5f5fd46fa03a3b8de4cf17",
+        "matches": true
+      },
+      {
+        "path": "src/presentation.js",
+        "status": 200,
+        "expected": "5f11dc6d60d0c92acc783266b2c05770bb875f979069d9e0149ac6de6d9ba310",
+        "served": "5f11dc6d60d0c92acc783266b2c05770bb875f979069d9e0149ac6de6d9ba310",
+        "matches": true
+      },
+      {
+        "path": "src/runtime.js",
+        "status": 200,
+        "expected": "7d81db6e7fb2d88ac191f8831e64eb998ed1df1b5a9b57ecdd20a5a6af34fb4e",
+        "served": "7d81db6e7fb2d88ac191f8831e64eb998ed1df1b5a9b57ecdd20a5a6af34fb4e",
+        "matches": true
+      },
+      {
+        "path": "src/source-catalog.js",
+        "status": 200,
+        "expected": "2c069febbc85c7acd2cc211b0faeb67327093bcdfa18f6fe674548b0e0c8af88",
+        "served": "2c069febbc85c7acd2cc211b0faeb67327093bcdfa18f6fe674548b0e0c8af88",
+        "matches": true
+      },
+      {
+        "path": "src/source-media.js",
+        "status": 200,
+        "expected": "d3642260ce9d894715a91982846b6cb0b29909e34fa0429ad19e31e5e6541a74",
+        "served": "d3642260ce9d894715a91982846b6cb0b29909e34fa0429ad19e31e5e6541a74",
+        "matches": true
+      },
+      {
+        "path": "src/source-mocks.js",
+        "status": 200,
+        "expected": "a6d7f88dd734e159c3aeed05792646433c4ab3293abfdb92a6af7453448c09c9",
+        "served": "a6d7f88dd734e159c3aeed05792646433c4ab3293abfdb92a6af7453448c09c9",
+        "matches": true
+      },
+      {
+        "path": "src/source-session.js",
+        "status": 200,
+        "expected": "0ee98d57870674b3f2f8a8d8e69b71e514739934f464f60c561bbb5399a5b674",
+        "served": "0ee98d57870674b3f2f8a8d8e69b71e514739934f464f60c561bbb5399a5b674",
+        "matches": true
+      },
+      {
+        "path": "src/sources-ui.js",
+        "status": 200,
+        "expected": "026803e72d43726f169e7726ade57ec8f58cad45b80460bda418445092c95a85",
+        "served": "026803e72d43726f169e7726ade57ec8f58cad45b80460bda418445092c95a85",
+        "matches": true
+      },
+      {
+        "path": "src/staff-ui.js",
+        "status": 200,
+        "expected": "c9ecc0ff7d1594da3e97a149efeba8ca576ec0ad991bc3eded6de73b8bef4ed2",
+        "served": "c9ecc0ff7d1594da3e97a149efeba8ca576ec0ad991bc3eded6de73b8bef4ed2",
+        "matches": true
+      },
+      {
+        "path": "src/staff.js",
+        "status": 200,
+        "expected": "2e1a561361ac45048f5a76ebc56719f7287544260b53d8f7179bdd860e868e48",
+        "served": "2e1a561361ac45048f5a76ebc56719f7287544260b53d8f7179bdd860e868e48",
+        "matches": true
+      },
+      {
+        "path": "src/standing-records.js",
+        "status": 200,
+        "expected": "643c611528f6a6aa23a64cd11819b6682dec47d184bbb256160e306fab652f35",
+        "served": "643c611528f6a6aa23a64cd11819b6682dec47d184bbb256160e306fab652f35",
+        "matches": true
+      },
+      {
+        "path": "src/standing-store.js",
+        "status": 200,
+        "expected": "6b377c9fd1e9d922fca4f385358ca7ea91f3cbf5b9ff1f75fded82abf9332f5d",
+        "served": "6b377c9fd1e9d922fca4f385358ca7ea91f3cbf5b9ff1f75fded82abf9332f5d",
+        "matches": true
+      },
+      {
+        "path": "src/travel-plan.js",
+        "status": 200,
+        "expected": "246e40234052f81b46284353a88d9f1810fb67688ad0572c4bad569c88f285c3",
+        "served": "246e40234052f81b46284353a88d9f1810fb67688ad0572c4bad569c88f285c3",
+        "matches": true
+      },
+      {
+        "path": "src/ui.js",
+        "status": 200,
+        "expected": "43e9a774ab44a1ec3ac49a7358cf7a0e0365db7d4b1d1f699092e2603ecead4f",
+        "served": "43e9a774ab44a1ec3ac49a7358cf7a0e0365db7d4b1d1f699092e2603ecead4f",
+        "matches": true
+      },
+      {
+        "path": "src/upload-client.js",
+        "status": 200,
+        "expected": "f00c089125255fc7c4b4a2da15954d0571bb27c577cee9067292beb1508fe0d7",
+        "served": "f00c089125255fc7c4b4a2da15954d0571bb27c577cee9067292beb1508fe0d7",
+        "matches": true
+      },
+      {
+        "path": "src/upload-scores.js",
+        "status": 200,
+        "expected": "694ff10f3654b3f25e774fadb1889b9368ca0235fb31809ce8e2fba0f9a9bf92",
+        "served": "694ff10f3654b3f25e774fadb1889b9368ca0235fb31809ce8e2fba0f9a9bf92",
+        "matches": true
+      },
+      {
+        "path": "src/world.js",
+        "status": 200,
+        "expected": "fc029e023e3c34bebae30d000227ced25855eebd2286dae88dea3c006708a695",
+        "served": "fc029e023e3c34bebae30d000227ced25855eebd2286dae88dea3c006708a695",
+        "matches": true
+      }
+    ]
+  },
+  "environment": {
+    "initialCheckUTC": "2026-11-24T17:57:08.301Z",
+    "supabaseAccessToken": "present; value never read into output",
+    "requiredHosts": {
+      "api.supabase.com": 404,
+      "ftnxmuenqfqkodizyekk.supabase.co": 404,
+      "zateslofl.github.io": 404
+    },
+    "afterToolReconnect": "presence and all three HTTPS results rechecked successfully"
+  },
+  "physicalPhone": "Partial; Nic through Silver",
+  "laneALiveActions": {
+    "migrations": 0,
+    "edgeDeployments": 0,
+    "providerCalls": 0
+  },
+  "limitations": [
+    "General catalog publication/vouch provenance is missing; sample board data remains labeled.",
+    "DeclaredDoorPrice contract and settlement remain reserved; supplied prices fail closed.",
+    "Discovery answers are local index quotations; the live exhibit validator is unchanged.",
+    "Account/guardian/real presence rails remain future work.",
+    "Hosted Chromium certificate trust prevented remote rendered verification; HTTPS source bytes were compared without bypassing it."
+  ]
+}
