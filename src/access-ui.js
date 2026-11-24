@@ -4,13 +4,14 @@ import {admissionPolicy} from './admission.js';
 import {permission,roomTitle,personId,SCOPES} from './permissions.js';
 import {verifyChain} from './ledger.js';
 import {esc} from './block-renderer.js';
+import {StandingUI} from './standing-ui.js';
 const options=(list,selected)=>list.map(([v,t])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(t)}</option>`).join('');
 export function readingDialog(){
  const root=document.createElement('section');root.className='access-overlay';root.hidden=true;root.innerHTML='<div class="access-sheet" role="dialog" aria-modal="true"><header><h2></h2><button data-dialog-close aria-label="Close panel">×</button></header><div class="access-content"></div></div>';document.body.append(root);
  return {content:root.querySelector('.access-content'),open(mode,sub,title){this.mode=mode;root.hidden=false;root.querySelector('h2').textContent=title;root.querySelector('[data-dialog-close]').onclick=()=>this.close();},close(){this.mode=null;root.hidden=true;},destroy(){root.remove();},toast(text){const p=document.createElement('p');p.className='reason';p.textContent=text;this.content.prepend(p);}};
 }
 export class AccessUI {
- constructor(ui,store,api){this.ui=ui;this.store=store;this.api=api;}
+ constructor(ui,store,api){this.ui=ui;this.store=store;this.api=api;this.standingUI=new StandingUI(ui,store,api);}
  async run(fn){try{await fn();await this.api.changed?.({preserveAccess:true});}catch(error){this.ui.toast(error.message);}}
  open(key){
   this.currentRoom=key;const room=ROOMS[key];if(!room)return;const lens=this.store.lens(this.api.state().lens),p=permission(room,lens);if(!p.visible&&!p.owner){this.ui.toast('No accessible room at that address.');return;}

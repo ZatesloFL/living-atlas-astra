@@ -8,21 +8,21 @@ export function setPreset(lens, name) {
   lens.preset=name; lens.limits=structuredClone(PRESETS[name].limits); lens.hard=structuredClone(PRESETS[name].hard);
 }
 export function effectiveIdentity(lens) {const a=accessSettings(lens);return {age:a.age,verified:a.verified};}
-export function contentScore(room,key) { return rating(room,key); }
+export function contentScore(room,key,lens={}) { return rating(room,key,null,lens); }
 export function crossing(edge,lens,rooms=ROOMS,inside=false) {
   const original=rooms[edge.to],target=original&&viewRoom(original,lens);
   if(!inside&&original){const chain=containingPlaces(edge.to,rooms,edge.host);if(!chain)return {state:'hidden',type:null,reasons:['Invalid containing path'],oddness:[]};for(const key of chain.slice(0,-1)){const parent=crossing({to:key,type:'door'},lens,rooms,true);if(parent.state==='hidden'||parent.state==='private'||parent.admission?.blocked)return {...parent,state:'hidden',type:null,reasons:['Containing Place is not admitted',...parent.reasons]};}}
   if(original?.versions?.length&&!selectVersion(original,lens))return {state:'hidden',type:null,reasons:['No audience version fits this lens'],oddness:[]};
   if(!target) return {state:'hidden',type:null,reasons:['Missing room'],oddness:[]};
   if(edge.reference&&edge.consent==='Source inclusion policy checked at use'&&(permission(target,lens).visibility!=='public'||(lens.access?.policies?.[target.id]?.embed??target.permissions?.embed)!=='anyone'))return {state:'hidden',type:null,reasons:['Source inclusion is unavailable'],oddness:[]};
-  if(DIMENSIONS.some(([key])=>!validPair(rating(target,key))))return {state:'hidden',type:null,reasons:['Invalid content scores'],oddness:[]};
+  if(DIMENSIONS.some(([key])=>!validPair(rating(target,key,null,lens))))return {state:'hidden',type:null,reasons:['Invalid content scores'],oddness:[]};
   const rights=permission(target,lens);if(!rights.visible)return {state:'hidden',type:null,reasons:['No grant to this hidden room'],oddness:[],rights};
   const identity=effectiveIdentity(lens),access=accessSettings(lens,target),admission=doorPolicy(target,lens);
   const reasons=[],over=[],oddness=[];
   if(identity.age<target.minAge) reasons.push(`Minimum age ${target.minAge}`);
   if(target.visibility==='verified-only'&&!identity.verified) reasons.push('Verified adults only');
   for(const [key,label] of DIMENSIONS)for(const axis of AXES) {
-    const effective=contentScore(target,key)[axis],hard=access.hard[key][axis],limit=access.limits[key][axis],declared=asPair(target.content?.[key])[axis],measured=asPair(target.measured?.[key])[axis];
+    const effective=contentScore(target,key,lens)[axis],hard=access.hard[key][axis],limit=access.limits[key][axis],declared=asPair(target.content?.[key])[axis],measured=asPair(target.measured?.[key])[axis];
     if(hard!==null&&effective>hard&&admission.mode!=='filtered') reasons.push(`${label} ${axis}: ${effective}, hard limit ${hard}`);
     if(effective>limit) over.push(`${label} ${axis}: ${effective}, your limit ${limit}`);
     if(measured>declared) oddness.push(`${label} ${axis} ${measured} (declared ${declared})`);

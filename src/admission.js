@@ -3,7 +3,13 @@
 import {DIMENSIONS} from './data.js';
 import {accessSettings} from './identity.js';
 import {AXES,DIALS,asPair,maxPair,validPair,exceeds,scoreText} from './scores.js';
-export const rating=(node,key,parent=null)=>maxPair(node?.content?.[key]??(parent?rating(parent,key):undefined),node?.measured?.[key]);
+import {standingState,targetRef,latestDeclaration,readingsFor} from './standing-records.js';
+import {visibilityOf} from './permissions.js';
+export function rating(node,key,parent=null,lens={}){
+ const ref=parent?targetRef(parent,node):targetRef(node??{}),state=standingState(lens),scope={publishedOnly:visibilityOf(parent??node??{},lens)==='public'},declaration=latestDeclaration(state,ref,scope),reading=readingsFor(state,ref,scope);
+ const declared=declaration?.scores[key]??node?.content?.[key]??(parent?rating(parent,key,null,lens):undefined);
+ return maxPair(maxPair(declared,node?.measured?.[key]),reading.steward?.[key]);
+}
 export function admissionPolicy(room,lens={}){
  const raw=lens.access?.policies?.[room.id]?.admission??room.admission;
  const declaredMinimum=Object.fromEntries(DIMENSIONS.map(([k])=>[k,asPair(raw?.minimum?.[k])])),measuredMinimum=Object.fromEntries(DIMENSIONS.map(([k])=>[k,maxPair(room.admission?.measuredMinimum?.[k],raw?.measuredMinimum?.[k])]));
@@ -12,7 +18,7 @@ export function admissionPolicy(room,lens={}){
 }
 export function doorPolicy(room,lens){
  const policy=admissionPolicy(room,lens),a=accessSettings(lens,room),unmet=DIALS.filter(([k,axis])=>a.limits[k][axis]<policy.minimum[k][axis]);
- return {...policy,unmet:unmet.map(([key,axis])=>({key,axis})),blocked:!policy.valid||policy.mode==='threshold'&&unmet.length>0,filtered:policy.mode==='filtered'&&(unmet.length>0||DIMENSIONS.some(([k])=>exceeds(rating(room,k),a.limits[k]))),canRaise:policy.valid&&unmet.every(([k,axis])=>policy.minimum[k][axis]<=(a.hard[k][axis]??3)),description:!policy.valid?'Entrance policy is invalid; entry is unavailable.':policy.mode==='filtered'?'Owner admits a visibly filtered view. Material above either Lens dial is withheld.':`Entrance threshold${policy.explicit?'':' · no additional minimum set'}${Object.values(policy.minimum).some(p=>AXES.some(a=>p[a]>0))?': '+DIMENSIONS.filter(([k])=>AXES.some(a=>policy.minimum[k][a]>0)).map(([k,label])=>label+' ≥ '+scoreText(policy.minimum[k])).join(' · '):'. Visitor previews still apply.'}`};
+ return {...policy,unmet:unmet.map(([key,axis])=>({key,axis})),blocked:!policy.valid||policy.mode==='threshold'&&unmet.length>0,filtered:policy.mode==='filtered'&&(unmet.length>0||DIMENSIONS.some(([k])=>exceeds(rating(room,k,null,lens),a.limits[k]))),canRaise:policy.valid&&unmet.every(([k,axis])=>policy.minimum[k][axis]<=(a.hard[k][axis]??3)),description:!policy.valid?'Entrance policy is invalid; entry is unavailable.':policy.mode==='filtered'?'Owner admits a visibly filtered view. Material above either Lens dial is withheld.':`Entrance threshold${policy.explicit?'':' · no additional minimum set'}${Object.values(policy.minimum).some(p=>AXES.some(a=>p[a]>0))?': '+DIMENSIONS.filter(([k])=>AXES.some(a=>policy.minimum[k][a]>0)).map(([k,label])=>label+' ≥ '+scoreText(policy.minimum[k])).join(' · '):'. Visitor previews still apply.'}`};
 }
 // Walk a containing chain without imposing the parent's score as a polish cap.
 // Each node has its own gate. A cycle or missing parent fails closed.

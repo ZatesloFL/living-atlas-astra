@@ -1,4 +1,5 @@
 import {kitHTML,bindKit} from './kit-ui.js';
+import {readingCard} from './standing-view.js';
 import {roomVisible} from './rules.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {layerSelection,mergedLayers,layerBlock,layerConsentKey} from './layers.js';
@@ -41,7 +42,7 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  case 'image':case 'video':case 'audio':case 'model':html+=media(block);break;
  default:html+=`<p>${esc(block.reps?.text??block.reps?.alt??'Content representation not yet available.')}</p>`;
  }
- return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">${html}${block.contribution?`<p class="contributor-credit">${block.contribution.merged?'Official contribution':'Integrated layer'} · ${esc(block.contribution.type)} · credited to ${esc(block.contribution.name)}</p>`:''}${sourceHTML(block)}</section>`;
+ return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">${html}${block.contribution?`<p class="contributor-credit">${block.contribution.merged?'Official contribution':'Integrated layer'} · ${esc(block.contribution.type)} · credited to ${esc(block.contribution.name)}</p>`:''}${sourceHTML(block)}${block.content&&!block.contribution?readingCard(room,lens,block):''}</section>`;
 }
 export function articleHTML(id,lens,options={}){
  const original=ROOMS[id],room=original&&viewRoom(original,lens);if(!room||room.visibility==='private'||!permission(room,lens).canLook)return '<p>Private space, something is here.</p>';if(!roomVisible(id,lens))return '<p>This room is outside your lens.</p>';

@@ -1,3 +1,4 @@
+import {readingCard,bindReadingLinks} from './standing-view.js';
 import {bindArrivalSurfaces} from './arrival-surfaces.js';
 import {DIALS,asPair,asHard,scoreText,exceeds,DIAL_HELP} from './scores.js';
 import {doorControls,bindDoorControls} from './door-controls.js';
@@ -13,7 +14,7 @@ import {contentStore,roomEntry} from './content.js';
 import {identityBadge,authorName,accessSettings,appliedPreset} from './identity.js';
 import {positions,mapTitles,layoutAtlasLabels} from './atlas-layout.js';
 import { ROOMS, EDGES, DISTRICTS, DIMENSIONS, PRESETS } from './data.js';
-import { visibleEdge, roomVisible, contentScore, setPreset } from './rules.js';
+import { visibleEdge, roomVisible, setPreset } from './rules.js';
 const $=id=>document.getElementById(id);
 export const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon={seamless:'≈',door:'∩',embedded:'◎',window:'▧'};
@@ -81,15 +82,16 @@ export class UI {
     if(r.visibility==='private'||!permission(r,this.api.state().lens).canLook){if(!permission(r,this.api.state().lens).visible){this.close();return;}this.open('info','Boundary','Private space');this.content.innerHTML=`<p>Private space, something is here.</p><p class="address">${escapeHTML(r.address)}</p><button id="boundary-access">Knock / manage access</button>`;$('boundary-access').onclick=()=>this.api.accessRoom(id);return;}
     if(!roomVisible(id,this.api.state().lens)){this.close();return;}
     this.open('info',DISTRICTS[r.district].name,r.title);
-    const authors=r.authors??[r.author];const chips=DIMENSIONS.filter(([k])=>exceeds(contentScore(r,k),0)).map(([k,t])=>`<span class="score-chip">${t} ${scoreText(contentScore(r,k))}${exceeds(r.measured[k],r.content[k])?` · declared ${scoreText(r.content[k])}`:''}</span>`).join('');
+    const authors=r.authors??[r.author];
     this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<span>${escapeHTML(authorName(a))}</span><span class="badge ${a.isAgent?'agent':''}">${escapeHTML(identityBadge(a))}</span>`).join('')}</div>${r.author.isAgent?`<p class="muted">Operated by a verified person: ${r.author.verifiedHuman?'yes':'no'}. Simulated identity.</p>`:''}
-      ${articleHTML(id,this.api.state().lens,{approved:this.api.state().approvedRooms?.includes(id),softApproved:this.softApproved})}<div class="chips">${chips||'<span class="score-chip">All six dimensions · 0</span>'}</div>
+      ${readingCard(r,this.api.state().lens)}${articleHTML(id,this.api.state().lens,{approved:this.api.state().approvedRooms?.includes(id),softApproved:this.softApproved})}
       ${id==='market'&&exceeds(r.measured.sensory,r.content.sensory)?`<p class="reason">Night Market reads louder than it says: Sensory ${scoreText(r.measured.sensory)}, declared ${scoreText(r.content.sensory)}.</p>`:''}
       <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions.substance]}</div><div class="info-box"><small>Style</small>${escapeHTML(styleLabel(r))}</div></div>
       <p class="muted">${r.forks.length?`${r.forks.length} seeded fork · `:''}Available now: 3D · this card · Page.<br>Ratings: ${r.district==='history'?'Academic: not reviewed. ':''}Author: sample account · Community: sample · No vouches.</p>
       ${experienceHTML(id,this.api.state().lens)}<button id="info-staff" class="secondary">Staff · helpers for this Place</button><button id="info-access" class="secondary">Access & room receipts</button><button id="info-page" class="secondary">Read in Page form</button><button id="info-close" class="primary">Back to the walk</button>`;
     bindExperience(this.content,id,this.api.state().lens,{peek:(room,layer)=>this.api.peekLayer(room,layer),changed:next=>{this.api.experienceChanged(next);this.info(id,true);},message:text=>this.toast(text)});
     $('info-staff').onclick=()=>this.api.staff(id);$('info-access').onclick=()=>this.api.accessRoom(id);$('info-close').onclick=()=>this.close();$('info-page').onclick=()=>this.api.openPage(id);
+    bindReadingLinks(this.content,ref=>this.api.readings(ref));
     bindArrivalSurfaces(this.content,r,this.api.state().lens,this.api.state().profiles?.arrivalRecords,{related:next=>this.api.readRoom(next)});
     bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:block=>{this.softApproved.add(block);this.info(id,true);}});if(preserve)this.content.scrollTop=oldScroll;
   }

@@ -32,11 +32,11 @@ const assert=require('node:assert/strict');
    const img=await p.locator('.article-hero-image img').boundingBox();assert.ok(Math.abs(img.width/img.height-720/440)<.01);
   });
   await check('Depth changes keep the visible paragraph anchored and an expanded transcript open',async()=>{
-   await depth('Standard');await p.locator('[data-block-id=film] details summary').click();await readAt('timeline');const before=await top('timeline');
+   await depth('Standard');await p.locator('[data-block-id=film] [data-kit] details summary').click();await readAt('timeline');const before=await top('timeline');
    await p.locator('#page-depth-quick').click();
    assert.match(await p.locator('#page-depth-quick').innerText(),/Deep/);
    assert.ok(Math.abs(await top('timeline')-before)<3,`timeline moved from ${before} to ${await top('timeline')}`);
-   assert.equal(await p.locator('[data-block-id=film] details').evaluate(e=>e.open),true);
+   assert.equal(await p.locator('[data-block-id=film] [data-kit] details').evaluate(e=>e.open),true);
    assert.equal(await p.evaluate(()=>document.activeElement.id),'page-depth-quick');
   });
   await check('Removing the current detail anchors the next readable block; sheet focus returns to its opener',async()=>{
