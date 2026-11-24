@@ -1,0 +1,5 @@
+{
+  "imports": { "postgres": "npm:postgres@4.1.1" },
+  "compilerOptions": { "checkJs": false, "strict": true },
+  "nodeModulesDir": "none"
+}
