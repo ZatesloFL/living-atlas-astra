@@ -2,13 +2,26 @@ import {ROOMS} from './data.js';
 import {graphEdges} from './navigation.js';
 import {visibleEdge} from './rules.js';
 import {permission,personId} from './permissions.js';
-export function planRoute(from,to,lens){
+export function planRoute(from,to,lens,{passable=()=>true}={}){
  if(!ROOMS[from]||!ROOMS[to]||!permission(ROOMS[to],lens).visible||visibleEdge({to,type:'seamless'},lens).state==='hidden')return null;if(from===to)return [];
  const queue=[from],seen=new Map([[from,null]]),edges=graphEdges();
  for(let i=0;i<queue.length;i++)for(const e of edges.filter(e=>e.from===queue[i])){
-  const gate=visibleEdge(e,lens);if(seen.has(e.to)||gate.state==='hidden'||gate.type==='window'&&!(e.to===to&&gate.rights?.canEnter))continue;
+  const gate=visibleEdge(e,lens);if(!passable(e,gate)||seen.has(e.to)||gate.state==='hidden'||gate.type==='window'&&!(e.to===to&&gate.rights?.canEnter))continue;
   seen.set(e.to,e);if(e.to===to){const result=[];for(let at=to;at!==from;){const edge=seen.get(at);result.unshift(edge);at=edge.from;}return result;}queue.push(e.to);
  }return null;
+}
+// One ordinary graph walk for a discovery result set, with the same edge evaluator.
+export function planRoutes(from,lens,{passable=()=>true}={}){
+ if(!ROOMS[from])return new Map();
+ const queue=[from],routes=new Map([[from,[]]]),edges=graphEdges();
+ for(let i=0;i<queue.length;i++)for(const edge of edges.filter(e=>e.from===queue[i])){
+  if(routes.has(edge.to))continue;
+  const gate=visibleEdge(edge,lens);
+  if(gate.state==='hidden'||!passable(edge,gate))continue;
+  routes.set(edge.to,[...routes.get(edge.from),edge]);
+  if(gate.type!=='window')queue.push(edge.to);
+ }
+ return routes;
 }
 export function travelPlan(from,target,lens,{confirmed=new Set(),invites=new Set(),route=planRoute(from,target,lens)}={}){
  if(!route)return {route:null,rows:[],ready:false};const rows=[];

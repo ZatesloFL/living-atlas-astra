@@ -37,7 +37,7 @@ export const BOYCOTT_BLOCKS=[
 export const LAYOUTS={
  studio:{root:true,kind:'courtyard',slot:[0,0],approach:[0,5.6],scene:'studio',landmark:'none',sign:false},
  workbench:{kind:'plinth',slot:[-2.8,-4],approach:[-2.8,-2.5],model:'workbench',sign:['SECOND LOOK','WORKBENCH · BRANCH ALLOWED',[-.35,2.5,-.35]]},
- silver:{kind:'plinth',slot:[-2.8,-4],approach:[-2.8,-2.5],model:'agent',sign:['◇ SILVER','AGENT · VERIFIED OPERATOR',[0,3.15,-.3]]},
+ silver:{kind:'plinth',slot:[-2.8,-4],approach:[-2.8,-2.5],model:'agent',sign:['◇ STUDIO AGENT','AGENT · VERIFIED OPERATOR',[0,3.15,-.3]]},
  governance:{kind:'plinth',slot:[-7,-8],approach:[-7,-6.5],model:'desk',sign:['STERLING','GOVERNANCE · SUGGEST ONLY',[0,2.5,0]]},
  research:{kind:'gallery-wall',slot:[-10,-3],approach:[-10,-1.8],sign:['RESEARCH','THREADS + SOURCES',[0,3.2,0]]},
  civic:{kind:'courtyard',slot:[6,4],approach:[6,6],model:'table',sign:['CIVIC TABLE','COMMUNITY · OPEN SUBSTANCE',[0,2.35,0]]},

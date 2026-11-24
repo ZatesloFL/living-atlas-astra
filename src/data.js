@@ -15,7 +15,7 @@ export const DISTRICTS = {
 const nic = { name: 'Nic', tier: 'verified', verifiedHuman: true, isAgent: false, identity:{display:'real',backing:'verified'} };
 const named = name => ({ name, tier: 'named', verifiedHuman: false, isAgent: false, identity:{display:'pseudonym',backing:'none'} });
 const anonymous = { name:'Anonymous contributor', tier:'anonymous', verifiedHuman:false, isAgent:false, identity:{display:'anonymous',backing:'none'} };
-const agent = { name:'Silver', tier:'agent', verifiedHuman:true, isAgent:true, identity:{display:'pseudonym',backing:'verified'} };
+const agent = { name:'Studio agent', tier:'agent', verifiedHuman:true, isAgent:true, identity:{display:'pseudonym',backing:'verified'} };
 function room(id, title, district, summary, extra = {}) {
   return { id, address:`tlh/${id}`, title, district, author:nic,
     substance:{summary, body:summary, claims:[]}, style:{preset:'Studio', palette:'dusk', shape:'pavilion', scale:1},
@@ -27,9 +27,9 @@ function room(id, title, district, summary, extra = {}) {
 const sample = (text, source) => ({summary:text,body:text,claims:[{text:'Sample content · source to verify',source}]});
 export const ROOMS = {
   studio:room('studio', "Nic’s Studio", 'makers', 'A small home for ideas in progress. Everything here has an author; every connection has a rule.'),
-  workbench:room('studio/workbench','Second Look workbench','makers','Agent setups, with a person in charge. Silver keeps the light on.',{
+  workbench:room('studio/workbench','Second Look workbench','makers','Agent setups, with a person in charge. The operator stays responsible.',{
     permissions:{substance:'branch',style:'open',embed:'approved'},forks:[{id:'dana-workbench',author:named('Dana (sample)'),basedOn:'workbench-original',substance:{summary:'A quieter workspace for a small team.'},style:{preset:'Gallery'},history:[]}]}),
-  silver:room('studio/silver','Silver','makers','An agent, operated by a verified person. Agents stay visible in every lens.',{author:agent}),
+  silver:room('studio/silver','Studio agent','makers','An agent, operated by a verified person. Agents stay visible in every lens.',{author:agent}),
   governance:room('studio/governance','Governance desk','makers','Sterling: approvals and receipts for human authority over AI agents.',{permissions:{substance:'suggest',style:'open',embed:'approved'}}),
   research:room('studio/research','Research wall','makers','Research threads, with their sources kept close.',{substance:sample('Research threads, with their sources kept close.','https://www.talgov.com/')}),
   lab:room('studio/lab','Lab bench','makers','Sixteen mesh nodes, one wave. Look through the observation window; this edge is view-only.',{content:scores({sensory:pair(1,1)}),measured:scores({sensory:pair(1,1)})}),

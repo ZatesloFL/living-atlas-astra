@@ -33,7 +33,7 @@ export class AccessStore {
  admission(key,policy,lens){return this.transaction(async()=>{
   this.owner(lens,key);const r=this.room(key),minimum=Object.fromEntries(DIMENSIONS.map(([k])=>[k,asPair(policy.minimum?.[k])]));
   if(!['threshold','filtered'].includes(policy.mode)||Object.values(minimum).some(p=>!validPair(p)))throw new Error('Choose a door mode and dimensions from 0 to 3.');
-  const admission={mode:policy.mode,minimum};this.data.policies[r.id]={...this.data.policies[r.id],admission};await this.record(key,lens,'admission_declared',admission);
+  const admission={...(this.data.policies[r.id]?.admission??r.admission??{}),mode:policy.mode,minimum};this.data.policies[r.id]={...this.data.policies[r.id],admission};await this.record(key,lens,'admission_declared',admission);
  });}
  raiseForVisit(key,limits,lens){return this.transaction(async()=>{
   if(lens.preview||lens.isAgent)throw new Error('A visitor must choose their own visit limits.');

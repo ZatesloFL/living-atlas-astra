@@ -1,14 +1,15 @@
-import {SEED_HELPERS,HELPER_NAMES} from './staff-data.js';
+import {scores,pair} from './scores.js';
+import {SEED_HELPERS,HELPER_NAMES,operator} from './staff-data.js';
 // Authored local simulation. No live presence, recommendations or calendar service.
 const author=(name,display='real',backing='verified',isAgent=false)=>({name,identity:{display,backing},isAgent,verifiedHuman:backing==='verified'});
 export const CURATORS=[
  {id:'editors',name:'Living Atlas editors',kind:'People',author:author('Living Atlas editors'),description:'Public places selected for a first visit.'},
  {id:'history-stewards',name:'History Quarter stewards',kind:'Group',author:author('History Quarter stewards'),description:'History reading paths and source-checking methods.'},
  {id:'neighbors',name:'Tallahassee neighbors',kind:'Credential group',credential:'tallahassee-resident',author:author('Tallahassee neighbors'),description:'Visible to simulated verified Tallahassee residents.'},
- ...['docent-silver','docent-guide','curator-studio'].map(id=>{const a=SEED_HELPERS.find(a=>a.id===id);return {id,name:a.name,kind:'Agent',author:author(a.name,'pseudonym','verified',true),description:'Local '+a.role+' at '+a.places[0]+' · operated by Nic (verified, simulated).'};})
+ ...['docent-silver','docent-guide','curator-studio'].map(id=>{const a=SEED_HELPERS.find(a=>a.id===id);return {id,name:a.name,kind:'Agent',author:{...author(a.name,'pseudonym','verified',true),operator:{...operator}},description:'Local '+a.role+' at '+a.places[0]+' · operated by Nic (verified, simulated).'};})
 ];
 export const TRAILS=[
- {id:'civil-rights',title:'Civil rights in Tallahassee',curator:'history-stewards',agentCredit:'docent-silver',intro:'Six stops: the boycott, the Capitol, then four explicitly virtual research stations. These placeholders make no claim to be historical event sites.',stops:[
+ {id:'civil-rights',content:scores({violence:pair(1,1),disturbing:pair(1,1),viewpoint:pair(1,1)}),title:'Civil rights in Tallahassee',curator:'history-stewards',agentCredit:'docent-silver',intro:'Six stops: the boycott, the Capitol, then four explicitly virtual research stations. These placeholders make no claim to be historical event sites.',stops:[
   {room:'boycott',intro:'Begin with the sample bus boycott exhibition. Read the source and media labels.'},
   {room:'capitol',intro:'Consider public institutions and public memory. No specific boycott event is claimed at this building.'},
   {room:'route-research',intro:'Placeholder: compare transport records. Research still to do.'},
@@ -16,9 +17,13 @@ export const TRAILS=[
   {room:'oral-archive',intro:'Placeholder: ask whose voices are represented and whether permission covers their reuse.'},
   {room:'legacy-notes',intro:'Placeholder: record disagreements, missing sources and questions for later research.'}
  ]},
- {id:'inside-studio',title:'Inside Nic’s studio',curator:'curator-studio',intro:'Four stops through work, governance, broadcasting and the observation window.',stops:[
+ {id:'inside-studio',content:scores({sensory:pair(1,1)}),title:'Inside Nic’s studio',curator:'curator-studio',intro:'Four stops through work, governance, broadcasting and the observation window.',stops:[
   {room:'workbench',intro:'Second Look: agent setups with a person in charge.'},{room:'governance',intro:'Read how permissions and receipts keep decisions accountable.'},{room:'broadcast',intro:'Visit the booth. Its nested listening room inherits the host rules.'},{room:'lab',intro:'Finish outside the lab window. This is a view-only stop; the trail never enters it.'}
  ]}
+];
+export const EVENTS=[
+ {id:'sample-tour',title:'A walk through the exhibition',intro:'A sample guided walk through the boycott exhibits.',room:'boycott',curator:'docent-silver',startsAfter:2*60000,duration:45*60000,content:scores({violence:pair(1,1),disturbing:pair(1,1),viewpoint:pair(1,1)})},
+ {id:'sample-table',title:'An open table for ideas',intro:'A sample open table in the civic hall.',room:'civic',curator:'editors',startsAfter:2*86400000,duration:3600000,content:scores()}
 ];
 export const PEOPLE=[
  {id:'visitor-river',name:'River (sample)',author:author('River (sample)','pseudonym','none'),room:'square',privacy:'everyone',groups:[],offset:[-2,2]},
@@ -30,6 +35,7 @@ export const PEOPLE=[
 ];
 export const BOARD_CARDS=[
  {id:'board-boycott',type:'room',target:'boycott',curator:'editors',title:'Explore the 1956 exhibition',rule:'A public exhibition for a first visit',vouches:5,age:2},
+ {id:'board-mara-boycott',type:'room',target:'boycott',curator:'docent-silver',title:'The boycott with '+HELPER_NAMES.Docent.boycott,rule:'The attached Docent’s own exhibition',vouches:1,age:2},
  {id:'board-civil',type:'trail',target:'civil-rights',curator:'history-stewards',title:'Civil rights in Tallahassee · 6 stops',rule:'A source-aware history trail',vouches:4,age:1},
  {id:'board-studio',type:'trail',target:'inside-studio',curator:'curator-studio',title:'Tour the studio with '+HELPER_NAMES.Curator.studio,rule:'An agent-curated introduction to the studio',vouches:3,age:3},
  {id:'board-event',type:'event',target:'sample-tour',curator:'editors',title:'A walk through the exhibition',rule:'An upcoming sample public event',vouches:2,age:0},

@@ -4,10 +4,11 @@ import {AXES,exceeds,validPair} from './scores.js';
 import {ROOMS,DIMENSIONS} from './data.js';
 import {accessSettings,identityOf} from './identity.js';
 import {contentScore,roomVisible,visibleEdge} from './rules.js';
-import {rating,admissionPolicy} from './admission.js';
+import {rating,admissionPolicy,doorPolicy} from './admission.js';
 const order={core:0,supporting:1,detail:2},depths={Glance:0,Standard:1,Deep:2};
 export function blockAccess(block,room,lens){
  const access=accessSettings(lens,room),hard=[],soft=[],display=displayDecision(standingState(lens),targetRef(room,block));
+ if(block.admission){const own=doorPolicy({...block,id:room.id+'#'+block.id},lens);if(own.blocked)hard.push(own.description);}
  for(const [key,label] of DIMENSIONS){const score=rating(block,key,room,lens);if(!validPair(score)){hard.push(label+' invalid score');soft.push(label+' invalid score');continue;}for(const axis of AXES){if(access.hard[key][axis]!==null&&score[axis]>access.hard[key][axis])hard.push(label+' '+axis);if(score[axis]>access.limits[key][axis])soft.push(label+' '+axis);}}
  return {hidden:hard.length>0,soft:soft.length>0,withheld:!!display?.excluded||admissionPolicy(room,lens).mode==='filtered'&&(hard.length>0||soft.length>0),displayExcluded:!!display?.excluded,displayBy:display?.published?display.name:'Place owner',reasons:hard.length?hard:soft};
 }
