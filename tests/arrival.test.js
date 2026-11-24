@@ -37,3 +37,24 @@ test('Source organization and proposal decisions are receipted durable records i
  const restored=new ArrivalRecords(()=>storage);await restored.ready;assert.equal(restored.data.archive[0].collection,'Reading');assert.equal(restored.data.proposals[0].editedBody,'My chosen notebook');assert((await verifyChain(restored.data.receipts)).valid);
  const profiles=new ProfileStore(()=>storage);await profiles.setup({...profile,display:'pseudonym',homePlaceId:draft.projection.rootPlaceId,arrivalId:i.id});await profiles.remove(profile.id);assert.equal(new ArrivalRecords(()=>storage).data.archive.length,1);
 });
+
+test('An existing profile claims its own starter once without replacing identity, preferences or old receipts',async()=>{
+ const storage=memory(),profiles=new ProfileStore(()=>storage),records=new ArrivalRecords(()=>storage);profiles.arrivalRecords=records;
+ await profiles.setup({name:'My visit',age:40,preset:'Teen',depth:'Deep',form:'3d',display:'pseudonym'});
+ profiles.preferences({...profiles.current(),stylePreset:'Gallery',acceptedLayers:['saved-layer'],discovery:{...profiles.current().discovery,pins:['boycott']}});
+ const before=structuredClone(profiles.active()),entries=structuredClone(profiles.entries),count=profiles.profiles.length;
+ const interview=await records.saveInterview({hobbies:'Reading'},before.id),draft=starterDraft({profile:before,interview});
+ const completion={...before,display:'pseudonym',homePlaceId:draft.projection.rootPlaceId,arrivalId:interview.id,depth:'Glance'};
+ await assert.rejects(profiles.setup(completion),/Claim this profile/);
+ await records.claimStarter(draft,before.id);await profiles.setup(completion);await profiles.setup(completion);
+ assert.equal(profiles.activeId,before.id);assert.equal(profiles.regularId,before.id);assert.equal(profiles.profiles.length,count);
+ for(const key of ['id','name','identity','age','stylePreset','acceptedLayers','discovery','limits','hard'])assert.deepEqual(profiles.active()[key],before[key],key);
+ assert.equal(profiles.active().depth,'Glance');assert.deepEqual(profiles.entries.slice(0,entries.length),entries);
+ assert.equal(profiles.entries.filter(e=>e.action==='profile_starter_attached').length,1);
+ const second=starterDraft({profile:before,interview:interviewRecord({},{holderId:before.id})});
+ await assert.rejects(records.claimStarter(second,before.id),/already has a starter/);
+ assert.equal(records.data.receipts.filter(e=>e.action==='starter_claimed_local').length,1);
+ const restored=new ProfileStore(()=>storage);await restored.ready;
+ assert.equal(restored.active().homePlaceId,draft.projection.rootPlaceId);assert.equal(restored.active().arrivalId,interview.id);
+ assert((await verifyChain(restored.entries)).valid);assert((await verifyChain(records.data.receipts)).valid);
+});

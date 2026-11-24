@@ -56,7 +56,16 @@ export class ProfileStore {
   async record(action,diff){return appendEntry(this.entries,this.activeId??'new-visitor',action,diff);}
   setup({id,name,age,preset,limits,hard,depth,form,display,homePlaceId,arrivalId}){return this.transact(async()=>{
     if(!Number.isInteger(age)||age<0||age>120)throw new Error('Enter an age from 0 to 120.');
-    if(id&&this.profiles.some(p=>p.id===id))return this.profiles.find(p=>p.id===id);
+    const existing=id&&this.profiles.find(p=>p.id===id);
+    if(existing){
+      if(!homePlaceId||existing.homePlaceId===homePlaceId)return existing;
+      const claimed=this.arrivalRecords?.starter(id);
+      if(homePlaceId!=='home/'+id||claimed?.projection.rootPlaceId!==homePlaceId||claimed.id!=='arrival-'+arrivalId)throw new Error('Claim this profile’s starter before attaching its home.');
+      await this.record('profile_starter_attached',{profile:id,homePlaceId,arrivalId});
+      Object.assign(existing,{homePlaceId,arrivalId});
+      for(const [key,value] of Object.entries({preset,limits,hard,depth,form}))if(value!==undefined)existing[key]=clone(value);
+      this.override=null;this.persist();return existing;
+    }
     const base=PRESETS[preset]??PRESETS.Teen;const p=makeProfile(name?.trim().slice(0,40)||'My visit',{...(id?{id}:{}),age,preset,limits:clone(limits??base.limits),hard:clone(hard??base.hard),depth,form,identity:{display,backing:'none'},...(homePlaceId?{homePlaceId,arrivalId}:{} )});
     await this.record('profile_created',{profile:p.id,name:p.name});await this.record('profile_switched',{from:this.activeId,to:p.id});
     this.profiles.push(p);this.activeId=this.regularId=p.id;this.completed=true;this.override=null;this.persist();return p;
