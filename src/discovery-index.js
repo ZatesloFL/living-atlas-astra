@@ -73,7 +73,7 @@ function communityEntry(type,node,places,lens) {
  return {...first,id:type+':'+node.id,type,target:node.id,title:node.title,summary:node.intro,node,view:room,community:true,
   ref:null,references:null,declaration:node.content,declarationSource:'authored community catalog',
   readings:{declared:node.content,steward:null,audience:null},facets:Object.fromEntries(Object.keys(FACETS).map(key=>[key,'unmeasured'])),
-  curator:node.curator,publishedAt:null,vouches:null,sourceBadge:node.sourceBadge??null,
+  curator:node.curator,curatorRecord:CURATORS.find(c=>c.id===node.curator),owner:{id:null,name:'Owner not supplied',presentation:'pseudonym'},publishedAt:null,vouches:null,sourceBadge:node.sourceBadge??null,
   softGaps:[...new Set([...targets.flatMap(t=>t.softGaps),...gapsFor(node,room,lens)])],
   doorTerms:[...new Map(targets.flatMap(t=>t.doorTerms).map(t=>[t.placeId,t])).values()]};
 }
@@ -104,9 +104,12 @@ export function catalogIndex(lens,{from='square',standing,now=Date.now()}={}) {
 }
 function carried(entry,lens) {
  const allowed=curatorsFor(lens);
- return BOARD_CARDS.filter(card=>card.type===entry.type&&card.target===entry.target).flatMap(card=>{
+ const carriers=BOARD_CARDS.filter(card=>card.type===entry.type&&card.target===entry.target).flatMap(card=>{
   const curator=allowed.find(c=>c.id===card.curator);return curator?[{...card,curatorRecord:curator}]:[];
  });
+ const curator=allowed.find(c=>c.id===entry.curator);
+ if(curator&&!carriers.some(c=>c.curator===curator.id))carriers.push({id:'curated:'+entry.id,type:entry.type,target:entry.target,title:entry.title,curator:curator.id,curatorRecord:curator,rule:`Curator credited in this authored ${entry.type} record`});
+ return carriers;
 }
 export function queryIndex(lens,query={},options={}) {
  const prefs=discoveryState(lens.discovery),sort=Object.hasOwn(SORTS,query.sort)?query.sort:prefs.sort;
@@ -129,9 +132,9 @@ export function queryIndex(lens,query={},options={}) {
    ...(entry.softGaps.length?['Shown with a soft gap; crossing still requires the ordinary door review.']:['Current crossing checks permit this result.']),
    `Order: ${SORTS[sort]}.`];
   const curated=(lens.access?.staffState?.proposals??[]).find(p=>p.status==='approved'&&Date.parse(p.publishedUntil)>Date.now()&&p.proposal.kind==='curation'&&matching.some(c=>p.proposal.cards.includes(c.id)));
-  results.push({...entry,...(card?{id:card.id,title:card.title,curator:card.curator,curatorRecord:card.curatorRecord,vouches:card.vouches,sampleVouches:true,sampleAge:card.age}:{}),
+  results.push({...entry,...(card?{id:card.id,title:card.title,curator:card.curator,curatorRecord:card.curatorRecord,vouches:card.vouches??null,sampleVouches:Number.isInteger(card.vouches),sampleAge:card.age}:{}),
    indexId:entry.id,carriers:matching,reasons,why:reasons.join(' '),curationReceipt:curated?`Helper curation approved by a person · ${curated.model}`:null,
-   orderPosition:Math.min(...matching.map(c=>BOARD_CARDS.findIndex(b=>b.id===c.id)),Infinity)});
+   orderPosition:Math.min(...matching.map(c=>{const index=BOARD_CARDS.findIndex(b=>b.id===c.id);return index<0?Infinity:index;}),Infinity)});
  }
  const compare=(a,b)=>sort==='newest'?(b.publishedAt??-Infinity)-(a.publishedAt??-Infinity)||((a.sampleAge??Infinity)-(b.sampleAge??Infinity)):
   sort==='vouched'?(b.vouches??-1)-(a.vouches??-1):sort==='nearest'?a.distance-b.distance:a.orderPosition-b.orderPosition;
