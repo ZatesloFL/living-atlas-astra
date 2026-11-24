@@ -3,6 +3,7 @@ import {validPair,scoreText} from './scores.js';
 import {createBrowserTransport,browserLocalReason} from './ai-proxy.js';
 import {localQuestionAnswer} from './docent-questions.js';
 import {UPLOAD_SCORE_SCHEMA,simulatedUploadScores,validateUploadScores} from './upload-scores.js';
+import {answerFromIndex,validateIndexAnswer} from './discovery-answer.js';
 export const PROPOSAL_SCHEMA={name:'atlas-crossing-proposal-v1',required:['kind','room','reason'],kinds:['answer','tour','note','score','curation','connection']};
 export function validateProposal(value,schema=PROPOSAL_SCHEMA){
  if(!value||typeof value!=='object'||Array.isArray(value)||schema.name!==PROPOSAL_SCHEMA.name)throw new Error('Invalid proposal schema');if(schema.required.some(k=>typeof value[k]!=='string')||!schema.kinds.includes(value.kind)||value.reason.length>2000)throw new Error('Malformed proposal');
@@ -11,7 +12,7 @@ export function validateProposal(value,schema=PROPOSAL_SCHEMA){
 }
 function simulated(context){const room=context.place.key,reason='Simulated proposal from scoped structured context; a person decides whether to use it.';
  switch(context.action){
- case 'answer':{if(!['overview','sources','rules'].includes(context.question))return {kind:'answer',room,reason:'Local excerpt lookup in the readable blocks; no conversation history is used.',...localQuestionAnswer(context)};const b=context.blocks.find(b=>b.type==='text'&&!/SAMPLE ARTICLE|TEXTBOOK SAMPLE/.test(b.body))??context.blocks[0];const text=context.question==='sources'?'The visible blocks and source pointers are sample material. Claims and archive matches remain to verify. '+(b?.body??'No readable block is in scope.'):context.question==='rules'?'This helper reads only the permitted Things in this Place. Its look grant allows it to propose answers and tours, not changes to the Place. A person decides whether to use them. Travel still checks every door and your hard limits.':b?.body??'No readable block is within the current grant and Lens. Confirm a preview or choose another Place.';return {kind:'answer',room,reason,text:String(text).slice(0,1400),citations:b?[b.id]:[]};}
+ case 'answer':{if(context.discovery)return {kind:'answer',room,reason:'Local index lookup. The first results in the visible ordering are quoted exactly; every door still applies.',...answerFromIndex(context)};if(!['overview','sources','rules'].includes(context.question))return {kind:'answer',room,reason:'Local excerpt lookup in the readable blocks; no conversation history is used.',...localQuestionAnswer(context)};const b=context.blocks.find(b=>b.type==='text'&&!/SAMPLE ARTICLE|TEXTBOOK SAMPLE/.test(b.body))??context.blocks[0];const text=context.question==='sources'?'The visible blocks and source pointers are sample material. Claims and archive matches remain to verify. '+(b?.body??'No readable block is in scope.'):context.question==='rules'?'This helper reads only the permitted Things in this Place. Its look grant allows it to propose answers and tours, not changes to the Place. A person decides whether to use them. Travel still checks every door and your hard limits.':b?.body??'No readable block is within the current grant and Lens. Confirm a preview or choose another Place.';return {kind:'answer',room,reason,text:String(text).slice(0,1400),citations:b?[b.id]:[]};}
  case 'tour':return {kind:'tour',room,reason,trail:context.availableTrails[0]??''};
  case 'note':return {kind:'note',room,reason:context.variant===1?'The gallery must not be mistaken for archival photography.':'The chronology is provisional and needs item-level primary evidence.',blockId:context.variant===1?'archive-image':'timeline',text:context.variant===1?'Sample clarification: these images are generated illustrations. No archive photograph, historical scene or rights clearance is asserted.':'Research note (sample): this timeline remains provisional. Compare each milestone with item-level records before changing its verification status.',sources:[{label:'Florida Memory · research starting point, item-level match pending',url:'https://www.floridamemory.com/',status:'to verify'}],version:'documentary'};
  case 'flag':return {kind:'score',room,reason:`Declared Sensory ${scoreText(context.declared.sensory)}; measured Sensory ${scoreText(context.measured.sensory)}. Propose matching the declaration to the measured value. The effective limit already uses the higher score.`,dimension:'sensory',declared:context.declared.sensory,measured:context.measured.sensory,value:context.measured.sensory};
@@ -21,7 +22,8 @@ function simulated(context){const room=context.place.key,reason='Simulated propo
  }
 }
 export function createAI({transport=null,localReason=browserLocalReason()}={}){
- const route=({job,agentId,context})=>transport?.eligible({job,agentId,context})?'live':context?.action!=='answer'?'action_local':context?.place?.key!=='boycott'?'place_local':agentId!=='docent-silver'?'helper_local':localReason??'preview_origin';
+ const eligible=request=>!request.context?.discovery&&transport?.eligible(request);
+ const route=({job,agentId,context})=>context?.discovery?'discovery_local':eligible({job,agentId,context})?'live':context?.action!=='answer'?'action_local':context?.place?.key!=='boycott'?'place_local':agentId!=='docent-silver'?'helper_local':localReason??'preview_origin';
  return {provider:transport?'proxy':'simulated',route,async request({job,context,schema=PROPOSAL_SCHEMA,agentId,signal,isCurrent=()=>true}){
  if(!['builder','guide','background','heavy'].includes(job)||typeof agentId!=='string'||!context?.place||!Array.isArray(context.blocks))throw new Error('Incomplete structured context');
  const snapshot=JSON.stringify(context),copy=structuredClone(context);
@@ -34,7 +36,7 @@ export function createAI({transport=null,localReason=browserLocalReason()}={}){
   return {proposal,model,agentId,receiptData:{provider:'simulated',job,model,agentId,result:'proposed'}};
  }
  let fallback=null;
- if(transport?.eligible({job,agentId,context:copy})){
+ if(eligible({job,agentId,context:copy})){
   try{const result=await transport.request({job,agentId,context:copy,signal});current();validateProposal(result.proposal,schema);
    if(result.agentId!==agentId||result.proposal.kind!=='answer'||result.proposal.room!==copy.place.key||result.proposal.citations.some(id=>!copy.blocks.some(b=>b.id===id))||typeof result.model!=='string'||result.model.length>200||typeof result.receiptData?.receiptId!=='string'||!/^[a-f0-9-]{36}$/.test(result.receiptData.receiptId))throw new Error('Invalid live proposal');
    const cited=copy.blocks.filter(b=>result.proposal.citations.includes(b.id));
@@ -42,7 +44,7 @@ export function createAI({transport=null,localReason=browserLocalReason()}={}){
    return {proposal:result.proposal,model:result.model,agentId,receiptData:{provider:'proxy',job,model:result.model,agentId,result:'proposed',receiptId:result.receiptData.receiptId}};
   }catch(error){current();transport.failed?.(error);fallback=error.code==='LIVE_LIMIT_REACHED'?'LIVE_LIMIT_REACHED':'LIVE_UNAVAILABLE';}
  }
- current();const proposal=simulated(copy);validateProposal(proposal,schema);
+ current();const proposal=simulated(copy);validateProposal(proposal,schema);if(copy.discovery)validateIndexAnswer(proposal,copy);
  return {proposal,model:'simulated-v1',agentId,receiptData:{provider:'simulated',job,model:'simulated-v1',agentId,result:'proposed',...(fallback?{fallbackReason:fallback,diagnostic:transport.diagnostics?.()??null}:{localReason:route({job,agentId,context:copy})})}};
 }};}
 export function provenanceLabel(data){

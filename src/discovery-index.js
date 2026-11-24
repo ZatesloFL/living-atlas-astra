@@ -83,7 +83,7 @@ export function catalogIndex(lens,{from='square',standing,now=Date.now()}={}) {
   for(const block of selectContent(entry.view,lens).blocks){
    if(block.filtered)continue;
    entries.push({...entry,...recordMetadata(block,entry.view,lens,standing),id:'thing:'+entry.view.id+':'+(entry.view.version?.id??'original')+':'+block.id,
-    type:'thing',target:block.id,node:block,title:block.title??block.label??`${entry.title} · ${block.type}`,summary:'',
+    type:'thing',target:block.id,node:block,title:block.title??block.label??`${entry.title} · ${block.id.replace(/[-_]/g,' ')}`,summary:'',
     // The card contains metadata only. A soft preview never discloses the Thing body.
     publishedAt:validTime(block.publishedAt),vouches:Number.isInteger(block.vouches)&&block.vouches>=0?block.vouches:null,
     softGaps:[...new Set([...entry.softGaps,...gapsFor(block,entry.view,lens)])],sourceBadge:block.sourceBadge??entry.sourceBadge,

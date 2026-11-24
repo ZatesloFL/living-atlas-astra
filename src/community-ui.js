@@ -1,19 +1,70 @@
+import {indexCard,queryControls,readQuery,curatorCredit} from './discovery-view.js';
+import {discoveryQuestionQuery} from './discovery-answer.js';
+import {provenanceLabel} from './ai.js';
 import {ROOMS} from './data.js';
 import {CURATORS,TRAILS} from './community-data.js';
 import {SORTS,curatorsFor,boardCards,visiblePeople,eventsFor,availableTrail,allowedClubs,reachable} from './discovery.js';
 import {esc} from './block-renderer.js';
 import {identityBadge} from './identity.js';
 export class CommunityUI {
- constructor(ui,discovery,api){if(!document.querySelector('[data-community-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href=new URL('../community.css',import.meta.url).href;link.dataset.communityStyle='';document.head.append(link);}this.ui=ui;this.discovery=discovery;this.api=api;}
+ constructor(ui,discovery,api){if(!document.querySelector('[data-community-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href=new URL('../community.css',import.meta.url).href;link.dataset.communityStyle='';document.head.append(link);}this.ui=ui;this.discovery=discovery;this.api=api;this.query={};this.pageLimit=12;}
  lens(){return this.discovery.lens();}
- open(section='board'){this.section=section;this.ui.open('community','Town Square · local simulation',section==='trail'?'Your trail':section==='people'?'People & presence':section==='events'?'Events':'Your front door');const p=this.discovery.prefs();
-  this.ui.content.innerHTML=`<nav class="community-tabs">${[['board','Noticeboard'],['trails','Trails'],['events','Events'],['people','People'],['clubs','Clubs'],['settings','Settings']].map(([id,title])=>`<button data-community="${id}" ${this.section===id?'aria-current="page"':''}>${title}</button>`).join('')}</nav><div id="community-body"></div>`;this.ui.content.querySelectorAll('[data-community]').forEach(b=>b.onclick=()=>this.open(b.dataset.community));this.body=this.ui.content.querySelector('#community-body');
-  if(section==='board')this.board();else if(section==='trails'||section==='trail')this.trails();else if(section==='events')this.events();else if(section==='people')this.people();else if(section==='clubs')this.clubs();else this.settings();
+ open(section='board'){this.pending?.abort();this.section=section;this.ui.open('community','Discovery · local catalog',section==='trail'?'Your trail':section==='people'?'People & presence':section==='events'?'Events':'Discover the Atlas');const p=this.discovery.prefs();
+  this.ui.content.innerHTML=`<nav class="community-tabs">${[['search','Search'],['board','Noticeboard'],['trails','Trails'],['events','Events'],['people','People'],['clubs','Clubs'],['settings','Settings']].map(([id,title])=>`<button data-community="${id}" ${this.section===id?'aria-current="page"':''}>${title}</button>`).join('')}</nav><div id="community-body"></div>`;this.ui.content.querySelectorAll('[data-community]').forEach(b=>b.onclick=()=>this.open(b.dataset.community));this.body=this.ui.content.querySelector('#community-body');
+  if(section==='board'||section==='search')this.board();else if(section==='trails'||section==='trail')this.trails();else if(section==='events')this.events();else if(section==='people')this.people();else if(section==='clubs')this.clubs();else this.settings();
  }
  run(fn){try{const r=fn();if(r?.catch)r.catch(e=>this.ui.toast(e.message));}catch(e){this.ui.toast(e.message);}}
- board(club=null){const lens=this.lens(),p=this.discovery.prefs(),curators=curatorsFor(lens),cards=boardCards(lens,{from:this.api.room?.()??'square',club});this.body.innerHTML=`<p>Choose the people, groups and agents that guide your visit.</p><details class="choose-curators"><summary>Choose curators · ${curators.filter(c=>p.curators.includes(c.id)).length} selected</summary>${curators.map(c=>`<label class="curator-choice"><input type="checkbox" data-curator="${c.id}" ${p.curators.includes(c.id)?'checked':''}><span><strong>${esc(c.name)}</strong><small>${esc(c.kind)} · ${esc(identityBadge(c.author))}</small></span></label>`).join('')}</details><label class="discovery-sort">Order<select id="board-sort">${Object.entries(SORTS).map(([id,label])=>`<option value="${id}" ${p.sort===id?'selected':''}>${label}</option>`).join('')}</select></label><p class="muted">${p.sort==='nearest'?'Nearest means the fewest graph connections from your current room. ':''}Vouches, people and events are simulated. No hidden ranking.</p><div class="discovery-cards">${cards.map(c=>`<article class="discovery-card"><span class="section-label">${c.type} · ${c.vouches} sample vouches</span><h3>${esc(c.title)}</h3><p class="curator-credit">By ${esc(c.curatorRecord.name)} · ${esc(identityBadge(c.curatorRecord.author))}${c.curationReceipt?'<br>'+esc(c.curationReceipt):''}</p><details><summary>Why this?</summary><p>${esc(c.why)}</p></details><button data-card="${c.id}">Explore →</button><button data-follow="${c.curator}">${p.followed.includes(c.curator)?'Following':'Follow curator'}</button></article>`).join('')||'<p>No cards match these curators and this order. Change your choices above.</p>'}</div>`;
-  this.body.querySelectorAll('[data-curator]').forEach(b=>b.onchange=()=>this.run(()=>{const chosen=new Set(p.curators);b.checked?chosen.add(b.dataset.curator):chosen.delete(b.dataset.curator);this.discovery.save({curators:[...chosen]});this.board(club);}));this.body.querySelector('#board-sort').onchange=e=>this.run(()=>{this.discovery.save({sort:e.target.value});this.board(club);});this.bindFollow(()=>this.board(club));
-  this.body.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>{const c=cards.find(c=>c.id===b.dataset.card);if(c.type==='room')this.go(c.target);else if(c.type==='trail'){this.selectedTrail=c.target;this.open('trails');}else if(c.type==='event')this.open('events');else if(c.type==='person')this.open('people');else this.api.layer?.(c.room,c.target);});
+ board(club=null){
+  this.pending?.abort();this.club=club;const lens=this.lens(),p=this.discovery.prefs(),curators=curatorsFor(lens),search=this.section==='search';
+  this.activeQuery={...this.query,...(!search?{board:club?.id??'noticeboard'}:{})};
+  const result=this.discovery.query(this.activeQuery,{from:this.api.room?.()??'square'}),cards=result.results;
+  this.body.innerHTML=`${queryControls(this.query)}<p id="discovery-query-error" role="status"></p>${search?'<p>Search the shared published catalog. Curator boards are available in Noticeboard.</p>':`<p>${club?esc(club.name)+' · ':''}Choose the people, groups and agents that guide your visit.</p><details class="choose-curators"><summary>Choose curators · ${curators.filter(c=>p.curators.includes(c.id)).length} selected</summary>${curators.map(c=>`<label class="curator-choice"><input type="checkbox" data-curator="${c.id}" ${p.curators.includes(c.id)?'checked':''}><span><strong>${esc(c.name)}</strong><small>${esc(c.kind)} · ${esc(identityBadge(c.author))}</small></span></label>`).join('')}</details>`}<label class="discovery-sort">Order · ${esc(result.sortLabel)}<select id="board-sort">${Object.entries(SORTS).map(([id,label])=>`<option value="${id}" ${p.sort===id?'selected':''}>${label}</option>`).join('')}</select></label><p class="muted">Nearest means graph connections from your current Place. Board vouches and relative publication order are samples. Missing publication dates and vouches stay missing and sort after supplied values. No hidden ranking.</p><div id="discovery-docent"></div><p class="index-count" role="status">${cards.length} results · Order: ${esc(result.sortLabel)}</p><div class="discovery-cards">${cards.slice(0,this.pageLimit).map(c=>indexCard(c,p)).join('')||'<p>No results match these choices and current door terms. Change your query, curators or Lens.</p>'}</div>${cards.length>this.pageLimit?'<button id="discovery-more">Show more results</button>':''}`;
+  this.body.querySelector('#discovery-search').onsubmit=e=>{e.preventDefault();try{const query=readQuery(this.body);this.discovery.query(query,{from:this.api.room?.()??'square'});this.query=query;this.pageLimit=12;this.board(club);}catch(error){this.body.querySelector('#discovery-query-error').textContent=error.message;}};
+  this.body.querySelector('#discovery-clear').onclick=()=>{this.query={};this.pageLimit=12;this.board(club);};
+  this.body.querySelectorAll('[data-curator]').forEach(b=>b.onchange=()=>this.run(()=>{const chosen=new Set(p.curators);b.checked?chosen.add(b.dataset.curator):chosen.delete(b.dataset.curator);this.discovery.save({curators:[...chosen]});this.board(club);}));
+  this.body.querySelector('#board-sort').onchange=e=>this.run(()=>{this.discovery.save({sort:e.target.value});this.board(club);});
+  this.body.querySelector('#discovery-more')?.addEventListener('click',()=>{this.pageLimit+=12;this.board(club);});
+  this.bindCards();this.askBox();
+ }
+ currentCard(id,query=this.activeQuery){return this.discovery.preview(id,query,{from:this.api.room?.()??'square'});}
+ bindCards(){
+  this.bindFollow(()=>this.board(this.club));
+  this.body.querySelectorAll('[data-card]').forEach(button=>button.onclick=()=>this.run(()=>this.preview(button.dataset.card)));
+  this.body.querySelectorAll('[data-index-enter]').forEach(button=>button.onclick=()=>this.run(()=>this.enterCard(this.currentCard(button.dataset.indexEnter))));
+  this.body.querySelectorAll('[data-index-reading]').forEach(button=>button.onclick=()=>this.api.readings?.(JSON.parse(button.dataset.indexReading)));
+  this.body.querySelectorAll('[data-index-knock]').forEach(button=>button.onclick=()=>this.run(async()=>{const card=this.currentCard(button.dataset.indexKnock);button.disabled=true;const request=await this.discovery.access.knock(card.room,this.lens());const receipt=this.discovery.access.data.ledgers[ROOMS[card.room].id].at(-1);button.textContent='Knock sent · awaiting owner';this.ui.toast('Knock recorded · '+receipt.hash.slice(0,12));return request;}));
+ }
+ preview(id,query=this.activeQuery){
+  this.pending?.abort();const card=this.currentCard(id,query);this.activeQuery=query;
+  this.body.innerHTML=`<button id="discovery-back">← Back to results</button><p class="index-preview-notice">Preview only · no grant issued, no visit recorded. ${card.type==='thing'?'This Thing is in '+esc(ROOMS[card.room].title)+'. Enter the Place to read it.':''}</p>${indexCard(card,this.discovery.prefs(),{preview:true})}`;
+  this.body.querySelector('#discovery-back').onclick=()=>this.board(this.club);this.bindCards();
+ }
+ enterCard(card){
+  if(card.type==='trail'){this.selectedTrail=card.target;this.open('trails');}
+  else if(card.type==='event')this.open('events');
+  else if(card.type==='person')this.open('people');
+  else if(card.type==='layer')this.api.layer?.(card.room,card.target);
+  else this.go(card.room);
+ }
+ async askBox(){
+  const host=this.body.querySelector('#discovery-docent'),staff=this.api.staff?.();if(!host||!staff)return;
+  await staff.ready;if(!host.isConnected)return;
+  const here=this.api.room?.()??'square';
+  const actor=staff.helpers().filter(a=>a.role==='Docent'&&a.declaredCapabilities.includes('answer')).sort((a,b)=>Number(b.places.includes(here))-Number(a.places.includes(here))).find(a=>{try{staff.check(a,a.places[0],'answer',this.lens());return true;}catch{return false;}});
+  if(!actor){host.innerHTML='<p>No available Docent grant in this view.</p>';return;}
+  host.innerHTML=`<details class="discovery-ask"><summary>Ask ${esc(actor.name)} about these results</summary><p>Agent · operated by ${esc(actor.operator.name)} · ${actor.operator.simulated?'simulation':'local profile'}. Local index lookup; the first matching results are quoted in the selected order. This does not use the live exhibit answer service.</p><div class="discovery-presets">${["What's here?","What's it like?","What fits my Lens?"].map(q=>`<button type="button" data-discovery-question="${esc(q)}">${esc(q)}</button>`).join('')}</div><form id="discovery-ask-form"><label>One question about the catalog<input id="discovery-question" maxlength="600" required placeholder="Where can I find the boycott?"></label><button type="submit">Ask ${esc(actor.name)}</button></form><div id="discovery-answer" aria-live="polite"></div></details>`;
+  const ask=question=>this.run(async()=>{
+   this.pending?.abort();const controller=new AbortController();this.pending=controller;
+   const target=host.querySelector('#discovery-answer'),query=discoveryQuestionQuery(question,this.activeQuery),from=this.api.room?.()??'square';
+   const current=()=>target.isConnected&&this.ui.mode==='community'&&this.pending===controller&&(this.api.room?.()??'square')===from;
+   target.textContent='Checking the current index…';
+   try{const record=await staff.request(actor.id,actor.places[0],'answer',this.lens(),{question,discovery:query,discoveryFrom:from},{signal:controller.signal,isCurrent:current,getLens:()=>this.lens()});
+    if(!current())return;target.innerHTML=`<p class="helper-provenance">${esc(provenanceLabel(record.provenance))} · index evidence</p><p class="index-answer-text">${esc(record.proposal.text)}</p>${record.proposal.citations.map(id=>`<button data-discovery-citation="${esc(id)}">Preview cited result</button>`).join('')}<p class="muted">Local proposal receipt · ${esc(record.id)}</p>`;
+    target.querySelectorAll('[data-discovery-citation]').forEach(button=>button.onclick=()=>this.run(()=>this.preview(button.dataset.discoveryCitation,query)));
+   }catch(error){if(current())target.textContent=error.name==='AbortError'?'The view changed. Ask again with the current Lens.':error.message;}
+  });
+  host.querySelector('#discovery-ask-form').onsubmit=e=>{e.preventDefault();ask(host.querySelector('#discovery-question').value);};
+  host.querySelectorAll('[data-discovery-question]').forEach(button=>button.onclick=()=>ask(button.dataset.discoveryQuestion));
  }
  go(id){this.ui.close();if(this.api.reading)this.api.page(id);else this.api.travel(id);}
  bindFollow(refresh){this.body.querySelectorAll('[data-follow]').forEach(b=>b.onclick=()=>this.run(()=>{this.discovery.follow(b.dataset.follow);refresh();}));}

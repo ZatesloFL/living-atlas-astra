@@ -12,6 +12,8 @@ export function allowedClubs(lens){return CLUBS.filter(c=>reachable(c.hall,lens)
 export class Discovery {
  constructor(profiles,access,api={}){if(!access.communitySaved){access.communitySaved=true;access.ready.then(valid=>{if(valid)access.persist();});}this.profiles=profiles;this.access=access;this.api=api;this.notified=new Set();}
  lens(){return this.api.lens?.()??this.access.lens(this.profiles.current());}
+ query(query={},options={}){return queryIndex(this.lens(),query,{standing:this.access.standing,...options});}
+ preview(id,query={},options={}){const card=this.query(query,options).results.find(c=>c.id===id||c.indexId===id);if(!card)throw new Error('This result no longer fits your current Lens or door terms.');return card;}
  prefs(){return discoveryState(this.lens().discovery);}
  save(changes){const lens=this.lens();if(lens.preview)throw new Error('Exit Preview as before changing discovery.');lens.discovery=discoveryState({...lens.discovery,...changes});this.profiles.preferences(lens);if(changes.privacy){for(const p of this.access.data.presence)if(p.person===personId(lens))p.privacy=changes.privacy;this.access.persist();}this.api.changed?.(lens);return lens.discovery;}
  follow(id){const p=this.prefs();this.save({followed:p.followed.includes(id)?p.followed.filter(x=>x!==id):[...p.followed,id]});}
