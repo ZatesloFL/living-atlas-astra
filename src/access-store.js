@@ -29,7 +29,7 @@ export class AccessStore {
  transaction(fn){const job=this.queue.then(async()=>{await this.ready;if(!this.valid)throw new Error('Room receipts failed verification. Preserved data cannot be changed.');const result=await fn();this.persist();return result;});this.queue=job.catch(()=>{});return job;}
  room(key){const r=ROOMS[key]??Object.values(ROOMS).find(r=>r.id===key);if(!r)throw new Error('Room not found');return r;}
  owner(lens,key){if(lens.preview)throw new Error('Exit Preview as before changing access.');if(lens.isAgent||!(key?permission(this.room(key),this.lens(lens)).owner:lens.playAs==='owner'))throw new Error('A person playing as owner must approve this action. Agents cannot approve.');}
- async record(room,lens,action,diff){const key=this.room(room).id;this.data.ledgers[key]??=[];return appendEntry(this.data.ledgers[key],personId(lens),action,diff);}
+ async record(room,lens,action,diff){const key=this.room(room).id;this.data.ledgers[key]??=[];const receipt=await appendEntry(this.data.ledgers[key],personId(lens),action,diff);await this.standing.observeReceipt(this.room(room),lens,receipt);return receipt;}
  admission(key,policy,lens){return this.transaction(async()=>{
   this.owner(lens,key);const r=this.room(key),minimum=Object.fromEntries(DIMENSIONS.map(([k])=>[k,asPair(policy.minimum?.[k])]));
   if(!['threshold','filtered'].includes(policy.mode)||Object.values(minimum).some(p=>!validPair(p)))throw new Error('Choose a door mode and dimensions from 0 to 3.');

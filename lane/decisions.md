@@ -180,3 +180,5 @@ One line per call the brief did not settle, with the reason.
 - 2026-11-24 / Standing re-measurement — Aggregate active independent Steward readings by per-dial maximum and audience readings by upper median of each person's latest reading. A positive audience gap of one dial step queues one pending review. A different Steward resolves a contested reading; supersession preserves the original receipt. The queue is local and explicitly awaiting a Steward.
 
 - 2026-11-24 / Builder standing — Keep the paired declaration on each authored Place and Thing and carry references to its exact declaration Receipt, measurement records and declaration-record reading. File the reference formats through Silver so Builder and lane A use one shared resolver.
+
+- 2026-11-24 / Standing phase 2 — Derive four independent facet readings from public receipts with a published 30-day half-life; never combine them into a number. Keep all real proxy validation failures in the helper record, deduplicate by receipt ID, and label the static snapshot. Private visit proof stays in the access ledger. Holder-controlled full browsing never changes the reading a door consumes.

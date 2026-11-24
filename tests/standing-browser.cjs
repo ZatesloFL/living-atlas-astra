@@ -32,6 +32,16 @@ const completeArrival=require('./arrival-setup.cjs');
    await page.reload();await page.waitForFunction(()=>window.__atlasPage);await setPerson('seed-verified');await openRecord();assert.equal(await page.locator('.standing-reading').count(),2);assert.match(await page.locator('.standing-history').innerText(),/Full record/);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   });
+  await check('the actor record has four facets and browsing permission is an explicit receipted choice',async()=>{
+   await page.locator('.access-overlay:visible [data-dialog-close]').click();await page.locator('#page-settings-open').click();await page.locator('#page-record').click();
+   assert.equal(await page.locator('[data-facet]').count(),4);assert.equal(await page.locator('#standing-browsable').isChecked(),false);await page.locator('#standing-browsable').check();await page.waitForFunction(()=>__atlasPage.access.data.standingState.receipts.some(e=>e.action==='record_browsing_changed'));
+   assert.equal(await page.locator('#standing-browsable').isChecked(),true);
+  });
+  await check('Mara offers her helper record with real accepted and rejected receipt evidence, without a live call',async()=>{
+   await page.locator('.access-overlay:visible [data-dialog-close]').click();await page.evaluate(()=>__atlasPage.visit('boycott'));for(let i=0;i<8&&await page.locator('[data-enter]').count();i++)await page.locator('[data-enter]').click();
+   await page.locator('#page-staff').click();await page.locator('[data-helper-record="docent-silver"]').click();await page.locator('.access-overlay:visible [data-facet=helper] summary').click();
+   assert.match(await page.locator('.access-overlay:visible [data-facet=helper]').innerText(),/provider_output_incomplete/);assert.match(await page.locator('.access-overlay:visible [data-facet=helper]').innerText(),/bcf259bd-95f3-4397-bc8c-f73ec7ae5428/);assert.equal(await page.locator('.access-overlay:visible [data-facet=helper] article').count(),28);
+  });
   assert.deepEqual(errors,[]);assert.deepEqual(calls,[]);console.log(JSON.stringify({passed,errors,liveCalls:calls.length}));
  }catch(error){console.error(await page.evaluate(()=>document.body.innerText.slice(-5000)));throw error;}finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
