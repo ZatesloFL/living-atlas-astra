@@ -1,0 +1,301 @@
+{
+  "implementation": "7000dce",
+  "nodeTests": 189,
+  "browserChecks": 104,
+  "suites": [
+    {
+      "suite": "staff-standing",
+      "exit": 0,
+      "passes": 3
+    },
+    {
+      "suite": "docent-asking",
+      "exit": 0,
+      "passes": 4
+    },
+    {
+      "suite": "live-docent",
+      "exit": 0,
+      "passes": 13
+    },
+    {
+      "suite": "interior",
+      "exit": 0,
+      "passes": 13
+    },
+    {
+      "suite": "interior-recovery",
+      "exit": 0,
+      "passes": 5
+    },
+    {
+      "suite": "page-reading",
+      "exit": 0,
+      "passes": 8
+    },
+    {
+      "suite": "docent-reliability",
+      "exit": 0,
+      "passes": 4
+    },
+    {
+      "suite": "fast-travel",
+      "exit": 0,
+      "passes": 5
+    },
+    {
+      "suite": "staff",
+      "exit": 0,
+      "passes": 4
+    },
+    {
+      "suite": "community",
+      "exit": 0,
+      "passes": 5
+    },
+    {
+      "suite": "render-budget",
+      "exit": 0,
+      "passes": 3
+    },
+    {
+      "suite": "arrival-doors",
+      "exit": 0,
+      "passes": 3
+    },
+    {
+      "suite": "arrival",
+      "exit": 0,
+      "passes": 7
+    },
+    {
+      "suite": "kit",
+      "exit": 0,
+      "passes": 5
+    },
+    {
+      "suite": "kit-regression",
+      "exit": 0,
+      "passes": 9
+    },
+    {
+      "suite": "page-design",
+      "exit": 0,
+      "passes": 4
+    },
+    {
+      "suite": "hud",
+      "exit": 0,
+      "passes": 4
+    },
+    {
+      "suite": "polish",
+      "exit": 0,
+      "passes": 5
+    },
+    {
+      "suite": "cold-walk",
+      "exit": 0,
+      "passes": 0
+    }
+  ],
+  "coldWalk": {
+    "url": "http://127.0.0.1:8006/",
+    "freshStorage": true,
+    "steps": [
+      {
+        "name": "1. Root \u2192 local profile setup",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "square",
+          "room": "square",
+          "fps": 2,
+          "drawCalls": 17,
+          "dpr": 1,
+          "triangles": 5666,
+          "position": {
+            "x": 0,
+            "z": 5.6
+          },
+          "reducedMotion": false
+        },
+        "prompt": ""
+      },
+      {
+        "name": "2. Interview \u2192 paired Lens \u2192 own starter with two rooms",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "home/7c3b8faa-ba12-4bf2-81a8-aa6eea11f330",
+          "room": "home/7c3b8faa-ba12-4bf2-81a8-aa6eea11f330",
+          "fps": 4,
+          "drawCalls": 18,
+          "dpr": 0.85,
+          "triangles": 1930,
+          "position": {
+            "x": 0,
+            "z": 7.5
+          },
+          "reducedMotion": false
+        },
+        "prompt": ""
+      },
+      {
+        "name": "3. Own Place portal \u2192 Town Square",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "square",
+          "room": "square",
+          "fps": 8,
+          "drawCalls": 24,
+          "dpr": 0.85,
+          "triangles": 10182,
+          "position": {
+            "x": 0,
+            "z": 6
+          },
+          "reducedMotion": false
+        },
+        "prompt": "\u2229 \u00a0 Town SquareTap to preview the crossing \u00a0 \u2197"
+      },
+      {
+        "name": "4. Walk left around the fountain to the Tallahassee portal",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "square",
+          "room": "square",
+          "fps": 8,
+          "drawCalls": 16,
+          "dpr": 0.85,
+          "triangles": 5666,
+          "position": {
+            "x": -6.650000000000001,
+            "z": -2.2250000000000014
+          },
+          "reducedMotion": false
+        },
+        "prompt": "\u2229 \u00a0 Welcome to Tallahassee\nTap to preview the crossing \u00a0 \u2197"
+      },
+      {
+        "name": "5. Confirm the History crossing and arrival",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "square",
+          "room": "square",
+          "fps": 8,
+          "drawCalls": 16,
+          "dpr": 0.85,
+          "triangles": 5666,
+          "position": {
+            "x": -6.650000000000001,
+            "z": -2.2250000000000014
+          },
+          "reducedMotion": false
+        },
+        "prompt": ""
+      },
+      {
+        "name": "6. Arrive in History Quarter",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "history",
+          "room": "tallahassee",
+          "fps": 7,
+          "drawCalls": 24,
+          "dpr": 0.85,
+          "triangles": 16504,
+          "position": {
+            "x": 0,
+            "z": 5.6
+          },
+          "reducedMotion": false
+        },
+        "prompt": "\u2248 \u00a0 Canopy roadsWalk through \u00b7 tap to read \u00a0 \u2197"
+      },
+      {
+        "name": "7. Walk right through the tree gap to the boycott hall door",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "history",
+          "room": "tallahassee",
+          "fps": 4,
+          "drawCalls": 18,
+          "dpr": 0.85,
+          "triangles": 9078,
+          "position": {
+            "x": 9.25571562661606,
+            "z": -0.3499920909964345
+          },
+          "reducedMotion": false
+        },
+        "prompt": "\u2229 \u00a0 Enter \u00b7 The 1956 bus boycott\nTap to preview the crossing \u00a0 \u2197"
+      },
+      {
+        "name": "8. Enter \u2192 review the hall doorway \u2192 Inside arrival",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "history",
+          "room": "tallahassee",
+          "fps": 4,
+          "drawCalls": 18,
+          "dpr": 0.85,
+          "triangles": 9078,
+          "position": {
+            "x": 9.274999283193699,
+            "z": -0.34999999970601947
+          },
+          "reducedMotion": false
+        },
+        "prompt": ""
+      },
+      {
+        "name": "9. Hall aisle, five exhibit bays",
+        "status": {
+          "mode": "3d",
+          "renderMode": "hdr",
+          "shadows": true,
+          "safe": false,
+          "scene": "hall:boycott",
+          "room": "boycott",
+          "fps": 2,
+          "drawCalls": 12,
+          "dpr": 0.85,
+          "triangles": 1628,
+          "position": {
+            "x": 0,
+            "z": 8.4
+          },
+          "reducedMotion": false
+        },
+        "prompt": "\u2229 \u00a0 Enter \u00b7 The 1956 bus boycottTap to preview the crossing \u00a0 \u2197"
+      }
+    ],
+    "errors": [],
+    "proxyRequests": 0,
+    "passed": true
+  },
+  "physicalDeviceAcceptance": "Not performed; Silver coordinates Nic\u2019s rundown."
+}
