@@ -1,0 +1,40 @@
+{
+  "commit": "831753f",
+  "attempts": [
+    {
+      "at": "2026-11-24T01:10:54.174485+00:00",
+      "files": [
+        {
+          "file": "src/page.js",
+          "status": 200,
+          "sha256": "19f1c15762fbea1eaa05f1278b9eecae6cf4181151906adf3c8c82ed1d6baa64",
+          "matches": false
+        },
+        {
+          "file": "page.css",
+          "status": 200,
+          "sha256": "0c82d34fd06a7c5303df37db4fc5bc8a22e8fbee9f5fe6263f3bbf6d2c850019",
+          "matches": false
+        }
+      ]
+    },
+    {
+      "at": "2026-11-24T01:11:09.801303+00:00",
+      "files": [
+        {
+          "file": "src/page.js",
+          "status": 200,
+          "sha256": "83bbd4f0c6c537700dde4e6ef7509cb6e601aba36f267459748d9e86266ac2c8",
+          "matches": true
+        },
+        {
+          "file": "page.css",
+          "status": 200,
+          "sha256": "6945acdf8f47ae4d379051931c155535b83c91b72658aa3a355565b73abf2a13",
+          "matches": true
+        }
+      ]
+    }
+  ],
+  "passed": true
+}
