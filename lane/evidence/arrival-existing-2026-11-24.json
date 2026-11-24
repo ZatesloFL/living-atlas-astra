@@ -1,0 +1,132 @@
+{
+  "recordedAt": "2026-11-24T20:38:41.007792+00:00",
+  "runtimeCommit": "07b3411d949732d5ce9f7ce118800228ab74cb51",
+  "scope": "Existing local profiles enter Arrival from Manage; synthetic profiles only.",
+  "environment": {
+    "supabaseAccessToken": "present; value never printed, logged or committed",
+    "httpsRoots": {
+      "api.supabase.com": {
+        "status": 404,
+        "reachable": true
+      },
+      "ftnxmuenqfqkodizyekk.supabase.co": {
+        "status": 404,
+        "reachable": true
+      },
+      "zateslofl.github.io": {
+        "status": 404,
+        "reachable": true
+      }
+    }
+  },
+  "node": {
+    "command": "npm test",
+    "passed": 250,
+    "failed": 0
+  },
+  "browsers": {
+    "environment": {
+      "browser": "local Chromium",
+      "playwrightModule": "/opt/codex/cua_node/lib/node_modules/playwright-core",
+      "baseUrl": "http://127.0.0.1:8008/",
+      "aiMode": "local"
+    },
+    "existing": {
+      "command": "node tests/arrival-existing-browser.cjs",
+      "viewport": {
+        "width": 412,
+        "height": 915
+      },
+      "passed": 5,
+      "checks": [
+        "An old My visit profile gets no automatic Arrival; Manage offers a dismissible invitation",
+        "The existing profile completes the same interview, Lens, proposal and starter claim path, landing at home",
+        "Your first rooms enters the Drive room through its door and retains the workshop link",
+        "Claimed profiles are not offered another starter, including after reload; other unclaimed profiles still are",
+        "An existing profile can choose Page during Arrival and reaches its own Drive there"
+      ],
+      "errors": [],
+      "liveCalls": 0,
+      "receiptEvidence": {
+        "syntheticProfileId": "7b091faa-d26b-4396-9a5e-d90185655ebe",
+        "home": "home/7b091faa-d26b-4396-9a5e-d90185655ebe",
+        "arrivalReceipts": [
+          {
+            "action": "interview_recorded",
+            "id": "arrival:765926975295302c3278a43ae5cef4406326efdf261c8862abf1a1f22e27fda2"
+          },
+          {
+            "action": "starter_proposals_offered",
+            "id": "arrival:ce03cbb27a123bd2bbcf7f8354939450d704678e81dfb82c222f4f38e379f4fa"
+          },
+          {
+            "action": "starter_proposal_decided",
+            "id": "arrival:7237760092535b44680275ce31f5be23b140f7e339e25da65c1310b970ae74a9"
+          },
+          {
+            "action": "starter_claimed_local",
+            "id": "arrival:ba7ca1d273f7734f567362cbb35d2f16f168728c3211805a72b96e7804184c95"
+          }
+        ],
+        "profileAttachment": "483922637b69181961fc05acccd3d1db0565a6813f2ca0865874aefd6c08c155"
+      },
+      "note": "Synthetic local profiles; physical phone appearance and fps are unverified."
+    },
+    "fresh": {
+      "command": "node tests/arrival-browser.cjs",
+      "checks": [
+        "See your space starts with questions; locality has no default and the Lens offers twelve independent dials",
+        "A light system proposal can be edited; public inclusion remains a reference; arrival ends inside an owned Place",
+        "Drive and workshop are reachable authored children with honest unsynced and unbacked states",
+        "Reload restores durable interview, sources and ownership without clearing site data",
+        "Cold arrival continues from the own Place to Town Square, the Quarter and the hall door with existing pre-flight",
+        "Page-only arrival walks the same four steps without Three.js and offers a scratch start",
+        "The reading template creates its own furnishing through the same shared registrar"
+      ],
+      "passed": 7,
+      "errors": [],
+      "liveCalls": 0
+    },
+    "initialNewTestAttempt": "Passed first three checks; reload explicitly selected Studio and opened a doorway over Manage. Test now closes that panel via UI. No crossing behavior changed; final complete run passed."
+  },
+  "servedSource": {
+    "checkedAt": "2026-11-24T20:37:42.083220+00:00",
+    "runtimeCommit": "07b3411d949732d5ce9f7ce118800228ab74cb51",
+    "files": [
+      {
+        "path": "src/profile-ui.js",
+        "httpStatus": 200,
+        "localSha256": "917ab9408c4e66d3ad4fa82289bb408b01551e4c2144b306bb4a34c3c6288970",
+        "servedSha256": "917ab9408c4e66d3ad4fa82289bb408b01551e4c2144b306bb4a34c3c6288970",
+        "matches": true
+      },
+      {
+        "path": "src/arrival-ui.js",
+        "httpStatus": 200,
+        "localSha256": "9ebd05161ed8488e48eaa3b5e1953befbd071b592922c64db1b8e70c050e6dbc",
+        "servedSha256": "9ebd05161ed8488e48eaa3b5e1953befbd071b592922c64db1b8e70c050e6dbc",
+        "matches": true
+      },
+      {
+        "path": "src/profiles.js",
+        "httpStatus": 200,
+        "localSha256": "b216ba989d9c601028c7de9ebb25962170b18d20c93ec8904aa842e542265241",
+        "servedSha256": "b216ba989d9c601028c7de9ebb25962170b18d20c93ec8904aa842e542265241",
+        "matches": true
+      }
+    ]
+  },
+  "liveActions": {
+    "repositoryPush": "07b3411d949732d5ce9f7ce118800228ab74cb51",
+    "readOnlyChecks": [
+      "HTTPS host reachability",
+      "Pages runtime file comparisons"
+    ],
+    "migrations": 0,
+    "edgeDeployments": 0,
+    "liveAiCalls": 0,
+    "accountActions": 0,
+    "uploads": 0
+  },
+  "physicalDevice": "Partial: Nic through Silver; no physical phone appearance, feel or fps claim."
+}
