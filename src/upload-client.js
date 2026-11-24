@@ -68,7 +68,7 @@ export async function imagePreview(file) {
 }
 
 export class UploadClient {
-  constructor({endpoint, getHolder, fetch: fetchImpl = globalThis.fetch, preview = imagePreview, enabled = () => true} = {}) {
+  constructor({endpoint, getHolder, fetch: fetchImpl = (...args) => globalThis.fetch(...args), preview = imagePreview, enabled = () => true} = {}) {
     this.endpoint = endpoint?.replace(/\/+$/, '');
     this.getHolder = getHolder;
     this.fetch = fetchImpl;

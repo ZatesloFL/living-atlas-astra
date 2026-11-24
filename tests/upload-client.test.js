@@ -6,6 +6,29 @@ const endpoint = 'https://example.test/functions/v1/atlas-sources';
 const holder = 'a'.repeat(64);
 const file = (text, name, type) => new File([text], name, {type});
 
+test('the default transport keeps the browser receiver for hosted source requests', async t => {
+  const actions = [];
+  t.mock.method(globalThis, 'fetch', async function (url) {
+    if (this !== globalThis) throw new TypeError('Illegal invocation');
+    const action = url.slice(endpoint.length + 1);
+    actions.push(action);
+    return action === 'media'
+      ? new Response('original', {headers:{'Content-Type':'image/jpeg'}})
+      : Response.json({usage:{allotmentBytes:1e9,usedBytes:0,reservedBytes:0}});
+  });
+  const client = new UploadClient({
+    endpoint,
+    getHolder: () => holder,
+    preview: async () => new Blob(['preview'], {type:'image/jpeg'}),
+  });
+
+  assert.equal((await client.list()).usage.allotmentBytes, 1e9);
+  await client.upload({placeId:'home/dev/drive', file:file('original','north.jpg','image/jpeg')});
+  assert.equal(await (await client.media('photo', 'original')).text(), 'original');
+  assert.equal((await client.remove('photo')).usage.usedBytes, 0);
+  assert.deepEqual(actions, ['list', 'upload', 'media', 'delete']);
+});
+
 test('upload client rejects video before getting a holder or making a request', async () => {
   const client = new UploadClient({
     endpoint,
