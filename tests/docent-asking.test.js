@@ -117,3 +117,18 @@ test('Real typed proxy captures replay through the unchanged client evidence val
   if(which==='unknown'){assert.equal(result.proposal.text,DONT_KNOW);assert.deepEqual(result.proposal.citations,[]);}else assert(result.proposal.citations.length);
  }
 });
+
+test('Six real file-19 captures retain accepted receipts, bounded accounting, and unchanged client grounding',async()=>{
+ const {readFile}=await import('node:fs/promises'),fixture=JSON.parse(await readFile(new URL('./fixtures/docent-proxy-live-reliability.json',import.meta.url),'utf8'));
+ assert.match(fixture.captureType,/real deployed proxy/);assert.equal(fixture.captures.length,6);const ids=new Set();
+ for(const [index,capture] of fixture.captures.entries()){
+  const {request,response,serverReceipt:r}=capture;assert.equal(capture.httpStatus,200);assert.equal(r.result,'accepted');assert.equal(r.failure_class,null);assert.equal(r.id,response.receiptData.receiptId);ids.add(r.id);
+  assert.equal(r.output_allowance,2048);assert.equal(r.lease_state,'completed');assert.equal(r.cost_basis,'measured');assert.equal(r.settled_microusd,r.cost_microusd);assert(r.reserved_microusd>=r.cost_microusd);assert(r.reasoning_tokens<=r.output_tokens);
+  assert.equal(request.context.question,index<5?'What bus service did residents boycott?':'What is the airspeed of a swallow?');
+  const {blocks}=prepare(request),context={place:{key:'boycott'},action:'answer',question:request.context.question,blocks};
+  const result=await createAI({transport:{eligible:()=>true,request:async()=>structuredClone(response)}}).request({job:'guide',agentId:'docent-silver',context});
+  assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');assert.equal(result.receiptData.receiptId,r.id);
+  if(index===5){assert.equal(result.proposal.text,DONT_KNOW);assert.deepEqual(result.proposal.citations,[]);}else assert(result.proposal.citations.length);
+ }
+ assert.equal(ids.size,6);
+});

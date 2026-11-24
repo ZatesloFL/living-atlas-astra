@@ -1,0 +1,258 @@
+{
+  "capturedAt": "2026-11-24T00:57:11Z",
+  "project": "ftnxmuenqfqkodizyekk",
+  "patchCommit": "8d1ed54",
+  "before": {
+    "routes": [
+      {
+        "enabled": true,
+        "model_id": "claude-haiku-5-5",
+        "provider": "anthropic",
+        "route_key": "background",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 6000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 1024,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 100000,
+        "output_microusd_per_million": 500000,
+        "cache_read_microusd_per_million": 10000,
+        "cache_write_microusd_per_million": 125000
+      },
+      {
+        "enabled": true,
+        "model_id": "claude-opus-5-5",
+        "provider": "anthropic",
+        "route_key": "builder",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 12000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 4096,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 4000000,
+        "output_microusd_per_million": 20000000,
+        "cache_read_microusd_per_million": 200000,
+        "cache_write_microusd_per_million": 5000000
+      },
+      {
+        "enabled": true,
+        "model_id": "gpt-6.1-sol",
+        "provider": "openai",
+        "route_key": "builder_challenger",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 12000,
+        "billing_contract": {
+          "api": "openai-responses",
+          "evidence_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 4096,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "input_microusd_per_million": 2000000,
+        "output_microusd_per_million": 10000000,
+        "cache_read_microusd_per_million": 100000,
+        "cache_write_microusd_per_million": 2500000
+      },
+      {
+        "enabled": true,
+        "model_id": "claude-haiku-5-5",
+        "provider": "anthropic",
+        "route_key": "guide",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 6000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 512,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 100000,
+        "output_microusd_per_million": 500000,
+        "cache_read_microusd_per_million": 10000,
+        "cache_write_microusd_per_million": 125000
+      },
+      {
+        "enabled": true,
+        "model_id": "claude-fable-5-2",
+        "provider": "anthropic",
+        "route_key": "heavy",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 12000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 4096,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 8000000,
+        "output_microusd_per_million": 40000000,
+        "cache_read_microusd_per_million": 200000,
+        "cache_write_microusd_per_million": 10000000
+      }
+    ],
+    "runtime": {
+      "id": true,
+      "enabled": true,
+      "revision": 2,
+      "expires_at": "2026-12-13T18:40:09.383073+00:00",
+      "public_origin": "https://zateslofl.github.io",
+      "public_day_calls": 100,
+      "new_holders_per_day": 100,
+      "public_day_microusd": 1000000,
+      "all_jobs_day_microusd": 10000000,
+      "provider_month_microusd": 20000000
+    }
+  },
+  "after": {
+    "routes": [
+      {
+        "enabled": true,
+        "model_id": "claude-haiku-5-5",
+        "provider": "anthropic",
+        "route_key": "background",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 6000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 1024,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 100000,
+        "output_microusd_per_million": 500000,
+        "cache_read_microusd_per_million": 10000,
+        "cache_write_microusd_per_million": 125000
+      },
+      {
+        "enabled": true,
+        "model_id": "claude-opus-5-5",
+        "provider": "anthropic",
+        "route_key": "builder",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 12000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 4096,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 4000000,
+        "output_microusd_per_million": 20000000,
+        "cache_read_microusd_per_million": 200000,
+        "cache_write_microusd_per_million": 5000000
+      },
+      {
+        "enabled": true,
+        "model_id": "gpt-6.1-sol",
+        "provider": "openai",
+        "route_key": "builder_challenger",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 12000,
+        "billing_contract": {
+          "api": "openai-responses",
+          "evidence_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 4096,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "input_microusd_per_million": 2000000,
+        "output_microusd_per_million": 10000000,
+        "cache_read_microusd_per_million": 100000,
+        "cache_write_microusd_per_million": 2500000
+      },
+      {
+        "enabled": true,
+        "model_id": "claude-haiku-5-5",
+        "provider": "anthropic",
+        "route_key": "guide",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 6000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 2048,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 100000,
+        "output_microusd_per_million": 500000,
+        "cache_read_microusd_per_million": 10000,
+        "cache_write_microusd_per_million": 125000
+      },
+      {
+        "enabled": true,
+        "model_id": "claude-fable-5-2",
+        "provider": "anthropic",
+        "route_key": "heavy",
+        "expires_at": "2026-12-13T18:40:09.383073+00:00",
+        "input_token_cap": 12000,
+        "billing_contract": {
+          "api": "anthropic-messages",
+          "evidence_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+          "overhead_tokens": 50,
+          "input_tokens_per_byte": 1,
+          "output_includes_reasoning": true
+        },
+        "output_token_cap": 4096,
+        "model_verified_at": "2026-11-13T18:59:22.596615+00:00",
+        "pricing_source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+        "input_microusd_per_million": 8000000,
+        "output_microusd_per_million": 40000000,
+        "cache_read_microusd_per_million": 200000,
+        "cache_write_microusd_per_million": 10000000
+      }
+    ],
+    "runtime": {
+      "id": true,
+      "enabled": true,
+      "revision": 2,
+      "expires_at": "2026-12-13T18:40:09.383073+00:00",
+      "public_origin": "https://zateslofl.github.io",
+      "public_day_calls": 100,
+      "new_holders_per_day": 100,
+      "public_day_microusd": 1000000,
+      "all_jobs_day_microusd": 10000000,
+      "provider_month_microusd": 20000000
+    }
+  },
+  "onlyExpectedChange": true
+}

@@ -1,0 +1,79 @@
+{
+  "nodeFull": {
+    "passed": 171,
+    "failed": 0
+  },
+  "subsequentAskingAndCapture": {
+    "passed": 11,
+    "failed": 0
+  },
+  "distinctNodeTests": 172,
+  "browserRegressions": [
+    {
+      "suite": "staff-standing",
+      "exit": 0,
+      "passed": 3,
+      "errors": [],
+      "liveCalls": 0
+    },
+    {
+      "suite": "staff",
+      "exit": 0,
+      "passed": 4,
+      "errors": []
+    },
+    {
+      "suite": "docent-asking",
+      "exit": 0,
+      "passed": 4,
+      "liveCalls": 0
+    },
+    {
+      "suite": "live-docent",
+      "exit": 0,
+      "passed": 13,
+      "liveCalls": 0
+    },
+    {
+      "suite": "interior",
+      "exit": 0,
+      "passed": 13,
+      "errors": []
+    },
+    {
+      "suite": "interior-recovery",
+      "exit": 0,
+      "passed": 5,
+      "errors": []
+    },
+    {
+      "suite": "page-reading",
+      "exit": 0,
+      "passed": 8,
+      "errors": [],
+      "externalRequests": 0
+    },
+    {
+      "suite": "community",
+      "exit": 0,
+      "passed": 5,
+      "errors": []
+    },
+    {
+      "suite": "render-budget",
+      "exit": 0,
+      "passed": 3
+    }
+  ],
+  "staffSelection": {
+    "passed": 4,
+    "errors": []
+  },
+  "coldWalk": {
+    "passed": true,
+    "freshRootNoQuery": true,
+    "testHooks": false,
+    "placesList": false,
+    "liveCalls": 0
+  }
+}

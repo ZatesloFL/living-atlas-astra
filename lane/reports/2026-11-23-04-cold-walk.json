@@ -1,0 +1,177 @@
+{
+  "url": "http://127.0.0.1:8005/",
+  "freshStorage": true,
+  "steps": [
+    {
+      "name": "1. Root → local profile setup",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "square",
+        "room": "square",
+        "fps": 2,
+        "drawCalls": 17,
+        "dpr": 1,
+        "triangles": 5666,
+        "position": {
+          "x": 0,
+          "z": 5.6
+        },
+        "reducedMotion": false
+      },
+      "prompt": ""
+    },
+    {
+      "name": "2. Save profile → Town Square",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "square",
+        "room": "square",
+        "fps": 1,
+        "drawCalls": 18,
+        "dpr": 0.85,
+        "triangles": 5702,
+        "position": {
+          "x": 0,
+          "z": 6
+        },
+        "reducedMotion": false
+      },
+      "prompt": ""
+    },
+    {
+      "name": "3. Walk left around the fountain to the Tallahassee portal",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "square",
+        "room": "square",
+        "fps": 5,
+        "drawCalls": 16,
+        "dpr": 0.85,
+        "triangles": 5666,
+        "position": {
+          "x": -6.650000000000001,
+          "z": -2.2250000000000014
+        },
+        "reducedMotion": false
+      },
+      "prompt": "∩   Welcome to Tallahassee\nTap to preview the crossing   ↗"
+    },
+    {
+      "name": "4. Confirm the History crossing and arrival",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "square",
+        "room": "square",
+        "fps": 5,
+        "drawCalls": 16,
+        "dpr": 0.85,
+        "triangles": 5666,
+        "position": {
+          "x": -6.650000000000001,
+          "z": -2.2250000000000014
+        },
+        "reducedMotion": false
+      },
+      "prompt": ""
+    },
+    {
+      "name": "5. Arrive in History Quarter",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "history",
+        "room": "tallahassee",
+        "fps": 1,
+        "drawCalls": 18,
+        "dpr": 0.85,
+        "triangles": 9078,
+        "position": {
+          "x": 0,
+          "z": 5.6
+        },
+        "reducedMotion": false
+      },
+      "prompt": "≈   Canopy roadsWalk through · tap to read   ↗"
+    },
+    {
+      "name": "6. Walk right through the tree gap to the boycott hall door",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "history",
+        "room": "tallahassee",
+        "fps": 2,
+        "drawCalls": 18,
+        "dpr": 0.85,
+        "triangles": 9078,
+        "position": {
+          "x": 9.239861576575406,
+          "z": -0.3499737411834207
+        },
+        "reducedMotion": false
+      },
+      "prompt": "∩   Enter · The 1956 bus boycott\nTap to preview the crossing   ↗"
+    },
+    {
+      "name": "7. Enter → review the hall doorway → Inside arrival",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "history",
+        "room": "tallahassee",
+        "fps": 3,
+        "drawCalls": 18,
+        "dpr": 0.85,
+        "triangles": 9078,
+        "position": {
+          "x": 9.27499762011898,
+          "z": -0.34999999822152283
+        },
+        "reducedMotion": false
+      },
+      "prompt": ""
+    },
+    {
+      "name": "8. Hall aisle, five exhibit bays",
+      "status": {
+        "mode": "3d",
+        "renderMode": "hdr",
+        "shadows": true,
+        "safe": false,
+        "scene": "hall:boycott",
+        "room": "boycott",
+        "fps": 1,
+        "drawCalls": 12,
+        "dpr": 0.85,
+        "triangles": 1628,
+        "position": {
+          "x": 0,
+          "z": 8.4
+        },
+        "reducedMotion": false
+      },
+      "prompt": "∩   Enter · The 1956 bus boycottTap to preview the crossing   ↗"
+    }
+  ],
+  "errors": [],
+  "proxyRequests": 0,
+  "passed": true
+}
