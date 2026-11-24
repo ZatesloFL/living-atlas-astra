@@ -31,7 +31,7 @@ export const PEOPLE=[
  {id:'visitor-neighbor',name:'Tallahassee neighbor (sample)',author:author('Tallahassee neighbor (sample)'),room:'square',privacy:'groups',groups:['tallahassee-resident'],offset:[2,3]},
  {id:'visitor-anon',name:'Anonymous reader (sample)',author:author('Anonymous reader (sample)','anonymous','none'),room:'capitol',privacy:'everyone',groups:[],offset:[-4,4]},
  {id:'visitor-private',name:'Quiet visitor (sample)',author:author('Quiet visitor (sample)','pseudonym','none'),room:'writing',privacy:'nobody',groups:['writing-circle'],offset:[1,2]},
- {id:'docent-guide',name:HELPER_NAMES.Docent.guide,author:author(HELPER_NAMES.Docent.guide,'pseudonym','verified',true),room:'guide',privacy:'everyone',groups:[],offset:[1,1]}
+ {id:'docent-guide',name:HELPER_NAMES.Docent.guide,author:{...author(HELPER_NAMES.Docent.guide,'pseudonym','verified',true),operator:{...operator}},room:'guide',privacy:'everyone',groups:[],offset:[1,1]}
 ];
 export const BOARD_CARDS=[
  {id:'board-boycott',type:'room',target:'boycott',curator:'editors',title:'Explore the 1956 exhibition',rule:'A public exhibition for a first visit',vouches:5,age:2},

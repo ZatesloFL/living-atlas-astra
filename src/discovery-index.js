@@ -98,7 +98,9 @@ export function catalogIndex(lens,{from='square',standing,now=Date.now()}={}) {
   const node=card.type==='layer'?ROOMS[card.room]?.layers?.find(l=>l.id===card.target):visiblePeople(lens,{located:true}).find(p=>p.id===card.target);
   const room=card.room??node?.room,entry=places.get(room);
   if(!entry||!node||card.type==='layer'&&!layerAccess(entry.view,node,lens).visible)continue;
-  entries.push({...entry,id:card.type+':'+card.target,type:card.type,target:card.target,title:card.title,node,metadataFrom:'Venue declaration and readings'});
+  const metadata=card.type==='layer'?{ref:null,references:null,declaration:node.content,readings:{declared:node.content,steward:null,audience:null},facets:Object.fromEntries(Object.keys(FACETS).map(key=>[key,'unmeasured'])),metadataFrom:'Layer declaration · layer readings unmeasured',softGaps:[...new Set([...entry.softGaps,...gapsFor(node,entry.view,lens)])]}:
+   {metadataFrom:'Venue declaration and readings · facets refer to the presented person',facets:standing?readingSummary(standing.actorRecord(node.id,lens,{place:room,...(node.author.isAgent?{helperId:node.id}:{})})):Object.fromEntries(Object.keys(FACETS).map(key=>[key,null]))};
+  entries.push({...entry,...metadata,id:card.type+':'+card.target,type:card.type,target:card.target,title:card.title,node});
  }
  return entries;
 }
