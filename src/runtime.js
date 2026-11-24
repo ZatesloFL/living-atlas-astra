@@ -171,7 +171,7 @@ function landArrival(arrival,route,confirmed){
  stopMedia();world.dispose();world=next;kind=arrival.scene;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.teleport(...arrival.position,arrival.facing);place=arrival.contextRoom?null:{id:arrival.room,scene:kind,x:arrival.position[0],z:arrival.position[1]};near=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);ui.prompt(near);ui.fadeTitle();
 }
 discovery=new Discovery(profiles,access,{lens:()=>lens,changed:()=>{lens=currentLens();world.lens=lens;},waypoint:setWaypoint,clearWaypoint:()=>{waypoint=null;updateWaypoint();},message:(t)=>ui.toast(t)});
-communityUI=new CommunityUI(ui,discovery,{staff:()=>staff,readings:ref=>accessUI.standingUI.open(ref),room:()=>context.room,travel:startTravel,waypoint:setWaypoint,page:openPage,layer:(room,id)=>layerUI.peek(room,id),reminders:refreshReminders});
+communityUI=new CommunityUI(ui,discovery,{inbox:()=>staffUI.inbox(),staff:()=>staff,readings:ref=>accessUI.standingUI.open(ref),room:()=>context.room,travel:startTravel,waypoint:setWaypoint,page:openPage,layer:(room,id)=>layerUI.peek(room,id),reminders:refreshReminders});
 staffUI=new StaffUI(ui,staff,{discovery:()=>communityUI.open('search'),lens:()=>lens,room:()=>context.room,changed:refreshAccess,receipts:id=>accessUI.open(id),trail:id=>discovery.startTrail(id)});
 staff.seed().then(()=>refreshAccess()).catch(error=>ui.toast(error.message));
 const eventChip=document.createElement('aside');eventChip.id='event-reminder';eventChip.hidden=true;hud.mount(eventChip,55);let reminderSignature='',lastRemember=0;
