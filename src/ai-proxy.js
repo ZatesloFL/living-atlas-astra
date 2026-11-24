@@ -44,6 +44,7 @@ export function createProxyTransport({endpoint,fetchImpl=globalThis.fetch,storag
    };
    try{
     if(!session||expires<=now()){
+     if(!holder)try{const saved=storage?.getItem('atlas-ai-anonymous-holder');if(/^[a-f0-9]{64}$/.test(saved??''))holder=saved;}catch{/* session-only */}
      const r=await post('/session',holder?{holder}:{});
      if(!/^[a-f0-9]{64}$/.test(r.session??'')||!/^[a-f0-9]{64}$/.test(r.holder??'')||!Number.isFinite(Date.parse(r.expiresAt))||Date.parse(r.expiresAt)<=now())throw unavailable('LIVE_UNAVAILABLE');
      session=r.session;holder=r.holder;expires=Date.parse(r.expiresAt);

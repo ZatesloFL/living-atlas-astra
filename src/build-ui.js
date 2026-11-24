@@ -3,8 +3,22 @@ import {roomVisible} from './rules.js';
 import {permission} from './permissions.js';
 import {viewRoom} from './audience.js';
 import {esc} from './block-renderer.js';
+import {ai} from './ai.js';
+import {personId} from './permissions.js';
+import {SourcesUI} from './sources-ui.js';
+import {GALLERY_PLACE,recordUploadInventory} from './source-catalog.js';
+import {uploadClient} from './source-session.js';
+import {proposeUploadScores} from './upload-scores.js';
+import {contentStore} from './content.js';
 export class BuildUI {
  constructor(ui,profiles,api){this.ui=ui;this.profiles=profiles;this.api=api;this.left=null;this.right='seed-child';this.split=false;this.diff=false;this.fraction=.5;
+  this.sources=new SourcesUI({
+    uploads:uploadClient,proposeScores:input=>proposeUploadScores(ai,input),
+    onChange:({type,items,room,lens})=>{
+      if(type==='uploads-listed')recordUploadInventory(items,lens);
+      else contentStore.emit(room.id);
+    }
+  });
   this.hud=document.createElement('aside');this.hud.id='preview-hud';this.hud.hidden=true;this.hud.innerHTML='<span></span><button data-controls>Controls</button><button data-exit>Exit preview</button>';if(api.hud)api.hud.mount(this.hud,80);else document.body.append(this.hud);this.hud.querySelector('[data-controls]').onclick=()=>this.open();this.hud.querySelector('[data-exit]').onclick=()=>this.exit();
   this.divider=document.createElement('div');this.divider.id='compare-divider';this.divider.hidden=true;this.divider.innerHTML='<button aria-label="Swipe comparison divider" role="slider" aria-valuemin="10" aria-valuemax="90" aria-valuenow="50">↔</button>';document.body.append(this.divider);const grip=this.divider.querySelector('button');grip.onpointerdown=e=>{grip.setPointerCapture(e.pointerId);e.preventDefault();};grip.onpointermove=e=>{if(grip.hasPointerCapture(e.pointerId)){this.fraction=Math.max(.1,Math.min(.9,e.clientX/innerWidth));this.placeDivider();this.api.split(this.fraction);}};grip.onkeydown=e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();this.fraction=Math.max(.1,Math.min(.9,this.fraction+(e.key==='ArrowRight'?.05:-.05)));this.placeDivider();this.api.split(this.fraction);};
  }
@@ -12,6 +26,13 @@ export class BuildUI {
  open(){
   const list=this.profiles.profiles;this.ui.open('build','Creator tools · local simulation','Preview the audience');this.ui.content.innerHTML=`<p>Preview as re-renders the actual scene without switching your saved profile or writing access receipts. Move and look to inspect it. Exit to restore your own view.</p><span class="section-label">Preview as · left view</span><div class="chips">${list.map(p=>`<button data-preview-profile="${p.id}" class="${this.left===p.id?'active':''}">${esc(p.name)}</button>`).join('')}</div><label>Compare with<select id="compare-profile">${list.map(p=>`<option value="${p.id}" ${this.right===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><label class="compare-option"><input type="checkbox" id="split-compare" ${this.split?'checked':''}> Split compare · swipe divider</label><label class="compare-option"><input type="checkbox" id="lens-diff" ${this.diff?'checked':''}> Lens diff · gray differences from the other profile</label><p class="muted">Split shares one camera and caps DPR at 1 while active. It draws two scenes; check fps on your phone. Gray ghosts do not grant access or reveal unknown private rooms.</p><div id="lens-diff-list"></div><button id="build-view" class="primary">View scene</button><button id="build-exit">Exit preview</button>`;
   const $=id=>this.ui.content.querySelector('#'+id),apply=()=>{this.left??=this.profiles.activeId;this.api.apply({left:this.left,right:this.right,split:this.split,diff:this.diff,fraction:this.fraction});this.update();};
+  const {context,lens}=this.ui.api.state(),room=ROOMS[context.room];
+  if(room?.ownerId===personId(lens)&&!lens.preview&&!lens.isAgent){
+   const sources=document.createElement('button');sources.type='button';sources.textContent='Connected sources';
+   sources.onclick=()=>{this.ui.close();this.sources.open({room,lens});};this.ui.content.prepend(sources);
+  }
+  const gallery=document.createElement('button');gallery.type='button';gallery.textContent='Visit the simulated gallery';
+  gallery.onclick=()=>this.ui.api.travel(GALLERY_PLACE);this.ui.content.append(gallery);
   this.ui.content.querySelectorAll('[data-preview-profile]').forEach(b=>b.onclick=()=>{this.left=b.dataset.previewProfile;apply();this.open();});$('compare-profile').onchange=e=>{this.right=e.target.value;apply();};$('split-compare').onchange=e=>{this.split=e.target.checked;apply();};$('lens-diff').onchange=e=>{this.diff=e.target.checked;apply();};$('build-view').onclick=()=>{apply();this.ui.close();};$('build-exit').onclick=()=>this.exit();this.update();
  }
  update(){

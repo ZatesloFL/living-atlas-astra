@@ -1,0 +1,37 @@
+{
+  "organization": {
+    "name": "Aster Collection Study Gallery",
+    "identity": {"display": "real", "backing": "none"},
+    "organizationBadge": {"label": "Verified organization", "simulated": true},
+    "backing_ref": null
+  },
+  "items": [
+    {
+      "id": "blue-vessel",
+      "kind": "artwork",
+      "title": "Study in Cobalt",
+      "date": "1928",
+      "rights": "public-domain",
+      "description": "A fictional cobalt ceramic vessel with a shallow foot and a folded rim. Sample catalog data.",
+      "scene": 0
+    },
+    {
+      "id": "sunset-fabric",
+      "kind": "artwork",
+      "title": "Folds at Sunset",
+      "date": "1962",
+      "rights": "rights-reserved",
+      "description": "A fictional woven panel in rust and wheat with a doubled seam. Sample catalog data.",
+      "scene": 1
+    },
+    {
+      "id": "paper-harbor",
+      "kind": "artwork",
+      "title": "Harbor on Paper",
+      "date": "1911",
+      "rights": "public-domain",
+      "description": "A fictional drawing of low wharves and boats made with three hard pencil lines. Sample catalog data.",
+      "scene": 2
+    }
+  ]
+}

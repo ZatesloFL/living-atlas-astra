@@ -7,12 +7,15 @@ import {permission} from './permissions.js';
 import {ROOMS} from './data.js';
 import {doorPolicy} from './admission.js';
 import {blockAccess,blockNeedsPreview,selectContent,contentStore} from './content.js';
+import {installGallery,sourcedRoom} from './source-catalog.js';
+import {bindSourceMedia,connectedMediaHTML,sourceActivityAttributes,sourceBadgeHTML,sourceStateMessage,sourceVisible} from './source-media.js';
+installGallery();
 export const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function safeURL(value){if(typeof value!=='string'||!value.trim())return null;try{const url=new URL(value,globalThis.location?.href??'https://atlas.invalid/');return ['https:','http:'].includes(url.protocol)?url.href:null;}catch{return null;}}
 const link=(label,url)=>{const href=safeURL(url);return href?`<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`:esc(label);};
 function sourceHTML(block){
  const cites=(block.type==='citation'?[]:block.sources??[]).map(s=>`<li>${link(s.label,s.url)} · ${esc(s.status??'to verify')}</li>`).join('');
- const p=block.source;return `${cites?`<ul class="block-sources">${cites}</ul>`:''}${p?`<p class="source-pointer">Source: ${link(p.sourceId,p.url)} / ${esc(p.itemId)} · ${p.syncedAt?'Synced '+esc(p.syncedAt):'Not synced'} · Rights: ${esc(p.rights??'Unknown')}</p>`:''}`;
+ return `${cites?`<ul class="block-sources">${cites}</ul>`:''}${sourceBadgeHTML(block)}`;
 }
 function media(block){
  const r=block.reps??{},fallback=r.transcript||r.text||r.alt||'No media representation is available.';
@@ -25,11 +28,15 @@ function media(block){
 }
 export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()}={}){
  if(block.filtered)return `<section class="content-block block-withheld" data-block-id="${esc(block.id)}"><p>${block.filteredBy?`Excluded from display by ${esc(block.displayBy??'Place Steward')} · receipted Place choice. The original and its readings are unchanged.`:'Filtered view · this Thing is withheld by your Lens. The original has not been changed.'}</p></section>`;
+ if(!sourceVisible(block,room,lens))return '';
  const access=blockAccess(block,room,lens);if(access.withheld)return blockHTML({id:block.id,filtered:true,...(access.displayExcluded?{filteredBy:'Place Steward',displayBy:access.displayBy}:{})},room,lens);if(access.hidden)return '';
  if(blockNeedsPreview(block,room,lens,{approved,softApproved}))return `<section class="content-block block-preview" data-block-id="${esc(block.id)}"><p>Preview required · ${esc(access.reasons.join(', '))} exceeds your soft limit.</p><button data-allow-block="${esc(block.id)}">Show this block</button></section>`;
+ const sourceState=sourceStateMessage(block);
+ if(sourceState)return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}"><p class="block-load-status" role="status">${esc(sourceState)}</p>${sourceBadgeHTML(block)}</section>`;
  const body=block.body;let html='';
  if(block.state==='pending'||block.state==='error'||block.state==='unavailable')html+=`<p class="block-load-status" role="status">${block.state==='pending'?'Content is arriving. Showing the available fallback.':block.state==='error'?'Content could not be loaded. Showing the available fallback.':'Media is not attached. Showing the available fallback.'}</p>`;
- if(block.exhibit)html+=kitHTML(block,room);else switch(block.type){
+ const sourcedMedia=connectedMediaHTML(block,room);
+ if(sourcedMedia!==null)html+=sourcedMedia;else if(block.exhibit)html+=kitHTML(block,room);else switch(block.type){
  case 'heading':html+=`<h2>${esc(body)}</h2>`;break;
  case 'text':html+=`<p>${esc(body??block.reps?.text??'Content not yet available.')}</p>`;break;
  case 'infobox':html+=`<dl class="article-infobox">${Object.entries(body??{}).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;break;
@@ -42,11 +49,12 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  case 'image':case 'video':case 'audio':case 'model':html+=media(block);break;
  default:html+=`<p>${esc(block.reps?.text??block.reps?.alt??'Content representation not yet available.')}</p>`;
  }
- return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}">${html}${block.contribution?`<p class="contributor-credit">${block.contribution.merged?'Official contribution':'Integrated layer'} · ${esc(block.contribution.type)} · credited to ${esc(block.contribution.name)}</p>`:''}${sourceHTML(block)}${block.content&&!block.contribution?readingCard(room,lens,block):''}</section>`;
+ return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}"${sourceActivityAttributes(block,room,lens)}>${html}${block.contribution?`<p class="contributor-credit">${block.contribution.merged?'Official contribution':'Integrated layer'} · ${esc(block.contribution.type)} · credited to ${esc(block.contribution.name)}</p>`:''}${sourceHTML(block)}${block.content&&!block.contribution?readingCard(room,lens,block):''}</section>`;
 }
 export function articleHTML(id,lens,options={}){
- const original=ROOMS[id],room=original&&viewRoom(original,lens);if(!room||room.visibility==='private'||!permission(room,lens).canLook)return '<p>Private space, something is here.</p>';if(!roomVisible(id,lens))return '<p>This room is outside your lens.</p>';
- if(doorPolicy(room,lens).blocked)return '<p>Entrance threshold not met. Review this Place’s doorway before reading.</p>';
+ const original=ROOMS[id],visible=original&&viewRoom(original,lens);if(!visible||visible.visibility==='private'||!permission(visible,lens).canLook)return '<p>Private space, something is here.</p>';if(!roomVisible(id,lens))return '<p>This room is outside your lens.</p>';
+ if(doorPolicy(visible,lens).blocked)return '<p>Entrance threshold not met. Review this Place’s doorway before reading.</p>';
+ const room=sourcedRoom(visible,lens);
  const merged=mergedLayers(room,lens),accepted=layerSelection(room,lens).filter(x=>x.accepted&&!merged.includes(x.layer)).map(x=>x.layer);
  const softApproved=new Set([...(options.softApproved??[]),...accepted.filter(l=>lens.layerConsents?.[l.id]===layerConsentKey(lens)).map(l=>'layer-'+l.id)]);
  const view=selectContent(room,lens,[...contentStore.blocks(id,room.blocks),...merged.map(l=>layerBlock(l,true)),...accepted.map(l=>layerBlock(l))]);
@@ -54,6 +62,7 @@ export function articleHTML(id,lens,options={}){
 }
 export function bindBlocks(root,{related,allow}={}){
  bindKit(root);
+ bindSourceMedia(root);
  root.querySelectorAll('[data-related]').forEach(b=>b.onclick=()=>related?.(b.dataset.related));root.querySelectorAll('[data-allow-block]').forEach(b=>b.onclick=()=>allow?.(b.dataset.allowBlock));
  root.querySelectorAll('[data-media-fallback]').forEach(el=>el.addEventListener('error',()=>{const p=document.createElement('p');p.className='block-load-status';p.textContent='Media unavailable. '+el.dataset.mediaFallback;el.replaceWith(p);},{once:true}));
 }

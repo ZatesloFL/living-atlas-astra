@@ -5,6 +5,9 @@ import {drawSquare,drawPresence} from './community-world.js';
 import {flushCrossingSurfaces} from './crossing-surfaces.js';
 import {flushGlowBatch} from './glow-batch.js';
 import {drawKit,flushKit} from './kit-world.js';
+import {exhibitPlacement} from './kit-placement.js';
+import {selectContent} from './content.js';
+import {sourcedRoom} from './source-catalog.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {itemStyle} from './item-style.js';
 import {layerSelection} from './layers.js';
@@ -82,12 +85,26 @@ export class World {
       if(this.hall?id!==this.hall:original.layout?.scene!==this.kind)continue;
       const own=visible(id,this.lens),other=this.diffLens&&visible(id,this.diffLens),rights=permission(original,this.lens),ghost=!own&&other&&rights.visibility==='public';
       if(!own&&!ghost)continue;
-      const r=viewRoom(original,ghost?this.diffLens:this.lens),style=itemStyle(r,ghost?this.diffLens:this.lens);
+      const viewLens=ghost?this.diffLens:this.lens;
+      const r=sourcedRoom(viewRoom(original,viewLens),viewLens),style=itemStyle(r,viewLens);
       if(!this.hall&&r.layout.interior&&rights.canLook&&!ghost){drawFrontage(this,r,id);this.renderedRooms.push({id,frontage:true,version:r.version?.id,style});continue;}
       const layout=this.hall?exhibitSpace(r):r.layout;
       this.placement={scale:1,facing:0,...layout,style,ghost};if(rights.canLook){if(this.hall)Object.assign(this.placement,exhibitSpace(r,style.scale));else this.placement.scale*=style.scale;}
       if(!this.hall)drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
       if(rights.canLook&&!ghost&&r.layout.components)drawKit(this,{...r,layout:this.placement},id);
+      if(rights.canLook&&!ghost&&r.sourcePlacements?.length){
+        const displayed=new Map(selectContent(r,this.lens).blocks.filter(block=>!block.filtered&&block.state==='ready').map(block=>[block.id,block]));
+        const parent=this.placement;
+        for(const piece of r.sourcePlacements){
+          const block=displayed.get(piece.blockId);
+          if(!block)continue;
+          this.placement=exhibitPlacement(parent,piece);
+          if(block.styleControl==='fixed')this.placement.style=null;
+          if(piece.kind==='plinth')drawModel(this,'plinth','exhibit:'+id+':'+piece.blockId);
+          else if(piece.kind==='alcove')this.box(0,.7,0,.9,1.4,.22,'#709390','stone','exhibit:'+id+':'+piece.blockId);
+        }
+        this.placement=parent;
+      }
       this.renderedRooms.push({id,ghost:!!ghost,version:r.version?.id,style:rights.canLook?style:null});
       if(!this.hall&&r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':versionLabel(r,this.lens)||sign[1],p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
       if(this.diffLens&&own&&rights.visibility==='public'&&(!other||viewRoom(original,this.diffLens).version?.id!==r.version?.id))this.add('ring','ghost',0,.15,0,2,2,2,'#aaa',null,[Math.PI/2,0,0]);

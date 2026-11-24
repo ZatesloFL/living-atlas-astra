@@ -1,0 +1,560 @@
+import {connectedSources} from './connected-sources.js';
+import {videoReference} from './source-media.js';
+import {AXES, DIMENSIONS, validPair} from './scores.js';
+import {uploadAccept, uploadLimitLabel} from './upload-client.js';
+
+const proposalKey = 'living-atlas.upload-proposals.v1';
+const modeLabels = {live: 'Live reference', indexed: 'Fed by the source', snapshot: 'Snapshot'};
+const recipes = {'collection-db': 'gallery-plinths', drive: 'drive-alcoves'};
+const states = {reserved: 'Upload pending', uploaded: 'Unpublished', published: 'Published', deleting: 'Deleting', deleted: 'Hosted copy deleted'};
+const escapes = {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'};
+const esc = value => String(value ?? '').replace(/[&<>"']/g, character => escapes[character]);
+const pairsValid = scores => scores && DIMENSIONS.every(([key]) => validPair(scores[key]));
+
+export function formatSourceBytes(bytes) {
+  if (!Number.isSafeInteger(bytes) || bytes < 0) return 'Unavailable';
+  const units = [[1e9, 'GB'], [1e6, 'MB'], [1e3, 'kB']];
+  const unit = units.find(([size]) => bytes >= size);
+  return unit ? (bytes / unit[0]).toLocaleString(undefined, {maximumFractionDigits: 2}) + ' ' + unit[1] : bytes.toLocaleString() + ' B';
+}
+
+function createdDate(iso) {
+  const date = new Date(iso);
+  return Number.isFinite(date.valueOf()) ? date.toISOString().slice(0, 10) : null;
+}
+
+function styleSheet() {
+  if (document.querySelector('[data-sources-styles]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('../sources.css', import.meta.url).href;
+  link.dataset.sourcesStyles = '';
+  document.head.append(link);
+}
+
+function ownerContext({room, lens} = {}) {
+  const actorId = lens?.profileId ?? lens?.id;
+  return room?.id && actorId && actorId === room.ownerId && !lens.isAgent && !lens.preview
+    ? {room, lens, actorId, placeId: room.id} : null;
+}
+
+function command(name, label, {sourceId, itemId} = {}) {
+  return `<button type="button" data-command="${name}"${sourceId ? ` data-source-id="${esc(sourceId)}"` : ''}${itemId ? ` data-item-id="${esc(itemId)}"` : ''}>${esc(label)}</button>`;
+}
+
+function rightsLabel(rights) {
+  const label = (typeof rights === 'string' ? rights : rights?.label) ?? 'unavailable';
+  return {'public-domain': 'Public domain', 'rights-reserved': 'Rights reserved', private: 'Private', unavailable: 'Rights unavailable'}[label] ?? label;
+}
+
+function viewStatus(source) {
+  if (source.status === 'deleted') return 'Source unavailable';
+  const sync = source.lastSync ? 'Last synced ' + (createdDate(source.lastSync) ?? source.lastSync) : 'Awaiting first sync';
+  return `${source.simulated ? 'Simulated source · ' : ''}${modeLabels[source.syncMode] ?? 'Source'} · ${sync}`;
+}
+
+function scoreInputs(scores) {
+  return DIMENSIONS.map(([key, label]) => `<div class="source-score">
+    <h5>${esc(label)}</h5>
+    ${AXES.map(axis => `<label>${axis === 'amount' ? 'Amount' : 'Graphicness'}
+      <select name="${key}.${axis}" aria-label="${esc(label)} ${axis}">
+        ${[0, 1, 2, 3].map(value => `<option value="${value}"${value === scores[key][axis] ? ' selected' : ''}>${value}</option>`).join('')}
+      </select>
+    </label>`).join('')}
+  </div>`).join('');
+}
+
+function uploadUsage(result) {
+  const usage = result?.usage;
+  if (!usage || !Number.isSafeInteger(usage.usedBytes) || !Number.isSafeInteger(usage.allotmentBytes) || usage.allotmentBytes <= 0) {
+    return '<p class="source-caption">Hosted storage usage is unavailable.</p>';
+  }
+  const {usedBytes, allotmentBytes, reservedBytes} = usage;
+  return `<div class="source-usage"><p>You've used <strong>${formatSourceBytes(usedBytes)}</strong> of your <strong>${formatSourceBytes(allotmentBytes)}</strong> upload allotment.</p>
+    <progress value="${usedBytes}" max="${allotmentBytes}" aria-label="Hosted upload space used"></progress>
+    ${reservedBytes > 0 ? `<p class="source-caption">${formatSourceBytes(reservedBytes)} reserved for pending uploads.</p>` : ''}
+  </div>`;
+}
+
+export class SourcesUI {
+  constructor({sources = connectedSources, uploads, proposeScores, onChange, storage} = {}) {
+    this.sources = sources;
+    this.uploads = uploads;
+    this.proposeScores = proposeScores;
+    this.onChange = onChange;
+    this.proposals = {};
+    this.openSources = new Set();
+    try {
+      this.storage = storage ?? globalThis.localStorage;
+      const saved = JSON.parse(this.storage?.getItem(proposalKey) ?? '{}');
+      if (saved && typeof saved === 'object' && !Array.isArray(saved)) this.proposals = saved;
+    } catch { /* Proposals can be recreated from the owner’s upload. */ }
+  }
+
+  createDialog() {
+    styleSheet();
+    const dialog = document.createElement('dialog');
+    dialog.className = 'sources-ui';
+    dialog.setAttribute('aria-labelledby', 'sources-dialog-title');
+    dialog.innerHTML = `<header class="sources-header">
+      <div><h2 id="sources-dialog-title">Connected sources</h2><p data-current-place></p></div>
+      <button type="button" data-command="close" aria-label="Close connected sources">Close</button>
+    </header><p class="source-feedback" role="status" aria-live="polite" data-feedback></p>
+    <div class="sources-content"></div>`;
+    this.dialog = dialog;
+    this.content = dialog.querySelector('.sources-content');
+    this.feedback = dialog.querySelector('[data-feedback]');
+    dialog.addEventListener('click', event => {
+      const button = event.target.closest('button[data-command]');
+      if (button && dialog.contains(button)) void this.handleCommand(button);
+    });
+    dialog.addEventListener('submit', event => {
+      event.preventDefault();
+      void this.handleForm(event.target);
+    });
+    dialog.addEventListener('toggle', event => {
+      const sourceId = event.target.dataset?.sourceDetail;
+      if (!sourceId) return;
+      if (event.target.open) this.openSources.add(sourceId);
+      else this.openSources.delete(sourceId);
+    }, true);
+    dialog.addEventListener('cancel', event => {
+      if (this.busy) event.preventDefault();
+    });
+    dialog.addEventListener('close', () => {
+      this.editor = null;
+      this.pendingFile = null;
+      this.clearReview();
+    });
+    document.body.append(dialog);
+    return dialog;
+  }
+
+  open(input) {
+    const context = ownerContext(input);
+    if (!context) return false;
+    if (this.busy) return true;
+    const dialog = this.dialog ?? this.createDialog();
+    if (context.actorId !== this.context?.actorId) this.hosted = null;
+    this.context = context;
+    this.editor = null;
+    this.pendingFile = null;
+    this.clearReview();
+    this.status('');
+    this.dialog.querySelector('[data-current-place]').textContent = context.room.title;
+    this.render();
+    if (!dialog.open) dialog.showModal();
+    if (this.uploadAvailable) void this.run(async () => {
+      await this.refreshUploads();
+      return '';
+    }, 'Checking hosted storage…');
+    return true;
+  }
+
+  status(message, error = false) {
+    this.feedback.textContent = message;
+    this.feedback.classList.toggle('source-error', error);
+  }
+
+  async run(action, progress = 'Saving…') {
+    if (this.busy) return;
+    this.busy = true;
+    this.content.inert = true;
+    this.content.setAttribute('aria-busy', 'true');
+    this.status(progress);
+    try {
+      this.status((await action()) ?? '');
+    } catch (error) {
+      this.status(error?.message ?? 'The source action could not be completed.', true);
+    } finally {
+      this.busy = false;
+      this.content.inert = false;
+      this.content.removeAttribute('aria-busy');
+      this.render();
+    }
+  }
+
+  emit(type, details = {}) {
+    return this.onChange?.({type, room: this.context.room, lens: this.context.lens, ...details});
+  }
+
+  get actor() {
+    return {actorId: this.context.actorId};
+  }
+
+  get uploadAvailable() {
+    return !!this.uploads && this.uploads.available?.() !== false;
+  }
+
+  async refreshUploads() {
+    this.hosted = await this.uploads.list();
+    await this.emit('uploads-listed', {items: this.hosted.items ?? []});
+  }
+
+  updateHostedItem(response) {
+    if (!response?.item) throw new Error('Hosted storage returned an incomplete upload record.');
+    const {item} = response;
+    const items = (this.hosted?.items ?? []).filter(candidate => candidate.id !== item.id);
+    this.hosted = {...this.hosted, items: [...items, item], usage: response.usage ?? this.hosted?.usage};
+    return item;
+  }
+
+  saveProposal(id, proposal) {
+    if (proposal) this.proposals[id] = {
+      actorId: this.context.actorId,
+      scores: structuredClone(proposal.scores),
+      model: typeof proposal.model === 'string' ? proposal.model : null,
+      provenance: typeof proposal.provenance === 'string' ? proposal.provenance.slice(0, 300) : 'Simulated AI proposal.',
+    };
+    else delete this.proposals[id];
+    try { this.storage?.setItem(proposalKey, JSON.stringify(this.proposals)); } catch { /* This tab retains the pending declaration. */ }
+  }
+
+  async score(item, file, description = '') {
+    if (!this.proposeScores) throw new Error('The AI proposal is unavailable. Your upload is still unpublished.');
+    const proposal = await this.proposeScores({file, item, description, room: this.context.room, lens: this.context.lens});
+    if (!pairsValid(proposal?.scores)) throw new Error('The AI proposal did not return both dials for every dimension. Your upload is still unpublished.');
+    this.saveProposal(item.id, proposal);
+  }
+
+  proposalFor(item) {
+    const proposal = this.proposals[item.id];
+    return proposal?.actorId === this.context.actorId && pairsValid(proposal.scores) ? proposal : null;
+  }
+
+  render() {
+    const scroll = this.content.scrollTop;
+    if (this.editor) {
+      this.content.innerHTML = this.renderEditor();
+    } else if (this.review) {
+      this.content.innerHTML = this.renderReview();
+    } else {
+      const views = this.sources.list(this.context.placeId, this.actor).map(source => this.sources.view(source.id, this.actor)).filter(Boolean);
+      this.content.innerHTML = `${this.renderSources(views)}${this.renderUploads()}${this.renderOperator()}`;
+    }
+    this.content.scrollTop = scroll;
+  }
+
+  renderSources(views) {
+    return `<section class="source-panel" aria-labelledby="source-feeds-title">
+      <h3 id="source-feeds-title">Sources for this Place</h3>
+      <div class="source-actions">${command('add-gallery', 'Connect mock gallery')}${command('add-drive', 'Connect mock Drive')}</div>
+      ${views.length ? views.map(view => this.renderSource(view)).join('') : '<p class="source-caption">No sources are attached.</p>'}
+      <details class="source-details"><summary>Add a video reference</summary>
+        <form data-form="video">
+          <label>Video link<input name="url" type="url" inputmode="url" required placeholder="https://www.youtube.com/watch?v=…"></label>
+          <label>Title<input name="title" maxlength="100" required></label>
+          <button type="submit">Add video reference</button>
+          <p class="source-caption">YouTube and Vimeo host these videos. A video reference uses no Atlas upload space.</p>
+        </form>
+      </details>
+    </section>`;
+  }
+
+  renderSource({source, mapping, pendingMapping, items = [], snapshot}) {
+    const id = source.id;
+    const recipe = recipes[source.kind];
+    const options = Object.entries(modeLabels).map(([value, label]) =>
+      `<option value="${value}"${source.syncMode === value ? ' selected' : ''}>${label}</option>`).join('');
+    return `<details class="source-details" data-source-detail="${esc(id)}"${this.openSources.has(id) ? ' open' : ''}>
+      <summary>${esc(source.label ?? source.id)}</summary>
+      <p class="source-caption">${esc(viewStatus(source))} · ${esc(rightsLabel(source.rightsDefault))}</p>
+      ${snapshot ? `<p class="source-caption">Simulated snapshot, as of ${esc(createdDate(snapshot.capturedAt))} · SHA-256 ${esc(snapshot.hash)}</p>` : ''}
+      ${recipe && source.status !== 'deleted' ? `
+        <form data-form="mode" data-source-id="${esc(id)}" class="source-inline">
+          <label>Feeding mode<select name="mode">${options}</select></label>
+          <button type="submit"${mapping ? '' : ' disabled'}>Apply mode</button>
+          ${mapping && source.syncMode !== 'snapshot' ? command('sync', 'Sync source', {sourceId:id}) : ''}
+        </form>
+        <p>${mapping ? 'Approved mapping · ' + esc(mapping.recipe === 'gallery-plinths' ? 'One plinth per record' : 'Folders become alcoves') : 'Mapping approval needed.'}</p>
+        <div class="source-actions">
+          ${!mapping && !pendingMapping ? command('propose-mapping', 'Propose mapping', {sourceId:id}) : ''}
+          ${pendingMapping && !mapping ? command('approve-mapping', 'Approve mapping', {sourceId:id}) : ''}
+          ${mapping && source.kind === 'drive' && source.syncMode !== 'snapshot' && !source.writeEnabled ? command('grant-write', 'Grant mock write-back for one hour', {sourceId:id}) : ''}
+        </div>
+        ${pendingMapping && !mapping ? `<p>${recipe === 'gallery-plinths' ? 'One plinth per gallery record.' : 'Folders become alcoves, with file previews inside.'}</p>` : ''}
+        ${source.writeEnabled ? '<p class="source-caption">Scoped mock write-back is active. Edits write a Receipt.</p>' : ''}
+      ` : ''}
+      ${items.length ? `<ul class="source-items">${items.map(item => this.renderItem(source, item, items)).join('')}</ul>` : '<p class="source-caption">No source items are available.</p>'}
+    </details>`;
+  }
+
+  renderItem(source, item, items) {
+    const folder = items.find(candidate => candidate.id === item.folderId);
+    const permittedEdits = ['rename','move','comment'].filter(op => source.writeOperations?.includes(op));
+    return `<li><strong>${esc(item.title)}</strong>
+      <small>${esc(folder?.title ?? item.kind ?? '')} · ${esc(rightsLabel(item.rights))}</small>
+      ${item.preview ? `<p>${esc(typeof item.preview === 'string' ? item.preview : item.preview?.text)}</p>` : ''}
+      ${item.editorURL ? command('open-editor', 'Open in Google Docs · simulation', {sourceId: source.id, itemId: item.id}) : ''}
+      ${source.simulated && source.syncMode !== 'snapshot' && item.kind !== 'folder' ?
+        command('availability', item.available === false ? 'Restore simulated reference' : 'Simulate unavailable reference', {sourceId:source.id,itemId:item.id}) : ''}
+      ${source.kind === 'drive' && permittedEdits.length && item.available !== false && item.kind !== 'folder' && item.editorURL ? `
+        <details class="source-details"><summary>Write back to this mock file</summary>
+          <form data-form="edit" data-source-id="${esc(source.id)}" data-item-id="${esc(item.id)}">
+            <label>Operation<select name="op">${permittedEdits.map(op=>`<option value="${op}">${op[0].toUpperCase()+op.slice(1)}</option>`).join('')}</select></label>
+            <label>New name or comment<input name="value" maxlength="280"></label>
+            <label>Folder for a move<select name="folder"><option value="">Source root</option>${items.filter(entry=>entry.kind==='folder'&&entry.available!==false).map(entry=>`<option value="${esc(entry.id)}">${esc(entry.title)}</option>`).join('')}</select></label>
+            <button type="submit">Apply scoped edit</button>
+          </form>
+        </details>` : ''}
+    </li>`;
+  }
+
+  renderEditor() {
+    const {sourceId, itemId} = this.editor;
+    const view = this.sources.view(sourceId, this.actor);
+    const item = view?.items.find(candidate => candidate.id === itemId);
+    if (!item?.editorURL) return `<div class="source-panel"><h3>Source unavailable</h3>${command('return-editor', 'Return to room')}</div>`;
+    return `<section class="source-panel"><p class="source-caption">Simulated Google Docs editor</p>
+      <h3>${esc(item.title)}</h3><p>${esc(typeof item.preview === 'string' ? item.preview : item.preview?.text)}</p>
+      ${(item.comments ?? []).map(comment => `<p class="source-caption">${esc(comment.text ?? comment)}</p>`).join('')}
+      ${command('return-editor', 'Return to room')}
+    </section>`;
+  }
+
+  clearReview() {
+    if (this.review?.url) URL.revokeObjectURL(this.review.url);
+    this.review = null;
+  }
+
+  renderReview() {
+    const {item, url, text} = this.review;
+    const media = item.contentType.startsWith('image/')
+      ? `<img class="source-upload-review" src="${esc(url)}" alt="${esc(item.filename)}">`
+      : item.contentType.startsWith('audio/')
+        ? `<audio controls src="${esc(url)}"></audio>`
+        : `<pre class="source-preview-text">${esc(text)}</pre>`;
+    return `<section class="source-panel"><h3>${esc(item.filename)}</h3>${media}
+      <a href="${esc(url)}" download="${esc(item.filename)}">Save original</a>
+      ${command('close-review', 'Return to uploads')}</section>`;
+  }
+
+  renderUploads() {
+    if (!this.uploadAvailable) return '<section class="source-panel"><h3>Hosted uploads</h3><p>Hosted uploads are unavailable in this session.</p></section>';
+    const items = (this.hosted?.items ?? []).filter(item => item.placeId === this.context.placeId);
+    return `<section class="source-panel" aria-labelledby="source-upload-title">
+      <h3 id="source-upload-title">Hosted uploads</h3>
+      <p class="source-caption">Dev storage uses this browser’s holder. Second Look account connection is unavailable in this build.</p>
+      ${uploadUsage(this.hosted)}
+      ${command('refresh-uploads', 'Refresh storage usage')}
+      <form data-form="upload" class="source-upload-form">
+        <label>Choose a photo, text or audio file<input type="file" name="file" accept="${uploadAccept}" required></label>
+        <label>Photo description or audio transcript <span>(optional)</span><textarea name="description" maxlength="1500" rows="3"></textarea></label>
+        <p class="source-caption">${uploadLimitLabel} per file. The AI uses your description for photos and audio. It does not inspect pixels or listen to audio.</p>
+        <button type="submit">Upload and request scores</button>
+      </form>
+      ${this.pendingFile ? command('retry-upload', 'Retry upload: ' + this.pendingFile.file.name) : ''}
+      ${items.length ? `<ul class="source-items">${items.map(item => this.renderUpload(item)).join('')}</ul>` : ''}
+    </section>`;
+  }
+
+  renderUpload(item) {
+    const proposal = this.proposalFor(item);
+    const date = createdDate(item.uploadedAt);
+    const readable = ['uploaded','published'].includes(item.state);
+    const deletable = ['reserved','uploaded','published','deleting'].includes(item.state);
+    const deleteLabel = item.state === 'reserved' ? 'Cancel pending upload' : item.state === 'deleting' ? 'Retry deletion' : 'Delete hosted copy';
+    return `<li>
+      <strong>${esc(item.filename)}</strong>
+      <small>${esc(states[item.state] ?? 'Upload state unavailable')}${date && item.state!=='deleted' ? ' · uploaded copy, as of ' + date : ''}</small>
+      ${item.state !== 'deleted' ? `<p>${formatSourceBytes((item.originalBytes ?? 0) + (item.previewBytes ?? 0))} including preview</p>` : ''}
+      ${readable ? command('review-upload', 'Open copy for review', {itemId:item.id}) : ''}
+      ${item.state === 'uploaded' ? (proposal ? `
+        <form data-form="publish" data-item-id="${esc(item.id)}">
+          <fieldset class="source-standing"><legend>Confirm declaration</legend>
+            <p class="source-caption">${esc(proposal.provenance)} Review the file and check both dials for each dimension.</p>
+            ${scoreInputs(proposal.scores)}
+          </fieldset>
+          <button type="submit">Confirm declaration and publish</button>
+        </form>` : `
+        <form data-form="score" data-item-id="${esc(item.id)}">
+          ${item.contentType === 'text/plain' ? '' : '<label>Photo description or audio transcript<textarea name="description" maxlength="1500" rows="2"></textarea></label>'}
+          <button type="submit">Request score proposal</button>
+        </form>`) : ''}
+      ${deletable ? `<details class="source-details"><summary>${deleteLabel}</summary>
+        <p>Deletes the stored file and preview. The Thing’s record retains a Receipt of the deletion.</p>
+        ${command('delete-upload', item.state === 'reserved' ? 'Cancel upload and release reservation' : 'Delete file and preview', {itemId:item.id})}
+      </details>` : ''}
+    </li>`;
+  }
+
+  renderOperator() {
+    const remote = this.hosted?.metrics?.served ?? [];
+    const local = this.sources.meters?.(this.actor) ?? [];
+    const rows = [...remote, ...local];
+    return `<section class="source-panel source-operator">
+      <details class="source-details"><summary>Source usage and served bytes</summary>
+        ${uploadUsage(this.hosted)}
+        <p class="source-caption">Measured by Place and source. Embedded video plays from its host.</p>
+        ${rows.length ? `<ul class="source-items">${rows.map(row=>
+          `<li><strong>${formatSourceBytes(row.servedBytes)}</strong><small>${esc(row.placeId)} · ${esc(row.sourceId)}${row.simulated ? ' · simulated source' : ''}</small></li>`).join('')}</ul>`
+        : '<p class="source-caption">No served bytes have been reported.</p>'}
+      </details>
+    </section>`;
+  }
+
+  async uploadPending() {
+    const pending = this.pendingFile;
+    if (!pending || !this.uploads) throw new Error('Choose a file to upload.');
+    const upload = await this.uploads.upload({file: pending.file, id: pending.id, placeId: this.context.placeId});
+    const item = this.updateHostedItem(upload);
+    this.pendingFile = null;
+    if (item.state === 'uploaded') await this.score(item, pending.file, pending.description);
+    return 'Upload received. Review the proposed dials and confirm the declaration.';
+  }
+
+  handleCommand(button) {
+    const {command: action, sourceId, itemId} = button.dataset;
+    if (this.busy) return;
+    if (action === 'close') {
+      this.dialog.close();
+      return;
+    }
+    if (action === 'close-review') {
+      this.clearReview();
+      this.render();
+      this.content.querySelector('button')?.focus();
+      return;
+    }
+    if (action === 'return-editor') {
+      const editedSourceId = this.editor?.sourceId;
+      this.dialog.close();
+      void this.emit('sources-changed', {sourceId:editedSourceId});
+      return;
+    }
+    if (action === 'open-editor') {
+      this.editor = {sourceId, itemId};
+      this.render();
+      (this.content.querySelector('button') ?? button).focus();
+      return;
+    }
+    return this.run(async () => {
+      if (action === 'add-gallery' || action === 'add-drive') {
+        const kind = action === 'add-gallery' ? 'collection-db' : 'drive';
+        const source = await this.sources.create({
+          placeId: this.context.placeId, owner: this.context.actorId, kind,
+          label: kind === 'drive' ? 'Mock Drive' : 'Mock gallery',
+        }, this.actor);
+        this.openSources.add(source.id);
+        await this.emit('sources-changed', {sourceId: source.id});
+        return 'Simulated source attached. Propose and approve its mapping.';
+      }
+      if (action === 'propose-mapping') {
+        const source = this.sources.view(sourceId,this.actor).source;
+        await this.sources.proposeMapping(sourceId, recipes[source.kind], this.actor);
+        return 'Review the mapping and approve it to place the source items.';
+      }
+      if (action === 'approve-mapping') {
+        const proposal = this.sources.view(sourceId,this.actor)?.pendingMapping;
+        await this.sources.approveMapping(sourceId, proposal?.id, this.actor);
+        await this.emit('sources-changed', {sourceId});
+        return 'Mapping approved and receipted.';
+      }
+      if (action === 'sync') {
+        await this.sources.sync(sourceId, this.actor);
+        await this.emit('sources-changed', {sourceId});
+        return 'Source sync checked.';
+      }
+      if (action === 'availability') {
+        const item = this.sources.view(sourceId,this.actor)?.items.find(candidate=>candidate.id===itemId);
+        if (!item) throw new Error('The simulated item is unavailable.');
+        await this.sources.setMockAvailability(sourceId,itemId,item.available === false,this.actor);
+        await this.emit('sources-changed', {sourceId});
+        return item.available === false ? 'Simulated reference restored.' : 'Simulated reference is now unavailable.';
+      }
+      if (action === 'grant-write') {
+        await this.sources.grantWrite(sourceId, {
+          holderId: this.context.actorId, operations: ['rename','move','comment'],
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        }, this.actor);
+        return 'A scoped one-hour grant permits mock rename, move and comment.';
+      }
+      if (action === 'refresh-uploads') {
+        await this.refreshUploads();
+        return 'Hosted usage refreshed.';
+      }
+      if (action === 'retry-upload') return this.uploadPending();
+      if (action === 'review-upload') {
+        const item = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.placeId === this.context.placeId);
+        if (!item || !['uploaded','published'].includes(item.state)) throw new Error('This upload is unavailable.');
+        const bytes = await this.uploads.media(item.id, 'original');
+        const text = item.contentType === 'text/plain' ? await bytes.slice(0, 128 * 1024).text() : null;
+        this.review = {item, url: URL.createObjectURL(bytes), text};
+        return '';
+      }
+      if (action === 'delete-upload') {
+        const current = this.hosted?.items?.find(item=>item.id===itemId && item.placeId===this.context.placeId);
+        if (!current || !['reserved','uploaded','published','deleting'].includes(current.state)) throw new Error('This upload is unavailable.');
+        let item;
+        try {
+          item = this.updateHostedItem(await this.uploads.remove(itemId));
+        } catch(error) {
+          await this.refreshUploads().catch(()=>{ /* Keep the failure message from Storage. */ });
+          throw error;
+        }
+        if (this.pendingFile?.id === item.id) this.pendingFile = null;
+        this.saveProposal(item.id, null);
+        await this.emit('upload-deleted', {item});
+        await this.refreshUploads();
+        return 'Hosted copy deleted.';
+      }
+      return '';
+    });
+  }
+
+  handleForm(form) {
+    const {form: action, sourceId, itemId} = form.dataset;
+    const values = new FormData(form);
+    return this.run(async () => {
+      if (action === 'mode') {
+        const mode = values.get('mode');
+        await this.sources.setMode(sourceId, mode, this.actor);
+        await this.emit('sources-changed', {sourceId});
+        return mode === 'snapshot' ? 'Simulated snapshot frozen and receipted.' : 'Feeding mode set.';
+      }
+      if (action === 'edit') {
+        const op = values.get('op');
+        const value = op === 'move' ? (values.get('folder') || null) : values.get('value').trim();
+        await this.sources.patch(sourceId, itemId, {op, value}, this.actor);
+        await this.emit('sources-changed', {sourceId});
+        return 'Mock file updated and receipted.';
+      }
+      if (action === 'video') {
+        const reference = videoReference(values.get('url'));
+        if (!reference) throw new Error('Choose a YouTube or Vimeo video link.');
+        const source = await this.sources.addVideoReference({
+          placeId:this.context.placeId, owner:this.context.actorId,
+          title:values.get('title').trim(), url:reference.url, visibility:'private',
+        }, this.actor);
+        this.openSources.add(source.id);
+        await this.emit('sources-changed', {sourceId:source.id});
+        return 'Video reference added. Atlas stores no video bytes.';
+      }
+      if (action === 'upload') {
+        this.pendingFile = {file: values.get('file'), description: values.get('description').trim(), id: crypto.randomUUID()};
+        return this.uploadPending();
+      }
+      if (action === 'score') {
+        const item = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.state === 'uploaded');
+        if (!item || item.placeId !== this.context.placeId) throw new Error('This upload is unavailable.');
+        const bytes = await this.uploads.media(item.id, 'original');
+        await this.score(item, bytes, values.get('description')?.trim() ?? '');
+        await this.refreshUploads();
+        return 'Review both dials for each dimension, then confirm your declaration.';
+      }
+      if (action === 'publish') {
+        const pending = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.state === 'uploaded');
+        if (!pending || pending.placeId !== this.context.placeId || !this.proposalFor(pending)) throw new Error('Request a score proposal before confirming.');
+        const scores = Object.fromEntries(DIMENSIONS.map(([key]) =>
+          [key,Object.fromEntries(AXES.map(axis=>[axis,Number(values.get(key+'.'+axis))]))]));
+        if (!pairsValid(scores)) throw new Error('Choose amount and graphicness for every dimension.');
+        const item = this.updateHostedItem(await this.uploads.publish(itemId,scores));
+        this.saveProposal(item.id, null);
+        await this.emit('upload-published', {item});
+        await this.refreshUploads();
+        return 'Declaration confirmed. The uploaded copy is published to this Place.';
+      }
+      return '';
+    });
+  }
+}

@@ -2,6 +2,7 @@ import {validPair,scoreText} from './scores.js';
 // One provider boundary with validated simulation when live help is unavailable.
 import {createBrowserTransport,browserLocalReason} from './ai-proxy.js';
 import {localQuestionAnswer} from './docent-questions.js';
+import {UPLOAD_SCORE_SCHEMA,simulatedUploadScores,validateUploadScores} from './upload-scores.js';
 export const PROPOSAL_SCHEMA={name:'atlas-crossing-proposal-v1',required:['kind','room','reason'],kinds:['answer','tour','note','score','curation','connection']};
 export function validateProposal(value,schema=PROPOSAL_SCHEMA){
  if(!value||typeof value!=='object'||Array.isArray(value)||schema.name!==PROPOSAL_SCHEMA.name)throw new Error('Invalid proposal schema');if(schema.required.some(k=>typeof value[k]!=='string')||!schema.kinds.includes(value.kind)||value.reason.length>2000)throw new Error('Malformed proposal');
@@ -25,7 +26,14 @@ export function createAI({transport=null,localReason=browserLocalReason()}={}){
  if(!['builder','guide','background','heavy'].includes(job)||typeof agentId!=='string'||!context?.place||!Array.isArray(context.blocks))throw new Error('Incomplete structured context');
  const snapshot=JSON.stringify(context),copy=structuredClone(context);
  const current=()=>{if(signal?.aborted||!isCurrent()||JSON.stringify(context)!==snapshot)throw new DOMException('Request cancelled','AbortError');};
- current();let fallback=null;
+ current();
+ if(job==='background'&&schema.name===UPLOAD_SCORE_SCHEMA.name){
+  if(agentId!=='upload-declaration-helper')throw new Error('Invalid upload declaration helper.');
+  const proposal=simulatedUploadScores(copy),model='simulated-upload-v1';
+  validateUploadScores(proposal,copy.uploadBasis);
+  return {proposal,model,agentId,receiptData:{provider:'simulated',job,model,agentId,result:'proposed'}};
+ }
+ let fallback=null;
  if(transport?.eligible({job,agentId,context:copy})){
   try{const result=await transport.request({job,agentId,context:copy,signal});current();validateProposal(result.proposal,schema);
    if(result.agentId!==agentId||result.proposal.kind!=='answer'||result.proposal.room!==copy.place.key||result.proposal.citations.some(id=>!copy.blocks.some(b=>b.id===id))||typeof result.model!=='string'||result.model.length>200||typeof result.receiptData?.receiptId!=='string'||!/^[a-f0-9-]{36}$/.test(result.receiptData.receiptId))throw new Error('Invalid live proposal');
