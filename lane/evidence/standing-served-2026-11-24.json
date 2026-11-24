@@ -1,0 +1,159 @@
+{
+  "checkedAt": "2026-11-24T17:32:55.924107+00:00",
+  "commit": "4f784e1",
+  "assets": [
+    {
+      "path": "src/access-store.js",
+      "http": 200,
+      "sha256": "615b3c5fc263544a3e742971a3e7e84770cdfb618e5eeac947074b11a937daea",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/access-ui.js",
+      "http": 200,
+      "sha256": "f4a75621721933a40065d832f1b9c9ac970431d66ef27ff9eaecc5752d947d82",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/admission.js",
+      "http": 200,
+      "sha256": "20ada233e37b2b9e1b508645f5cf9cebb44398dda15f09cba3717b2f506ba74b",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/arrival-ui.js",
+      "http": 200,
+      "sha256": "86e44b395f08838c4f5763ce0add7ea9256eb0931da2c2eff79f5f0ed2276bcb",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/block-renderer.js",
+      "http": 200,
+      "sha256": "9d0f3e9dde8c3a351300f91a4e64275b415b2a7fd16fd36fbe2e989fc77cfafb",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/content.js",
+      "http": 200,
+      "sha256": "28f5b0bc28ae827debaafa3ad20390a5b7e9b81c244bc922bb62abf0e4a7464f",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/door-controls.js",
+      "http": 200,
+      "sha256": "ed9cff6a3db5faebbc005c9571cba4655d5a6daf17a73e8b4eb81f10856a863e",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/identity.js",
+      "http": 200,
+      "sha256": "5a67869ca9c9c92a53a7308d7918ab87a46dec258241aa129b85dce11c51424a",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/page.js",
+      "http": 200,
+      "sha256": "3a083ad8adb5c09d875214d386fb1ad882803a55ab7db63170e5d79744ddb6e9",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/permissions.js",
+      "http": 200,
+      "sha256": "bc83aa2288636084ccf5053565105d162bed46994eaa939108eec9152ca0cce0",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/profile-ui.js",
+      "http": 200,
+      "sha256": "fa04403c37482d5fca9b6f73f023e21d10c8be2fe3c2f2d7d65d1c8ac99d8cb8",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/profiles.js",
+      "http": 200,
+      "sha256": "ecc48f9213af7cf73b97fd6699407583c1e72da89a92e66ba2978a4de459db1a",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/rules.js",
+      "http": 200,
+      "sha256": "46afee848da01404d14730cdd20246f858a1b8fcff2dac2ef16a5dbded13725e",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/staff.js",
+      "http": 200,
+      "sha256": "f33e94081de789481d41236a1e7a9402533c79ff2c4bd5eab930606f2027aac7",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/standing-controls.js",
+      "http": 200,
+      "sha256": "2a65dd8268e059c61e4ddf31a444b7ee7264ce280814b2f396c945cd916723e6",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/standing-policy.js",
+      "http": 200,
+      "sha256": "de6b929d35973d1539efa306a6caa2e77baf27241ac979f72e6f1a656ac42c7c",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/standing-store.js",
+      "http": 200,
+      "sha256": "f759d22e398acb897396604634b32d17284d9470ad1c025ddfb3e5ed5f616b1b",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/standing-ui.js",
+      "http": 200,
+      "sha256": "0aaa2e43c0eff5b99f3a31d19dc588e528deb5f32a15e2101425bd593e61c02a",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/starter-data.js",
+      "http": 200,
+      "sha256": "15bb0ce517a360081c5d4c8335767b87c4552ba66411366627b2ff92be62623e",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/stewardship-ui.js",
+      "http": 200,
+      "sha256": "c161259c2433279d8c59124649945685741f99b8085fb3708353d4af7605e38a",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/stewardship.js",
+      "http": 200,
+      "sha256": "1b0600b2f59d0ef0c5a54fda967f4d236616b5e1585c657d201b3bc229cf6628",
+      "matchesCommit": true
+    },
+    {
+      "path": "src/ui.js",
+      "http": 200,
+      "sha256": "e80a7711ebef479a249fdab3bbb33a85ae0e974011391c95ab1ae68524c56ee6",
+      "matchesCommit": true
+    },
+    {
+      "path": "standing.css",
+      "http": 200,
+      "sha256": "27b70f824a642f9b0e76e6ae2cde6bc0ff725a7480a45d76387aba9015ef31be",
+      "matchesCommit": true
+    }
+  ],
+  "allMatch": true,
+  "browser": {
+    "status": "blocked before first assertion",
+    "error": "net::ERR_CERT_AUTHORITY_INVALID",
+    "url": "https://zateslofl.github.io/living-atlas-astra/?page&test&ai=local",
+    "certificateValidationBypassed": false,
+    "paidCalls": 0,
+    "localBrowserChecksPassed": 117,
+    "diagnosticLog": "work/standing/served-probe.log"
+  },
+  "normalUrlSampleHashesAlsoMatched": [
+    "src/arrival-ui.js",
+    "src/page.js",
+    "src/standing-policy.js"
+  ]
+}
