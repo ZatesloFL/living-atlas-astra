@@ -10,6 +10,7 @@ const lens=()=>({...seedProfiles()[0],profileId:'seed-me',playAs:'visitor'});
 const fixture=()=>{const m=new Map();return new AccessStore(()=>({getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v)}));};
 test('Docent discovery quotes the same index reasons through ai.request, even with a live-capable transport',async()=>{
  const store=fixture();let calls=0;const ai=createAI({transport:{eligible:()=>true,request:()=>{calls++;throw new Error('Must not dispatch Discovery to the exhibit provider');}}}),staff=new Staff(store,{aiClient:ai});await staff.ready;
+ const active={words:'boycott',sort:'nearest'};assert.deepEqual(discoveryQuestionQuery("What's here",active),active);assert.deepEqual(discoveryQuestionQuery('What fits my Lens?',active),active);
  const query=discoveryQuestionQuery('Where can I find the boycott?'),current=store.lens(lens()),result=queryIndex(current,query,{from:'boycott',standing:store.standing}),evidence=discoveryEvidence(result);
  const record=await staff.request('docent-silver','boycott','answer',current,{question:'Where can I find the boycott?',discovery:query});
  assert.equal(calls,0);assert.equal(record.provenance.localReason,'discovery_local');assert.equal(record.provenance.provider,'simulated');

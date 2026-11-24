@@ -4,13 +4,14 @@ export const DISCOVERY_UNKNOWN="I don't know from the indexed results in this vi
 export function discoveryQuestionQuery(question,query={}){
  const text=normalizeQuestion(question).toLowerCase().replace(/[’']/g,'');
  if((text.match(/[?？]/g)??[]).length>1)throw new Error('Ask one question at a time.');
- if(['whats here?','what is here?','whats it like?','what is it like?','what fits my lens?','here','like','lens'].includes(text))return {...query};
+ if(['whats here','what is here','whats it like','what is it like','what fits my lens','here','like','lens'].includes(text.replace(/[?？]+$/,'')))return {...query};
  const words=text.replace(/[?.,!]/g,' ').split(/\s+/).filter(word=>word&&!['what','whats','where','is','are','a','an','the','can','i','find','show','me','about','tell','please'].includes(word)).join(' ');
  return {...query,words};
 }
 export function discoveryEvidence(result){
  return result.results.map(card=>({id:card.indexId,type:'text',sources:[],body:[
   card.title,
+  ...(card.metadataFrom?[card.metadataFrom]:[]),
   `Declared: ${DIMENSIONS.map(([key,label])=>label+' '+card.declaration[key].amount+' × '+card.declaration[key].graphicness).join('; ')}.`,
   `Declaration record: ${card.facets.declaration??'shared at a knock or door'}. Steward: ${card.readings.steward?'measured':'unmeasured'}. Audience: ${card.readings.audience?'measured':'unmeasured'}.`,
   ...(card.softGaps.length?['Lens gap: '+card.softGaps.join('; ')+'.']:[]),
