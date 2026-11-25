@@ -197,3 +197,5 @@ One line per call the brief did not settle, with the reason.
 - 2026-11-24, file 29 Part 2: Conversational discovery quotes index metadata through existing Docent grants, Staff proposals and ai.request, labeled local simulation. It never sends a browser-built catalog to the live exhibit provider. Source views/badges consume lane B's report-14 interface; the existing standing resolver retains referenced upload declarations without manufacturing measurements. See report 15.
 
 - 2026-11-24 / Existing-profile Arrival — Keep the saved profile ID, identity and preferences; its optional first step identifies that profile instead of repeating account preview questions. Reuse the ordinary starter claim and home landing, adding one profile attachment receipt. The invitation checks the actual starter claim and never auto-launches. See report 20.
+
+- 2026-11-24 / Delivered declaration — Resolve a Place’s authored declaration fallback from its selected audience view, preserving Thing scope and receipt precedence. Label the version with the existing audience helper on Discovery and standing surfaces; do not rewrite historical receipts or authored versions. See report 22.

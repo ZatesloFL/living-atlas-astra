@@ -1,0 +1,378 @@
+{
+  "recordedAt": "2026-11-25T04:51:22.147673+00:00",
+  "runtimeCommit": "fba76787e6b81b78695e5df05b5f9e7a1bf56e85",
+  "baseCommit": "305001a",
+  "scope": "One delivered version declaration across Discovery chips, the card table and the standing record; authored data unchanged.",
+  "environment": {
+    "supabaseAccessToken": "present; value never printed, logged or committed",
+    "httpsRoots": {
+      "api.supabase.com": {
+        "httpStatus": 404,
+        "reachable": true
+      },
+      "ftnxmuenqfqkodizyekk.supabase.co": {
+        "httpStatus": 404,
+        "reachable": true
+      },
+      "zateslofl.github.io": {
+        "httpStatus": 404,
+        "reachable": true
+      }
+    }
+  },
+  "redRegression": {
+    "command": "node --test tests/declaration-versions.test.js",
+    "failedBeforeFix": 2,
+    "documentaryMismatch": "Standing snapshot disturbing amount 2; delivered view and Discovery amount 1 (graphicness 1).",
+    "immersiveMismatch": "Standing snapshot viewpoint 1 x 1 and sensory 0 x 0; delivered view and Discovery 2 x 1 on both dimensions."
+  },
+  "node": {
+    "command": "npm test",
+    "passed": 253,
+    "failed": 0,
+    "ranAfterFinalRuntimeChange": true
+  },
+  "aiCatalog": {
+    "command": "npm run check:ai-catalog",
+    "passed": true
+  },
+  "browsers": {
+    "baseUrl": "http://127.0.0.1:8009/",
+    "newRegression": {
+      "command": "node tests/declaration-versions-browser.cjs",
+      "viewport": {
+        "width": 393,
+        "height": 851
+      },
+      "passed": 2,
+      "results": [
+        {
+          "lens": {
+            "disturbing": {
+              "amount": 1,
+              "graphicness": 1
+            }
+          },
+          "version": "documentary",
+          "chips": {
+            "Violence": [
+              0,
+              0
+            ],
+            "Sexual content": [
+              0,
+              0
+            ],
+            "Language": [
+              0,
+              0
+            ],
+            "Disturbing themes": [
+              1,
+              1
+            ],
+            "Viewpoint": [
+              1,
+              1
+            ],
+            "Sensory": [
+              0,
+              0
+            ]
+          },
+          "cardTable": {
+            "Violence": [
+              0,
+              0
+            ],
+            "Sexual content": [
+              0,
+              0
+            ],
+            "Language": [
+              0,
+              0
+            ],
+            "Disturbing themes": [
+              1,
+              1
+            ],
+            "Viewpoint": [
+              1,
+              1
+            ],
+            "Sensory": [
+              0,
+              0
+            ]
+          },
+          "standingTable": {
+            "Violence": [
+              0,
+              0
+            ],
+            "Sexual content": [
+              0,
+              0
+            ],
+            "Language": [
+              0,
+              0
+            ],
+            "Disturbing themes": [
+              1,
+              1
+            ],
+            "Viewpoint": [
+              1,
+              1
+            ],
+            "Sensory": [
+              0,
+              0
+            ]
+          },
+          "delivered": {
+            "version": "documentary",
+            "scores": {
+              "violence": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sexual": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "language": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 0,
+                "graphicness": 0
+              }
+            }
+          }
+        },
+        {
+          "lens": {
+            "disturbing": {
+              "amount": 2,
+              "graphicness": 1
+            }
+          },
+          "version": "immersive",
+          "chips": {
+            "Violence": [
+              0,
+              0
+            ],
+            "Sexual content": [
+              0,
+              0
+            ],
+            "Language": [
+              0,
+              0
+            ],
+            "Disturbing themes": [
+              2,
+              1
+            ],
+            "Viewpoint": [
+              2,
+              1
+            ],
+            "Sensory": [
+              2,
+              1
+            ]
+          },
+          "cardTable": {
+            "Violence": [
+              0,
+              0
+            ],
+            "Sexual content": [
+              0,
+              0
+            ],
+            "Language": [
+              0,
+              0
+            ],
+            "Disturbing themes": [
+              2,
+              1
+            ],
+            "Viewpoint": [
+              2,
+              1
+            ],
+            "Sensory": [
+              2,
+              1
+            ]
+          },
+          "standingTable": {
+            "Violence": [
+              0,
+              0
+            ],
+            "Sexual content": [
+              0,
+              0
+            ],
+            "Language": [
+              0,
+              0
+            ],
+            "Disturbing themes": [
+              2,
+              1
+            ],
+            "Viewpoint": [
+              2,
+              1
+            ],
+            "Sensory": [
+              2,
+              1
+            ]
+          },
+          "delivered": {
+            "version": "immersive",
+            "scores": {
+              "violence": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sexual": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "language": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 1
+              }
+            }
+          }
+        }
+      ],
+      "errors": [],
+      "liveCalls": 0,
+      "physicalPhone": "Not tested"
+    },
+    "discovery": {
+      "command": "node tests/discovery-browser.cjs",
+      "checks": [
+        "search shows paired declarations, three readings, real why-reasons and no legacy helper label",
+        "preview is read-only and leaves the ordinary Enter/Knock actions available",
+        "range and record controls query the same index, and ordering is visible and saved",
+        "the real local Docent returns cited index evidence without calling the live provider",
+        "a card knock writes one request receipt and Enter still opens ordinary Page pre-flight",
+        "phone-width and landscape cards have no document overflow; errors and provider calls remain empty"
+      ],
+      "passed": 6,
+      "errors": [],
+      "liveCalls": 0
+    },
+    "standing": {
+      "command": "node tests/standing-browser.cjs",
+      "checks": [
+        "fresh private starter shows honest three-reading slots and an unverified account preview cannot file",
+        "verified visitor files one audience reading after an actual Page crossing",
+        "editing an audience reading is marked and automatically queues divergence",
+        "another Steward resolves the queue through the form and attribution stays visible",
+        "record survives reload and the phone-width Page keeps its table within a scrolling container",
+        "the actor record has four facets and browsing permission is an explicit receipted choice",
+        "Mara offers her helper record with real accepted and rejected receipt evidence, without a live call",
+        "owner declares standing rules and appoints a template Place Steward through the forms",
+        "template measurement displays the owner, grant, designate and operator chain",
+        "display exclusion remains attributed and the owner can restore it after revoking the grant",
+        "knock shows four facets to the owner without exposing a private Lens",
+        "a hall display choice targets the selected audience version and preserves its source",
+        "private Lens standing preferences persist after reload"
+      ],
+      "passed": 13,
+      "errors": [],
+      "liveCalls": 0
+    },
+    "totalDistinctChecks": 21,
+    "initialNewBrowserFinding": "Readings & record opened behind the Discovery overlay. Discovery now closes before the standing panel opens; final regression asserts one visible overlay and passes."
+  },
+  "servedSource": {
+    "checkedAt": "2026-11-25T04:50:10.364738+00:00",
+    "runtimeCommit": "fba76787e6b81b78695e5df05b5f9e7a1bf56e85",
+    "files": [
+      {
+        "path": "src/community-ui.js",
+        "httpStatus": 200,
+        "localSha256": "99ff1ecebd4886e84e53bc45a5229510399912167100fdbd649bf78b566f3625",
+        "servedSha256": "99ff1ecebd4886e84e53bc45a5229510399912167100fdbd649bf78b566f3625",
+        "matches": true
+      },
+      {
+        "path": "src/discovery-index.js",
+        "httpStatus": 200,
+        "localSha256": "920cc0b620f4803dee4c979b3463df3b59e3b7ca3b3f5748eb1ded78f02103cf",
+        "servedSha256": "920cc0b620f4803dee4c979b3463df3b59e3b7ca3b3f5748eb1ded78f02103cf",
+        "matches": true
+      },
+      {
+        "path": "src/discovery-view.js",
+        "httpStatus": 200,
+        "localSha256": "f233d8b341d7b3b9ff963a8bebbf26ae11cf6f6fd530d0757b88dba7beedf095",
+        "servedSha256": "f233d8b341d7b3b9ff963a8bebbf26ae11cf6f6fd530d0757b88dba7beedf095",
+        "matches": true
+      },
+      {
+        "path": "src/standing-records.js",
+        "httpStatus": 200,
+        "localSha256": "0c1be6dd6c5b910b1209662b9f420befb94f55258d1a6499d5ff6adf50198ee1",
+        "servedSha256": "0c1be6dd6c5b910b1209662b9f420befb94f55258d1a6499d5ff6adf50198ee1",
+        "matches": true
+      },
+      {
+        "path": "src/standing-view.js",
+        "httpStatus": 200,
+        "localSha256": "75e0347c5acae19b86c7a7aaa05a8a05494a888272cea9da19ca2738986e6fc5",
+        "servedSha256": "75e0347c5acae19b86c7a7aaa05a8a05494a888272cea9da19ca2738986e6fc5",
+        "matches": true
+      }
+    ]
+  },
+  "liveActions": {
+    "repositoryPush": "fba76787e6b81b78695e5df05b5f9e7a1bf56e85",
+    "readOnlyChecks": [
+      "HTTPS root reachability",
+      "Pages runtime file comparison"
+    ],
+    "migrations": 0,
+    "edgeDeployments": 0,
+    "liveAiCalls": 0,
+    "accountActions": 0,
+    "uploads": 0
+  },
+  "physicalDevice": "Partial: Nic through Silver; functional viewport checks do not establish appearance, feel or fps on a physical phone."
+}
