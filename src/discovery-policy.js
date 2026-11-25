@@ -5,7 +5,7 @@ import {roomEntry,blockAccess} from './content.js';
 import {viewRoom} from './audience.js';
 import {planRoute,planRoutes} from './travel-plan.js';
 import {identityOf,identityBadge} from './identity.js';
-export const SORTS={curator:'Curator’s order',newest:'Newest',vouched:'Most vouched',nearest:'Nearest',followed:'From people I follow'};
+export const SORTS={curator:'Curator’s order',newest:'Newest',vouched:'Endorsements on file',nearest:'Nearest',followed:'From people I follow'};
 export function memberOf(group,lens){const record=lens.access?.groups?.find(g=>g.id===group);return (!['tallahassee-resident','neighborhood'].includes(group)&&record?.kind!=='credential'||lens.identity?.backing==='verified')&&((lens.groups??[]).includes(group)||(record?.members??[]).includes(personId(lens)));}
 export function discoveryGate(id,lens){const gate=roomEntry(id,lens,EDGES);return gate.state!=='hidden'&&gate.state!=='private'&&!gate.admission?.blocked&&gate.rights?.canLook?gate:null;}
 export function discoveryRoute(from,to,lens){return planRoute(from,to,lens,{passable:(edge,gate)=>gate.state!=='private'&&!gate.admission?.blocked&&gate.rights?.canEnter});}
