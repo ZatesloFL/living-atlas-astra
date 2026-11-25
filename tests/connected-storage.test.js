@@ -205,11 +205,17 @@ async function stagedFile(owner, type = 'image/png') {
   return (await sql`SELECT * FROM atlas_sources.finish_upload(${owner}, ${id})`)[0];
 }
 
-// Stand-ins for steps performed by ai-proxy before invoking save_photo_proposal.
+// Stand-ins for steps performed by ai-proxy before saving a validated review.
 // No prompts, input media or account credentials are involved in this fixture.
-async function photoReceipt({ owner, uploadId, sha256 = originalHash, accepted = true }) {
+const reviewSchemas = ['atlas-upload-photo-scores-v1', 'atlas-upload-audio-transcription-v1', 'atlas-upload-audio-scores-v1'];
+async function reviewReceipt({ owner, uploadId, sha256 = originalHash, accepted = true,
+  stage = 'photo', reviewGrant = stage !== 'photo', transcriptionReceiptId
+}) {
   const grant = randomUUID(), session = randomUUID(), receipt = randomUUID();
-  const model = 'anthropic/fixture-vision';
+  const transcription = stage === 'transcription';
+  const provider = transcription ? 'openai' : 'anthropic';
+  const model = transcription ? 'openai/gpt-transcribe' : 'anthropic/fixture-vision';
+  const route = transcription ? 'audio_transcription' : 'background';
   await sql.begin(async tx => {
     await tx`INSERT INTO atlas_ai.holder_leases (id, token_sha256, created_at, expires_at)
       VALUES (${owner}, sha256(${owner}::text::bytea), now(), now() + interval '24 hours')
@@ -217,21 +223,23 @@ async function photoReceipt({ owner, uploadId, sha256 = originalHash, accepted =
     await tx`INSERT INTO atlas_ai.grants
       (id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at)
       VALUES (${grant}, ${owner}, 'suggest', ARRAY['background'], ARRAY['upload-declaration-helper'],
-        ARRAY['owned-upload'], ARRAY['atlas-upload-photo-scores-v1'], 4, 10000, now(), now() + interval '12 hours')`;
+        ARRAY['owned-upload'], ${(reviewGrant ? reviewSchemas : reviewSchemas.slice(0, 1))}::text[], 4, 10000, now(), now() + interval '12 hours')`;
     await tx`INSERT INTO atlas_ai.session_leases (id, holder_id, grant_id, token_sha256, created_at, expires_at)
       VALUES (${session}, ${owner}, ${grant}, sha256(${session}::text::bytea), now(), now() + interval '20 minutes')`;
     const accounting = {
-      route: { provider: 'anthropic' }, model, agent: 'upload-declaration-helper', job: 'background',
-      photo: { uploadId, contentSha256: sha256 }
+      route: { provider }, model, agent: 'upload-declaration-helper', job: 'background',
+      [stage]: { uploadId, contentSha256: sha256, ...(transcriptionReceiptId ? {transcriptionReceiptId} : {}) }
     };
     await tx`INSERT INTO atlas_ai.call_leases
       (id,request_key,session_id,grant_id,route_key,accounting,quota_reservations,state,reserved_microusd,created_at,expires_at)
-      VALUES (${receipt}, sha256(${receipt}::text::bytea), ${session}, ${grant}, 'background',
+      VALUES (${receipt}, sha256(${receipt}::text::bytea), ${session}, ${grant}, ${route},
         ${tx.json(accounting)}, '[]', 'dispatched', 100, now(), now() + interval '1 minute')`;
-    await tx`INSERT INTO atlas_ai.call_receipts
-      (id,time,job,agent,model,cost_microusd,cost_basis,validation_passed,result,failure_class)
-      VALUES (${receipt}, now(), 'background', 'upload-declaration-helper', ${model}, 10, 'measured',
-        ${accepted}, ${accepted ? 'accepted' : 'rejected'}, ${accepted ? null : 'provider_content_invalid'})`;
+    await tx`INSERT INTO atlas_ai.call_receipts ${tx({
+      id: receipt, time: new Date(), job: 'background', agent: 'upload-declaration-helper', model,
+      cost_microusd: 10, cost_basis: 'measured', validation_passed: accepted,
+      result: accepted ? 'accepted' : 'rejected', failure_class: accepted ? null : 'provider_content_invalid',
+      ...(transcription ? { audio_duration_ms: 1000 } : {})
+    })}`;
   });
   return receipt;
 }
@@ -264,14 +272,14 @@ test('only an accepted background Receipt for the same owned bytes can authorize
   await assert.rejects(publish(owner, audio.id), failure('AUDIO_ASSESSMENT_UNAVAILABLE'));
   await assert.rejects(savePhoto(owner, id, randomUUID()), failure('PHOTO_ASSESSMENT_MISMATCH'));
   await assert.rejects(savePhoto(owner, id, randomUUID(), 'invalid'), failure('PHOTO_ASSESSMENT_MISMATCH'));
-  const rejected = await photoReceipt({ owner, uploadId: id, accepted: false });
-  const wrongHash = await photoReceipt({ owner, uploadId: id, sha256: previewHash });
-  const wrongOwner = await photoReceipt({ owner: foreign, uploadId: id });
+  const rejected = await reviewReceipt({ owner, uploadId: id, accepted: false });
+  const wrongHash = await reviewReceipt({ owner, uploadId: id, sha256: previewHash });
+  const wrongOwner = await reviewReceipt({ owner: foreign, uploadId: id });
   for (const receipt of [rejected, wrongHash, wrongOwner]) {
     await assert.rejects(savePhoto(owner, id, receipt), failure('PHOTO_ASSESSMENT_MISMATCH'));
   }
 
-  const accepted = await photoReceipt({ owner, uploadId: id });
+  const accepted = await reviewReceipt({ owner, uploadId: id });
   await assert.rejects(savePhoto(owner, unrelated.id, accepted), failure('PHOTO_ASSESSMENT_MISMATCH'));
   const oversized = { ...photoAssessment, observation: 'x'.repeat(381) };
   await assert.rejects(savePhoto(owner, id, accepted, oversized), failure('PHOTO_ASSESSMENT_MISMATCH'));
@@ -284,7 +292,7 @@ test('only an accepted background Receipt for the same owned bytes can authorize
     await assert.rejects(byRole(role, tx => tx`SELECT * FROM atlas_sources.photo_proposals`), error => error.code === '42501');
   }
 
-  const anotherCall = await photoReceipt({ owner, uploadId: id });
+  const anotherCall = await reviewReceipt({ owner, uploadId: id });
   assert.equal((await savePhoto(owner, id, anotherCall, { ...photoAssessment, observation: 'A second description.' }))[0].receipt_id, accepted);
   assert.equal(await photoProvenance(owner, id, anotherCall), null);
 
@@ -308,4 +316,116 @@ test('only an accepted background Receipt for the same owned bytes can authorize
   assert.equal((await sql`SELECT * FROM atlas_sources.photo_proposals WHERE upload_id = ${id}`).length, 1);
   await assert.rejects(runMigration(photoRollback), /preserve the proof chain/);
   assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts WHERE id = ${accepted}`).length, 1);
+});
+
+const audioMigration = await readFile(new URL('../supabase/migrations/20261125143000_atlas_audio_review.sql', import.meta.url), 'utf8');
+const audioRollback = await readFile(new URL('../supabase/migrations/rollback/20261125143000_atlas_audio_review.rollback.sql', import.meta.url), 'utf8');
+const audioAssessment = {
+  ...photoAssessment, basis: 'audio-transcript', observation: 'A short spoken introduction.'
+};
+const syntheticTranscript = 'A synthetic transcript which must be erased.';
+const getTranscript = (owner, id) => sql`SELECT * FROM atlas_sources.get_audio_transcript(${owner}, ${id})`;
+const saveTranscript = (owner, id, receipt, text = syntheticTranscript) => sql`
+  SELECT * FROM atlas_sources.save_audio_transcript(${owner}, ${id}, ${receipt}, ${text})`;
+const getAudio = (owner, id) => sql`SELECT * FROM atlas_sources.get_audio_proposal(${owner}, ${id})`;
+const saveAudio = (owner, id, receipt, transcriptionReceipt, proposal = audioAssessment) => sql`
+  SELECT * FROM atlas_sources.save_audio_proposal(${owner}, ${id}, ${receipt}, ${transcriptionReceipt}, ${sql.json(proposal)})`;
+const audioProvenance = async (owner, id, receipt) => (await sql`
+  SELECT atlas_sources.audio_provenance(${owner},${id},${receipt}) AS proof`)[0].proof;
+const transcriptInStorage = async id => (await sql`
+  SELECT transcript FROM atlas_sources.audio_transcripts WHERE upload_id = ${id}`)[0].transcript;
+
+test('audio configuration is additive to the existing routes, budget settings and legacy photo proof', async () => {
+  const aiConfigs = async () => ({
+    routes: await sql`SELECT * FROM atlas_ai.routing_config ORDER BY route_key`,
+    budget: await sql`SELECT * FROM atlas_ai.runtime_config`
+  });
+  const prior = await aiConfigs();
+  await runMigration(audioMigration);
+  assert.deepEqual(await aiConfigs(), prior);
+  const [config] = await sql`SELECT * FROM atlas_ai.transcription_config WHERE id = true`;
+  assert.equal(config.model_id, 'gpt-transcribe');
+  assert.equal(config.provider, 'openai');
+  assert.equal(Number(config.microusd_per_minute), 4500);
+  assert.equal(Number(config.max_duration_ms), 30000);
+  await runMigration(audioRollback);
+  assert.deepEqual(await aiConfigs(), prior);
+  assert.equal((await sql`SELECT to_regclass('atlas_sources.audio_proposals') AS rel`)[0].rel, null);
+  await runMigration(audioMigration);
+
+  const owner = randomUUID();
+  for (const reviewGrant of [false, true]) {
+    const { id } = await stagedFile(owner);
+    const receipt = await reviewReceipt({ owner, uploadId: id, reviewGrant });
+    assert.equal((await savePhoto(owner, id, receipt))[0].receipt_id, receipt);
+  }
+});
+
+test('audio provenance requires both exact owner and original hash receipts and wipes used transcript', async () => {
+  const owner = randomUUID(), anotherOwner = randomUUID();
+  const { id } = await stagedFile(owner, 'audio/wav');
+  const other = await stagedFile(owner, 'audio/wav');
+  await assert.rejects(publish(owner, id), failure('AUDIO_ASSESSMENT_REQUIRED'));
+  const wrongHash = await reviewReceipt({ owner, uploadId: id, stage: 'transcription', sha256: previewHash });
+  await assert.rejects(saveTranscript(owner, id, wrongHash), failure('AUDIO_ASSESSMENT_MISMATCH'));
+  const rejected = await reviewReceipt({ owner, uploadId: id, stage: 'transcription', accepted: false });
+  await assert.rejects(saveTranscript(owner, id, rejected), failure('AUDIO_ASSESSMENT_MISMATCH'));
+  const transcriptionReceiptId = await reviewReceipt({ owner, uploadId: id, stage: 'transcription' });
+  await assert.rejects(saveTranscript(owner, other.id, transcriptionReceiptId), failure('AUDIO_ASSESSMENT_MISMATCH'));
+  await assert.rejects(saveTranscript(owner, id, transcriptionReceiptId, 'x'.repeat(8193)), failure('AUDIO_ASSESSMENT_MISMATCH'));
+  const [transcript] = await saveTranscript(owner, id, transcriptionReceiptId);
+  assert.equal(transcript.receipt_id, transcriptionReceiptId);
+  assert.equal(transcript.transcript, syntheticTranscript);
+  assert.equal((await getTranscript(anotherOwner, id)).length, 0);
+  for (const role of ['anon', 'authenticated']) {
+    await assert.rejects(byRole(role, tx => tx`SELECT transcript FROM atlas_sources.audio_transcripts`),
+      error => error.code === '42501');
+  }
+
+  const receiptId = await reviewReceipt({ owner, uploadId: id, stage: 'audio', transcriptionReceiptId });
+  await assert.rejects(saveAudio(owner, id, receiptId, wrongHash), failure('AUDIO_ASSESSMENT_MISMATCH'));
+  await assert.rejects(saveAudio(owner, id, receiptId, transcriptionReceiptId, photoAssessment), failure('AUDIO_ASSESSMENT_MISMATCH'));
+  const [proposal] = await saveAudio(owner, id, receiptId, transcriptionReceiptId);
+  assert.deepEqual(proposal.proposal, audioAssessment);
+  assert.equal((await getTranscript(owner, id)).length, 0);
+  assert.equal(await transcriptInStorage(id), null);
+  assert.equal((await saveTranscript(owner, id, transcriptionReceiptId))[0].transcript, null);
+  assert.equal((await getAudio(owner, id))[0].receipt_id, receiptId);
+
+  await sql`DELETE FROM atlas_ai.call_leases WHERE id IN (${receiptId}, ${transcriptionReceiptId})`;
+  const proof = await audioProvenance(owner, id, receiptId);
+  assert.deepEqual(proof, {
+    provider: 'anthropic', model: 'anthropic/fixture-vision', receiptId, route: 'background',
+    basis: 'audio-transcript', transcriptionReceiptId, transcriptionProvider: 'openai',
+    transcriptionModel: 'openai/gpt-transcribe', transcriptionRoute: 'audio_transcription'
+  });
+  assert.equal(await audioProvenance(anotherOwner, id, receiptId), null);
+  await assert.rejects(publish(owner, other.id, editedPhotoScores, proof), failure('AUDIO_ASSESSMENT_MISMATCH'));
+  await assert.rejects(publish(owner, id, editedPhotoScores, { ...proof, transcriptionReceiptId: wrongHash }),
+    failure('AUDIO_ASSESSMENT_MISMATCH'));
+  const [declared] = await publish(owner, id, editedPhotoScores, proof);
+  assert.deepEqual(declared.scores, editedPhotoScores);
+  assert.deepEqual(declared.proposal_provenance, proof);
+  assert.equal((await publish(owner, id, editedPhotoScores, proof))[0].declaration_receipt_id, declared.declaration_receipt_id);
+  await assert.rejects(runMigration(audioRollback), /preserve the proof chain/);
+});
+
+test('expired or deleted audio review text is erased without discarding the transcription Receipt', async () => {
+  const owner = randomUUID();
+  const expired = await stagedFile(owner, 'audio/wav');
+  const deleted = await stagedFile(owner, 'audio/wav');
+  const expiredReceipt = await reviewReceipt({ owner, uploadId: expired.id, stage: 'transcription' });
+  const deletedReceipt = await reviewReceipt({ owner, uploadId: deleted.id, stage: 'transcription' });
+  await saveTranscript(owner, expired.id, expiredReceipt);
+  await saveTranscript(owner, deleted.id, deletedReceipt);
+  await sql`UPDATE atlas_sources.audio_transcripts SET created_at = now() - interval '16 minutes',
+    expires_at = now() - interval '1 minute' WHERE upload_id = ${expired.id}`;
+  assert.equal((await getTranscript(owner, expired.id)).length, 0);
+  assert.equal((await sql`SELECT atlas_sources.expire_audio_transcripts() AS count`)[0].count, 1);
+  assert.equal(await transcriptInStorage(expired.id), null);
+  assert.equal((await saveTranscript(owner, expired.id, expiredReceipt))[0].transcript, null);
+  await sql`SELECT * FROM atlas_sources.begin_delete(${owner}, ${deleted.id})`;
+  assert.equal((await getTranscript(owner, deleted.id)).length, 0);
+  assert.equal(await transcriptInStorage(deleted.id), null);
+  assert.equal((await sql`SELECT id FROM atlas_ai.call_receipts WHERE id IN (${expiredReceipt}, ${deletedReceipt})`).length, 2);
 });
