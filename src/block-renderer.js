@@ -1,3 +1,4 @@
+import {recordLabel} from './record-copy.js';
 import {kitHTML,bindKit} from './kit-ui.js';
 import {readingCard} from './standing-view.js';
 import {roomVisible} from './rules.js';
@@ -58,7 +59,7 @@ export function articleHTML(id,lens,options={}){
  const merged=mergedLayers(room,lens),accepted=layerSelection(room,lens).filter(x=>x.accepted&&!merged.includes(x.layer)).map(x=>x.layer);
  const softApproved=new Set([...(options.softApproved??[]),...accepted.filter(l=>lens.layerConsents?.[l.id]===layerConsentKey(lens)).map(l=>'layer-'+l.id)]);
  const view=selectContent(room,lens,[...contentStore.blocks(id,room.blocks),...merged.map(l=>layerBlock(l,true)),...accepted.map(l=>layerBlock(l))]);
- return `${versionLabel(room,lens)?`<p class="audience-label">${esc(versionLabel(room,lens))}</p>`:''}${view.omitted.trust?`<p class="reason">Trust from ${esc(lens.trustFrom)}: ${view.omitted.trust} supporting blocks lack that review and are omitted. Core author content remains visible; it is not independently verified.</p>`:''}${view.blocks.map(b=>blockHTML(b,room,lens,{...options,softApproved})).join('')||'<p>No blocks match this Lens and Depth.</p>'}`;
+ return `${versionLabel(room,lens)?`<p class="audience-label">${esc(versionLabel(room,lens))}</p>`:''}${view.omitted.trust?`<p class="reason">Supporting records from ${esc(recordLabel(lens.trustFrom))}: ${view.omitted.trust} supporting blocks lack that review and are omitted. Core author content remains visible; it is not independently verified.</p>`:''}${view.blocks.map(b=>blockHTML(b,room,lens,{...options,softApproved})).join('')||'<p>No blocks match this Lens and Depth.</p>'}`;
 }
 export function bindBlocks(root,{related,allow}={}){
  bindKit(root);

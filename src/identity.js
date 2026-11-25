@@ -17,7 +17,7 @@ export function accountStateLabel(subject){
  if(subject.isTest&&subject.age<13)return 'Under-13 rejection fixture · no account';
  if(i.backing!=='verified')return 'Unverified · age unknown';
  if(Number.isFinite(subject.age)&&subject.age<18)return 'Minor 13–17 · simulated; guardian link not connected';
- return Number.isFinite(subject.age)?'Verified adult · simulated':'Verified identity · simulated';
+ return Number.isFinite(subject.age)?'Verified adult · simulated':'Verified adult';
 }
 export function authorName(subject){subject=accountSubject(subject);return identityOf(subject).display==='anonymous'&&!subject.isAgent?'Anonymous':subject.name;}
 export function accessSettings(lens,place=null){
