@@ -81,6 +81,11 @@ test('Builder saves and republishes hosted placement references and resolves cur
   assert.doesNotMatch(articleHTML(id,other),/Photo of the Atlas courtyard|data-managed-source/);
   assert.doesNotMatch(saved,/Photo of the Atlas courtyard|Video of the Atlas courtyard|youtube\.com|snapshot-receipt|declaration-receipt/);
 
+  await connectedSources.setItemExcluded(video.id,videoBlock.source.itemId,true,{actorId:ownerId});
+  assert.ok(!sourcedRoom(ROOMS[id],lens).builderFixtures.some(fixture=>fixture.block===videoBlock.id));
+  assert.doesNotMatch(articleHTML(id,lens),/Video of the Atlas courtyard|Source reference is unavailable/);
+  await connectedSources.setItemExcluded(video.id,videoBlock.source.itemId,false,{actorId:ownerId});
+
   recordUploadInventory([{...photo,state:'deleted'}],lens);
   await connectedSources.remove(video.id,{actorId:ownerId});
   const deleted=sourcedRoom(ROOMS[id],lens);
@@ -91,6 +96,8 @@ test('Builder saves and republishes hosted placement references and resolves cur
   assert.match(missingHTML,/owner deleted this uploaded copy/);
   assert.match(missingHTML,/Source reference is unavailable/);
   assert.doesNotMatch(missingHTML,/Photo of the Atlas courtyard|Video of the Atlas courtyard|data-managed-source|data-source-player/);
+  assert.match(articleHTML(id,other),/Source reference is unavailable/);
+  assert.doesNotMatch(articleHTML(id,other),/uploaded copy|Video of the Atlas courtyard|data-source-player/);
   ROOMS[id]=room;
   await new Builder({storage:()=>disk}).recover(lens);
   assert.equal(sourcedRoom(ROOMS[id],lens).blocks.find(block=>block.id===photo.sourceId).state,'deleted');

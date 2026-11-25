@@ -1,6 +1,6 @@
 import { registerProjection } from './build-projection.js';
 import { BUILDER_PIECES, isHostedSourceKind, makeBuilderPiece, validateBuilderPiece } from './builder-pieces.js';
-import { connectedSources, mockGalleryOrganization } from './connected-sources.js';
+import { connectedSources, layoutSourcePlacements, mockGalleryOrganization } from './connected-sources.js';
 import { contentStore } from './content.js';
 import { ROOMS } from './data.js';
 import { permission, personId } from './permissions.js';
@@ -172,13 +172,13 @@ export function makeSourcePiece(room, lens, {kind,sourceId,itemId} = {}, {id,pos
   return piece;
 }
 
-function missingPlacedSource(room, lens, piece) {
+function missingPlacedSource(room, lens, piece, visibility = 'private') {
   const photo = piece.kind==='hosted-photo';
   const label = photo?'Photo source':'Video source';
   const state = photo && !uploadInventory.has(personId(lens)) && currentUploadHolder()?'pending':'unavailable';
   return withSourceBadge({id:piece.ref.thingId,type:photo?'image':'video',title:label,importance:'core',
     content:scores(),styleControl:'fixed',state,source:{sourceId:piece.ref.thingId,owner:room.ownerId,
-      visibility:'private',label,syncMode:photo?'snapshot':'live',status:state,rights:'Unavailable'}});
+      visibility,label,syncMode:photo?'snapshot':'live',status:state,rights:'Unavailable'}});
 }
 
 /** Projects the current source and Lens into read/scene blocks without persisting the resolution. */
@@ -196,8 +196,13 @@ export function resolvePlacedSources(room, lens, sourceBlocks) {
     const origin = origins.get(piece.ref.thingId);
     if (origin && (!sourceMatchesKind(origin,piece.kind) || !sourceVisible(origin,room,lens))) return [];
     if (!origin) {
-      if (!readsOwnedSources(room,lens)) return [];
-      if (!blocks.has(piece.ref.thingId)) blocks.set(piece.ref.thingId,missingPlacedSource(room,lens,piece));
+      const former = piece.kind === 'hosted-video'
+        ? connectedSources.videoPlacementState(room.id,piece.ref.thingId,{actorId:personId(lens)}) : null;
+      const publiclyUnavailable = former === 'unavailable-public';
+      if (former === 'excluded' || (!publiclyUnavailable && !readsOwnedSources(room,lens))) return [];
+      if (!blocks.has(piece.ref.thingId)) {
+        blocks.set(piece.ref.thingId,missingPlacedSource(room,lens,piece,publiclyUnavailable?'public':'private'));
+      }
     }
     return [{...fixture,block:piece.ref.thingId}];
   });
@@ -213,9 +218,7 @@ export function sourcedRoom(room, lens) {
 
   // Adapters contribute ordered candidates. Place them together so each source
   // occupies a different run of slots without moving the room's authored kit.
-  const sourcePlacements = views.flatMap(view => view.placements).map((piece, index) => ({
-    ...piece, position: [((index % 3) - 1) * 2.9, -Math.floor(index / 3) * 2.8 - 1.5]
-  }));
+  const sourcePlacements = layoutSourcePlacements(views.flatMap(view => view.placements));
 
   return {
     ...room, ...resolvePlacedSources(room,lens,blocks),

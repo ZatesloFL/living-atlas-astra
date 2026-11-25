@@ -1,5 +1,6 @@
 import { appendEntry, canonical, verifyChain } from './ledger.js';
 import { scores } from './scores.js';
+import { SOURCE_CONVERSATION_KEY } from './source-conversation.js';
 import { videoReference } from './source-media.js';
 import { mockEditorURL, mockGallery, mockItems, mockSourceSpecs } from './source-mocks.js';
 
@@ -26,11 +27,56 @@ const emptyState = () => ({ version: 1, sources: {}, ledgers: {} });
 const unsignedPublicId = value => typeof value === 'string' && /^[a-z0-9][a-z0-9_/-]*$/i.test(value);
 const findSource = (state, id) => Object.hasOwn(state.sources, id) ? state.sources[id] : null;
 const blockId = (source, itemId) => 'source-' + source.id + '/item-' + itemId;
+const modeLabels = { live: 'Live reference', indexed: 'Fed by the source', snapshot: 'Simulated snapshot' };
+const recipeLabels = {
+  'gallery-plinths': 'One plinth for each gallery record in this Place.',
+  'drive-alcoves': 'Each folder becomes an alcove in this Place, with file previews inside.'
+};
+
+export function layoutSourcePlacements(placements, offset = 0) {
+  return placements.map((piece, index) => {
+    const slot = offset + index;
+    return { ...piece, position: [((slot % 3) - 1) * 2.9, -Math.floor(slot / 3) * 2.8 - 1.5] };
+  });
+}
 
 async function contentHash(value) {
   const bytes = new TextEncoder().encode(canonical(value));
   const hash = await crypto.subtle.digest('SHA-256', bytes);
   return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export const connectionPlanFingerprint = plan => contentHash(plan);
+
+async function mappingConsent(storage, plan, actorId, proposalReceiptId, confirmationReceiptId) {
+  const validRef = ref => typeof ref === 'string' && /^source-conversation:[a-f0-9]{64}$/.test(ref);
+  if (!validRef(proposalReceiptId) || !validRef(confirmationReceiptId)) return false;
+  let state;
+  try { state = JSON.parse(storage?.getItem(SOURCE_CONVERSATION_KEY) ?? 'null'); }
+  catch { return false; }
+  const receipts = state?.receipts;
+  if (state?.version !== 1 || !Array.isArray(receipts) || !(await verifyChain(receipts)).valid) return false;
+  const byRef = ref => receipts.find(entry => 'source-conversation:' + entry.hash === ref);
+  const proposal = byRef(proposalReceiptId), confirmation = byRef(confirmationReceiptId);
+  if (proposal?.action !== 'source_conversation_proposed' || proposal.actor !== 'atlas' ||
+    confirmation?.action !== 'source_conversation_confirmed' || confirmation.actor !== actorId ||
+    proposal.id >= confirmation.id) return false;
+  const proposed = proposal.diff, confirmed = confirmation.diff;
+  if (proposed?.kind !== 'mapping' || confirmed?.kind !== 'mapping' || proposed.id !== confirmed.id ||
+    confirmed.proposalReceiptId !== proposalReceiptId || proposed.grantId !== confirmed.grantId ||
+    proposed.placeId !== plan.placeId || confirmed.placeId !== plan.placeId ||
+    proposed.ownerId !== actorId || confirmed.ownerId !== actorId) return false;
+  const { sourceId, kind, syncMode, recipe } = plan;
+  if (canonical(proposed.data) !== canonical({ sourceId, kind, syncMode, recipe,
+    planFingerprint: await connectionPlanFingerprint(plan) })) return false;
+  const grant = receipts.find(entry => entry.action === 'source_conversation_granted' &&
+    entry.actor === actorId && entry.diff?.grantId === proposed.grantId && entry.diff.placeId === plan.placeId &&
+    entry.diff.scope === 'suggest' && Array.isArray(entry.diff.actions) && entry.diff.actions.includes('mapping'));
+  return !!grant && grant.id < proposal.id && !receipts.some(entry => entry.id > proposal.id &&
+    entry.diff?.grantId === proposed.grantId && (entry.action === 'source_conversation_revoked' ||
+      entry.diff.id === proposed.id && (entry.action === 'source_conversation_proposed' ||
+        entry.action === 'source_conversation_declined' ||
+        entry.id > confirmation.id && ['source_conversation_confirmed','source_conversation_outcome'].includes(entry.action))));
 }
 
 function activity(record, actorId, now) {
@@ -97,6 +143,19 @@ function mockRecord({ id, placeId, owner, kind, label }) {
   return { source, mapping: null, proposal: null, index: [], snapshot: null, overrides: {}, grants: [] };
 }
 
+function prepareMockRecord(state, { placeId, owner, kind, label, id }, actorId) {
+  if (!Object.hasOwn(mockSourceSpecs, kind) || owner !== actorId || !unsignedPublicId(owner) || !unsignedPublicId(placeId)) {
+    throw new Error('Choose a mock source and its approving owner.');
+  }
+  const sourceId = id ?? placeId + '/source-' + (kind === 'drive' ? 'drive' : 'gallery');
+  const formerOwner = Object.hasOwn(state.ledgers, sourceId) ? state.ledgers[sourceId][0]?.actor : null;
+  if (!unsignedPublicId(sourceId) || sourceId in state.sources || formerOwner && formerOwner !== owner ||
+    label != null && !validText(label, 100)) {
+    throw new Error('This mock source is already attached or has invalid metadata.');
+  }
+  return mockRecord({ id: sourceId, placeId, owner, kind, label });
+}
+
 export class ConnectedSources {
   constructor({ storage = () => globalThis.localStorage, clock = () => Date.now(), gallery = mockGallery } = {}) {
     this.storage = typeof storage === 'function' ? storage : () => storage;
@@ -107,8 +166,10 @@ export class ConnectedSources {
     this.known = new Map();
     this.served = new Map();
     this.queue = Promise.resolve();
+    this.raw = null;
     try {
-      const serialized = this.storage()?.getItem(SOURCE_KEY);
+      const serialized = this.storage()?.getItem(SOURCE_KEY) ?? null;
+      this.raw = serialized;
       if (serialized) {
         const state = JSON.parse(serialized);
         if (state.version !== 1 || !state.sources || !state.ledgers) throw new Error('Unknown source data');
@@ -121,24 +182,45 @@ export class ConnectedSources {
       .then(results => results.every(result => result.valid)).catch(() => false);
   }
 
-  save() {
-    try {
-      this.storage()?.setItem(SOURCE_KEY, JSON.stringify(this.state));
-    } catch {
-      this.warning = 'Browser storage is blocked. Mock source changes stay in this session.';
-    }
-  }
-
-  transaction(operation) {
-    const job = this.queue.then(async () => {
+  transaction(operation, { requireStorage = false } = {}) {
+    const write = async () => {
       if (!await this.ready) throw new Error('Mock source Receipts failed verification.');
+      let storage;
+      try { storage = this.storage(); }
+      catch { this.warning = 'Browser storage is blocked. Mock source changes stay in this session.'; }
+      const assertFresh = () => {
+        if (!storage) return;
+        let latest;
+        try { latest = storage.getItem(SOURCE_KEY) ?? null; }
+        catch {
+          storage = null;
+          this.warning = 'Browser storage is blocked. Mock source changes stay in this session.';
+          return;
+        }
+        if (latest !== this.raw) throw new Error('Sources changed in another tab. Reload before changing them.');
+      };
+      assertFresh();
       const staged = clone(this.state);
       const result = await operation(staged);
+      assertFresh();
+      if (storage) {
+        try {
+          const serialized = JSON.stringify(staged);
+          storage.setItem(SOURCE_KEY, serialized);
+          this.raw = serialized;
+        } catch {
+          storage = null;
+          this.warning = 'Browser storage is blocked. Mock source changes stay in this session.';
+        }
+      }
+      if (requireStorage && !storage) throw new Error('Browser storage is needed to keep this connection and its Receipts.');
       this.state = staged;
       this.cache.clear();
-      this.save();
+      for (const key of this.known.keys()) if (!findSource(staged, key)) this.known.delete(key);
       return clone(result);
-    });
+    };
+    const job = this.queue.then(() => globalThis.navigator?.locks
+      ? navigator.locks.request(SOURCE_KEY, write) : write());
     this.queue = job.catch(() => {});
     return job;
   }
@@ -197,15 +279,15 @@ export class ConnectedSources {
     return owner && owner === actorId ? clone(receipts) : [];
   }
 
-  liveItems(record, actorId, now) {
+  liveItems(record, actorId, now, remember = true) {
     const source = record.source;
     const current = this.provider(record);
     const currentById = new Map(current.map(item => [item.id, item]));
     const known = this.known.get(source.id) ?? [];
     const cacheKey = source.id + ':' + (actorId ?? 'public');
     const indexed = source.syncMode === 'indexed';
-    let cache = indexed ? null : this.cache.get(cacheKey);
-    if (!indexed && (!cache || cache.expires <= now)) {
+    let cache = indexed || !remember ? null : this.cache.get(cacheKey);
+    if (!indexed && remember && (!cache || cache.expires <= now)) {
       cache = { capturedAt: nowISO(now), expires: now + SOURCE_CACHE_MS, items: current.filter(
         item => available(item) && canSeeItem(item, source, actorId)
       ) };
@@ -214,7 +296,7 @@ export class ConnectedSources {
     const cached = new Map((cache?.items ?? []).map(item => [item.id, item]));
     const candidates = indexed ? record.index : [...new Map([...record.index, ...known, ...current.map(currentMetadata)]
       .map(item => [item.id, item])).values()];
-    if (!indexed) this.known.set(source.id, candidates);
+    if (!indexed && remember) this.known.set(source.id, candidates);
     const items = candidates.flatMap(prior => {
       const item = currentById.get(prior.id);
       if (!canSeeItem(item ?? prior, source, actorId)) return [];
@@ -227,14 +309,24 @@ export class ConnectedSources {
     return { items, syncedAt: cache?.capturedAt ?? source.lastSync };
   }
 
-  view(sourceId, { actorId } = {}) {
+  view(sourceId, { actorId, includeExcluded = false } = {}) {
     const record = findSource(this.state, sourceId);
     if (!record || !canSeeSource(record.source, actorId)) return null;
-    const now = this.clock();
+    return clone(this.viewRecord(record, actorId, this.clock(), { includeExcluded }));
+  }
+
+  viewRecord(record, actorId, now, { remember = true, includeExcluded = false } = {}) {
     const source = publicSource(record, actorId, now);
+    const sourceId = source.id;
+    const isExcluded = item => record.excludedItems?.includes(item.id) === true;
+    const management = includeExcluded && source.owner === actorId;
     if (source.kind === 'public-api') {
       const { id, title, url } = record.video;
       const item = { id, title, kind: 'video', rights: source.rightsDefault, available: true };
+      if (isExcluded(item)) {
+        return { source, mapping: record.mapping, items: management ? [{ ...item, excluded: true }] : [],
+          blocks: [], placements: [], status: 'ready' };
+      }
       const block = {
         id: blockId(source, id), type: 'video', importance: 'core', body: title,
         content: scores(), styleControl: 'fixed', reps: { video: url, alt: title }, sources: [],
@@ -242,38 +334,88 @@ export class ConnectedSources {
           mode: 'live', kind: 'public-api', status: 'ready', visibility: source.scope.visibility, owner: source.owner },
         sourceMedia: { kind: 'video', url }, state: 'ready'
       };
-      return clone({ source, mapping: record.mapping, items: [item], blocks: [block], placements: [], status: 'ready' });
+      return { source, mapping: record.mapping, items: [item], blocks: [block], placements: [], status: 'ready' };
     }
     if (!record.mapping) {
-      return clone({ source, mapping: null, pendingMapping: source.owner === actorId ? record.proposal : null,
-        items: [], blocks: [], placements: [], status: 'mapping-pending' });
+      return { source, mapping: null, pendingMapping: source.owner === actorId ? record.proposal : null,
+        items: [], blocks: [], placements: [], status: 'mapping-pending' };
     }
     const frozen = source.syncMode === 'snapshot';
     const { items, syncedAt } = frozen
       ? { items: (record.snapshot?.items ?? []).filter(item => canSeeItem(item, source, actorId)),
         syncedAt: record.snapshot?.capturedAt ?? null }
-      : this.liveItems(record, actorId, now);
+      : this.liveItems(record, actorId, now, remember);
     source.lastSync = syncedAt;
     const ordered = source.kind === 'collection-db' ? items.slice().sort(byDate) : items;
-    const blocks = ordered.map(item => projectItem(item, source, syncedAt));
-    const placed = ordered.flatMap((item, index) => item.kind === 'document' ? [] : [placement(blocks[index], item)]);
-    return clone({ source, mapping: record.mapping, pendingMapping: source.owner === actorId ? record.proposal : null,
-      items: ordered.map(item => presentItem(item, source)), blocks, placements: placed, status: 'ready',
-      snapshot: frozen && record.snapshot ? { hash: record.snapshot.hash, capturedAt: record.snapshot.capturedAt } : null });
+    const included = ordered.filter(item => !isExcluded(item));
+    const blocks = included.map(item => projectItem(item, source, syncedAt));
+    const placed = included.flatMap((item, index) => item.kind === 'document' ? [] : [placement(blocks[index], item)]);
+    return { source, mapping: record.mapping, pendingMapping: source.owner === actorId ? record.proposal : null,
+      items: (management ? ordered : included).map(item => isExcluded(item)
+        ? { ...currentMetadata(item), available: item.available !== false, excluded: true } : presentItem(item, source)),
+      blocks, placements: placed, status: 'ready',
+      snapshot: frozen && record.snapshot ? { hash: record.snapshot.hash, capturedAt: record.snapshot.capturedAt } : null };
   }
 
-  create({ placeId, owner, kind, label, id } = {}, { actorId } = {}) {
+  connectionPlan(state, { placeId, owner, kind, syncMode }, actorId) {
+    const record = prepareMockRecord(state, { placeId, owner, kind }, actorId);
+    const source = record.source;
+    if (syncMode !== undefined && !SYNC_MODES.includes(syncMode)) throw new Error('Choose a feeding mode for this simulated source.');
+    source.syncMode = syncMode ?? source.syncMode;
+    const recipe = mockSourceSpecs[kind].recipe;
+    const { id: sourceId, label: sourceLabel } = source;
+    const mapping = { sourceId, recipe, status: 'pending' };
+    record.mapping = mapping;
+    // Project through the normal adapter without touching storage, caches, or Receipts.
+    const current = this.provider(record), now = this.clock();
+    record.index = current.map(currentMetadata);
+    if (source.syncMode === 'snapshot') record.snapshot = { items: current.filter(available), capturedAt: null };
+    const { blocks, items, placements } = this.viewRecord(record, actorId, now, { remember: false });
+    const offset = Object.values(state.sources).filter(candidate =>
+      candidate.source.placeId === placeId && canSeeSource(candidate.source, actorId))
+      .reduce((count, candidate) => count + this.viewRecord(candidate, actorId, now, { remember: false }).placements.length, 0);
+    return {
+      placeId, owner, kind, sourceId, sourceLabel, syncMode: source.syncMode, modeLabel: modeLabels[source.syncMode],
+      scope: source.scope, recipe, recipeLabel: recipeLabels[recipe], mapping, blocks, items,
+      placements: layoutSourcePlacements(placements, offset), simulated: true
+    };
+  }
+
+  planConnection(input = {}, { actorId } = {}) {
+    return clone(this.connectionPlan(this.state, input, actorId));
+  }
+
+  commitConnection(plan, { actorId, proposalReceiptId, confirmationReceiptId } = {}) {
     return this.transaction(async state => {
-      if (!Object.hasOwn(mockSourceSpecs, kind) || owner !== actorId || !unsignedPublicId(owner) || !unsignedPublicId(placeId)) {
-        throw new Error('Choose a mock source and its approving owner.');
+      if (!plan) throw new Error('Confirm the connection proposal before applying it.');
+      const expected = this.connectionPlan(state, plan, actorId);
+      if (canonical(plan) !== canonical(expected)) throw new Error('The source preview changed. Review a new proposal.');
+      if (!await mappingConsent(this.storage(), expected, actorId, proposalReceiptId, confirmationReceiptId)) {
+        throw new Error('Confirm this connection proposal with its scoped conversation Receipt.');
       }
-      const sourceId = id ?? placeId + '/source-' + (kind === 'drive' ? 'drive' : 'gallery');
-      const formerOwner = Object.hasOwn(state.ledgers, sourceId) ? state.ledgers[sourceId][0]?.actor : null;
-      if (!unsignedPublicId(sourceId) || sourceId in state.sources || formerOwner && formerOwner !== owner ||
-        label != null && !validText(label, 100)) {
-        throw new Error('This mock source is already attached or has invalid metadata.');
+      const { owner, kind, placeId, recipe, sourceId, syncMode } = expected;
+      const record = mockRecord({ id: sourceId, placeId, owner, kind });
+      record.source.syncMode = syncMode;
+      const ledger = this.ledger(state, sourceId);
+      if (Object.values(state.ledgers).some(entries => entries.some(entry =>
+        entry.action === 'source_mapping_proposed' && entry.diff.proposalReceiptId === proposalReceiptId))) {
+        throw new Error('That proposal Receipt has already been used.');
       }
-      const record = mockRecord({ id: sourceId, owner, placeId, kind, label });
+      await appendEntry(ledger, actorId, 'source_attached', { sourceId, placeId, kind, simulated: true, syncMode });
+      const proposal = { id: crypto.randomUUID(), recipe, status: 'pending', proposer: 'atlas', sourceId };
+      await appendEntry(ledger, 'atlas', 'source_mapping_proposed',
+        { sourceId, proposalId: proposal.id, recipe, proposalReceiptId });
+      const receipt = await this.approveRecord(ledger, record, proposal, actorId, { confirmationReceiptId });
+      state.sources[sourceId] = record;
+      return { source: record.source, mapping: record.mapping,
+        receipt: { id: 'source:' + receipt.hash, hash: receipt.hash, action: receipt.action, actor: receipt.actor } };
+    }, { requireStorage: true });
+  }
+
+  create(input = {}, { actorId } = {}) {
+    return this.transaction(async state => {
+      const record = prepareMockRecord(state, input, actorId);
+      const { id: sourceId, placeId, kind } = record.source;
       state.sources[sourceId] = record;
       await appendEntry(this.ledger(state, sourceId), actorId, 'source_attached', { sourceId, placeId, kind, simulated: true });
       return record.source;
@@ -314,14 +456,21 @@ export class ConnectedSources {
       const record = this.owner(state, sourceId, actorId);
       const proposal = record.proposal;
       if (!proposal || proposal.id !== proposalId) throw new Error('That mapping proposal is unavailable.');
-      const receipt = await appendEntry(this.ledger(state, sourceId), actorId, 'source_mapping_approved',
-        { sourceId, proposalId, recipe: proposal.recipe });
-      record.mapping = { ...proposal, status: 'approved', approvedBy: actorId, receiptRef: receipt.hash };
-      record.proposal = null;
-      record.source.status = 'ready';
-      this.syncRecord(record, this.clock());
+      await this.approveRecord(this.ledger(state, sourceId), record, proposal, actorId);
       return record.mapping;
     });
+  }
+
+  async approveRecord(ledger, record, proposal, actorId, references = {}) {
+    const { id: sourceId, syncMode } = record.source;
+    const receipt = await appendEntry(ledger, actorId, 'source_mapping_approved',
+      { sourceId, proposalId: proposal.id, recipe: proposal.recipe, ...references });
+    record.mapping = { ...proposal, status: 'approved', approvedBy: actorId, receiptRef: receipt.hash };
+    record.proposal = null;
+    record.source.status = 'ready';
+    if (syncMode === 'snapshot') await this.captureSnapshot(ledger, record, actorId, this.clock());
+    else this.syncRecord(record, this.clock());
+    return receipt;
   }
 
   sync(sourceId, { actorId } = {}) {
@@ -346,13 +495,7 @@ export class ConnectedSources {
       if (record.source.syncMode === mode) return record.source;
       const now = this.clock();
       if (mode === 'snapshot') {
-        const items = this.provider(record).filter(item => available(item) && canSeeItem(item, record.source, actorId));
-        const capturedAt = nowISO(now);
-        const hash = await contentHash({ sourceId, capturedAt, items });
-        const receipt = await appendEntry(this.ledger(state, sourceId), actorId, 'source_snapshot_created',
-          { sourceId, capturedAt, hash, itemCount: items.length, simulated: true });
-        record.snapshot = { items, capturedAt, hash, receiptRef: receipt.hash };
-        record.source.lastSync = capturedAt;
+        await this.captureSnapshot(this.ledger(state, sourceId), record, actorId, now);
       } else {
         record.snapshot = null;
         this.syncRecord(record, now);
@@ -361,6 +504,17 @@ export class ConnectedSources {
       record.source.syncMode = mode;
       return record.source;
     });
+  }
+
+  async captureSnapshot(ledger, record, actorId, now) {
+    const { id: sourceId } = record.source;
+    const items = this.provider(record).filter(item => available(item) && canSeeItem(item, record.source, actorId));
+    const capturedAt = nowISO(now);
+    const hash = await contentHash({ sourceId, capturedAt, items });
+    const receipt = await appendEntry(ledger, actorId, 'source_snapshot_created',
+      { sourceId, capturedAt, hash, itemCount: items.length, simulated: true });
+    record.snapshot = { items, capturedAt, hash, receiptRef: receipt.hash };
+    record.source.lastSync = capturedAt;
   }
 
   grantWrite(sourceId, { holderId, operations = WRITE_OPERATIONS, expiresAt } = {}, { actorId } = {}) {
@@ -436,6 +590,43 @@ export class ConnectedSources {
     });
   }
 
+  setItemExcluded(sourceId, itemId, excluded, { actorId } = {}) {
+    return this.transaction(async state => {
+      const record = this.owner(state, sourceId, actorId);
+      if (typeof excluded !== 'boolean' || !this.viewRecord(record, actorId, this.clock(),
+        { remember: false, includeExcluded: true }).items.some(item => item.id === itemId)) {
+        throw new Error('Choose a source item in this Place.');
+      }
+      const items = new Set(record.excludedItems ?? []);
+      if (items.has(itemId) === excluded) return true;
+      if (excluded) items.add(itemId);
+      else items.delete(itemId);
+      record.excludedItems = [...items];
+      await appendEntry(this.ledger(state, sourceId), actorId, 'source_item_exclusion_changed',
+        { sourceId, placeId: record.source.placeId, itemId, excluded });
+      return true;
+    });
+  }
+
+  videoPlacementState(placeId, thingId, { actorId } = {}) {
+    if (typeof thingId !== 'string' || !thingId.startsWith('source-')) return null;
+    const separator = thingId.lastIndexOf('/item-');
+    if (separator < 0) return null;
+    const sourceId = thingId.slice('source-'.length, separator);
+    const record = findSource(this.state, sourceId);
+    if (record) {
+      const source = record.source;
+      if (!record.video || source.placeId !== placeId || !canSeeSource(source, actorId) ||
+        blockId(source, record.video.id) !== thingId) return null;
+      return record.excludedItems?.includes(record.video.id) ? 'excluded' : null;
+    }
+    const receipt = Object.hasOwn(this.state.ledgers, sourceId) ? this.state.ledgers[sourceId].at(-1) : null;
+    const video = receipt?.diff.videoPlacement;
+    if (receipt?.action !== 'source_detached' || receipt.diff.placeId !== placeId || video?.thingId !== thingId ||
+      (video.visibility !== 'public' && receipt.actor !== actorId)) return null;
+    return video.excluded ? 'excluded' : video.visibility === 'public' ? 'unavailable-public' : 'unavailable';
+  }
+
   markServed(sourceId, itemId, bytes, { actorId } = {}) {
     const view = this.view(sourceId, { actorId });
     const item = view?.items.find(candidate => candidate.id === itemId);
@@ -452,9 +643,14 @@ export class ConnectedSources {
   remove(sourceId, { actorId } = {}) {
     return this.transaction(async state => {
       const record = this.owner(state, sourceId, actorId);
-      await appendEntry(this.ledger(state, sourceId), actorId, 'source_detached', { sourceId, placeId: record.source.placeId });
+      const { source, video } = record;
+      const diff = { sourceId, placeId: source.placeId };
+      if (video) diff.videoPlacement = {
+        thingId: blockId(source, video.id), visibility: source.scope.visibility,
+        excluded: record.excludedItems?.includes(video.id) === true
+      };
+      await appendEntry(this.ledger(state, sourceId), actorId, 'source_detached', diff);
       delete state.sources[sourceId];
-      this.known.delete(sourceId);
       return true;
     });
   }

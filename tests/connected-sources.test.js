@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ConnectedSources, SOURCE_CACHE_MS, SOURCE_KEY } from '../src/connected-sources.js';
+import { ConnectedSources, SOURCE_CACHE_MS, SOURCE_KEY, connectionPlanFingerprint } from '../src/connected-sources.js';
 import { mockGallery } from '../src/source-mocks.js';
 import { verifyChain } from '../src/ledger.js';
+import { ConversationJournal } from '../src/source-conversation.js';
 
 const owner = { actorId: 'test-owner' };
 const other = { actorId: 'test-visitor' };
@@ -12,7 +13,7 @@ function fixture({ gallery = structuredClone(mockGallery) } = {}) {
   const storage = { getItem: key => memory.get(key), setItem: (key, value) => memory.set(key, value) };
   let now = Date.parse('2026-11-24T17:00:00Z');
   const make = () => new ConnectedSources({ storage, gallery, clock: () => now });
-  return { service: make(), make, memory, gallery, advance: ms => { now += ms; } };
+  return { service: make(), make, memory, storage, gallery, advance: ms => { now += ms; } };
 }
 
 async function attach(service, kind) {
@@ -135,4 +136,113 @@ test('Hosted video records contain only a normalized reference and cannot consum
   assert.equal(service.markServed(source.id, video.source.itemId, 32, owner), false);
   await assert.rejects(service.setMode(source.id, 'snapshot', owner));
   await assert.rejects(service.addVideoReference({ ...input, url: 'https://example.org/video' }, owner));
+});
+
+async function proposeConnection(journal, plan) {
+  const {sourceId,kind,syncMode,recipe} = plan;
+  return journal.propose('mapping', {sourceId,kind,syncMode,recipe,
+    planFingerprint:await connectionPlanFingerprint(plan)}, 'Approve the simulated connection and its mapping');
+}
+
+test('The connection preview is read-only and an exact scoped confirmation attaches and approves atomically', async () => {
+  const {service,storage,memory,advance,make} = fixture();
+  const existing = await attach(service, 'collection-db');
+  const placeId = existing.placeId;
+  const input = {placeId,owner:owner.actorId,kind:'drive',syncMode:'live'};
+  const before = memory.get(SOURCE_KEY);
+  const plan = service.planConnection(input,owner);
+  assert.deepEqual(plan.placements.map(item=>item.position), [[-2.9,-4.3],[0,-4.3]]);
+  assert.match(plan.recipeLabel, /folder becomes an alcove/);
+  assert.ok(plan.blocks.every(block=>block.source.syncedAt===null && block.source.simulated));
+  assert.equal(memory.get(SOURCE_KEY),before);
+  assert.equal(service.cache.size,0);
+  assert.equal(service.view(plan.sourceId,owner),null);
+  assert.deepEqual(service.receipts(plan.sourceId,owner),[]);
+  assert.throws(()=>service.planConnection(input,other),/approving owner/);
+  await assert.rejects(service.commitConnection(plan,owner),/scoped conversation Receipt/);
+
+  const journal = new ConversationJournal(storage);
+  journal.begin({id:placeId,ownerId:owner.actorId},{profileId:owner.actorId});
+  await proposeConnection(journal,plan);
+  assert.equal(service.view(plan.sourceId,owner),null);
+  advance(SOURCE_CACHE_MS+1);
+  assert.deepEqual(service.planConnection(input,owner),plan);
+  const apply = (choice, approval) => service.commitConnection(choice,{...owner,
+    proposalReceiptId:approval.receiptId,confirmationReceiptId:approval.confirmationReceiptId});
+  await assert.rejects(journal.confirm(approval=>apply({...plan,recipe:'gallery-plinths'},approval)),/preview changed/);
+  const wrongMode = service.planConnection({...input,syncMode:'indexed'},owner);
+  await assert.rejects(journal.confirm(approval=>apply(wrongMode,approval)),/scoped conversation Receipt/);
+  assert.equal(memory.get(SOURCE_KEY),before);
+  const result = await journal.confirm(approval=>apply(plan,approval));
+  assert.match(result.result.receipt.id,/^source:[a-f0-9]{64}$/);
+  assert.equal(result.result.source.syncMode,'live');
+  assert.equal(result.result.mapping.status,'approved');
+  assert.equal(result.result.mapping.approvedBy,owner.actorId);
+  assert.equal(await make().ready,true);
+  assert.equal(make().view(plan.sourceId,owner).blocks.length,4);
+  assert.equal(make().view(plan.sourceId,other),null);
+  const receipts = service.receipts(plan.sourceId,owner);
+  assert.deepEqual(receipts.map(entry=>[entry.action,entry.actor]),[
+    ['source_attached',owner.actorId],['source_mapping_proposed','atlas'],['source_mapping_approved',owner.actorId]
+  ]);
+  assert.equal(receipts.at(-1).diff.confirmationReceiptId,result.receiptId);
+  assert.equal((await verifyChain(receipts)).valid,true);
+});
+
+test('A proposed snapshot captures only after confirmation and exclusion changes only the Place mapping', async () => {
+  const {service,storage,gallery,make} = fixture();
+  const placeId = 'source-snapshot-proposal';
+  const input = {placeId,owner:owner.actorId,kind:'collection-db',syncMode:'snapshot'};
+  const journal = new ConversationJournal(storage);
+  journal.begin({id:placeId,ownerId:owner.actorId},{profileId:owner.actorId});
+  const first = service.planConnection(input,owner);
+  await proposeConnection(journal,first);
+  const apply = (plan, approval) => service.commitConnection(plan,{...owner,
+    proposalReceiptId:approval.receiptId,confirmationReceiptId:approval.confirmationReceiptId});
+  gallery.items[0].title = 'Updated before the owner confirmed';
+  await assert.rejects(journal.confirm(approval=>apply(first,approval)),/preview changed/);
+  assert.equal(service.view(first.sourceId,owner),null);
+  await journal.dismiss();
+  const fresh = service.planConnection(input,owner);
+  await proposeConnection(journal,fresh);
+  await journal.confirm(approval=>apply(fresh,approval));
+  const initial = service.view(fresh.sourceId,other);
+  const id = initial.items[0].id;
+  const hash = initial.snapshot.hash;
+  await assert.rejects(service.setItemExcluded(fresh.sourceId,id,true,other),/source owner/);
+  await service.setItemExcluded(fresh.sourceId,id,true,owner);
+  const reload = make(), management = reload.view(fresh.sourceId,{...owner,includeExcluded:true});
+  assert.equal(management.snapshot.hash,hash);
+  assert.equal(management.items.find(item=>item.id===id).excluded,true);
+  assert.ok(!management.blocks.some(block=>block.source.itemId===id));
+  assert.ok(!reload.view(fresh.sourceId,{...other,includeExcluded:true}).items.some(item=>item.id===id));
+  assert.ok(!reload.view(fresh.sourceId,other).placements.some(placement=>placement.itemId===id));
+  assert.equal(reload.markServed(fresh.sourceId,id,32,other),false);
+  await reload.setItemExcluded(fresh.sourceId,id,false,owner);
+  assert.deepEqual(reload.view(fresh.sourceId,other).blocks,initial.blocks);
+  await reload.remove(fresh.sourceId,owner);
+  assert.equal(reload.view(fresh.sourceId,other),null);
+  assert.equal(reload.receipts(fresh.sourceId,owner).at(-1).action,'source_detached');
+});
+
+test('A competing source change or failed storage write cannot publish a confirmed partial connection', async () => {
+  const {service,storage,make,memory} = fixture();
+  const placeId = 'concurrent-source-approval';
+  const input = {placeId,owner:owner.actorId,kind:'drive',syncMode:'live'};
+  const journal = new ConversationJournal(storage), stale=make(), plan=stale.planConnection(input,owner);
+  journal.begin({id:placeId,ownerId:owner.actorId},{profileId:owner.actorId});
+  await proposeConnection(journal,plan);
+  await attach(service,'collection-db');
+  const apply = (catalog, approval) => catalog.commitConnection(plan,{...owner,
+    proposalReceiptId:approval.receiptId,confirmationReceiptId:approval.confirmationReceiptId});
+  await assert.rejects(journal.confirm(approval=>apply(stale,approval)),/changed in another tab/);
+  const lastGood = memory.get(SOURCE_KEY);
+  const blocked = new ConnectedSources({storage:{
+    getItem:storage.getItem,
+    setItem:()=>{throw new Error('Storage full');}
+  }});
+  await assert.rejects(journal.confirm(approval=>apply(blocked,approval)),/needed to keep this connection/);
+  assert.equal(memory.get(SOURCE_KEY),lastGood);
+  assert.equal(blocked.view(plan.sourceId,owner),null);
+  assert.deepEqual(blocked.receipts(plan.sourceId,owner),[]);
 });
