@@ -199,3 +199,5 @@ One line per call the brief did not settle, with the reason.
 - 2026-11-24 / Existing-profile Arrival — Keep the saved profile ID, identity and preferences; its optional first step identifies that profile instead of repeating account preview questions. Reuse the ordinary starter claim and home landing, adding one profile attachment receipt. The invitation checks the actual starter claim and never auto-launches. See report 20.
 
 - 2026-11-24 / Delivered declaration — Resolve a Place’s authored declaration fallback from its selected audience view, preserving Thing scope and receipt precedence. Label the version with the existing audience helper on Discovery and standing surfaces; do not rewrite historical receipts or authored versions. See report 22.
+
+- 2026-11-25 / Photo proposals — Assess the hash-verified hosted original through the existing background route. The owner’s optional description is used for comparison. Bind the measured AI Receipt to the upload and record the existing source meter before dispatch. The owner can edit both dials before declaring. Keep audio unpublished until an authorized transcription path exists.
