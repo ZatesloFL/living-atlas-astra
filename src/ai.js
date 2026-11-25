@@ -45,7 +45,8 @@ export function createAI({transport=null,requestPhotoScores,localReason=browserL
     !validPhotoRecordId(receiptData.receiptId)||(!copy.description.trim()&&proposal.descriptionDisagrees&&receiptData.cached!==true)){
     throw new Error('Invalid live photo proposal Receipt. Your upload is still unpublished.');
    }
-   return {proposal,model,agentId,receiptData:{provider:'anthropic',job,model,agentId,result:'proposed',receiptId:receiptData.receiptId}};
+   return {proposal,model,agentId,receiptData:{provider:'anthropic',job,model,agentId,result:'proposed',
+    receiptId:receiptData.receiptId,...(receiptData.cached===true?{cached:true}:{})}};
   }
   const proposal=simulatedUploadScores(copy),model='simulated-upload-v1';
   validateUploadScores(proposal,copy.uploadBasis);

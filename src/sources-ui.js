@@ -353,7 +353,7 @@ export class SourcesUI {
       <form data-form="upload" class="source-upload-form">
         <label>Choose a photo, text or audio file<input type="file" name="file" accept="${uploadAccept}" required></label>
         <label>Photo description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="3"></textarea></label>
-        <p class="source-caption">${uploadLimitLabel} per file. Photo scoring sends the uploaded image and any description to the AI. Text scoring uses a local sample. Audio can be uploaded and stays unpublished while audio scoring is unavailable.</p>
+        <p class="source-caption">${uploadLimitLabel} per file. Live photo scoring sends the uploaded image and any description to the AI and supports originals up to 7 MiB and 8,000 pixels per side. Text scoring uses a local sample. Audio can be uploaded and stays unpublished while audio scoring is unavailable.</p>
         <button type="submit">Upload and request scores</button>
       </form>
       ${this.pendingFile ? command('retry-upload', 'Retry upload: ' + this.pendingFile.file.name) : ''}

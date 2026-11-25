@@ -53,6 +53,15 @@ test('Photos stay unpublished if scoring is unavailable or the proposal has no v
   }
 });
 
+test('A recovered photo proposal identifies its original description comparison', async () => {
+  const client = createAI({requestPhotoScores:()=>({...assessment,
+    receiptData:{...assessment.receiptData,cached:true}})});
+  const result = await proposeUploadScores(client,{item,room,description:''});
+  assert.equal(result.proposalReceiptId,receiptId);
+  assert.equal(result.descriptionDisagrees,true);
+  assert.match(result.provenance,/original description comparison/);
+});
+
 test('Photo observations and disagreement flags are validated independently of the dials',async()=>{
   for (const proposal of [
     {...assessment.proposal,observation:'😀'.repeat(381)},
