@@ -85,7 +85,7 @@ test('Owner review exposes the image observation and conflict, and rejects old s
   ui.context={actorId:'owner'};
   ui.saveProposal(uploadId,{scores:scores(),provenance:'Simulated · description only.'});
   assert.doesNotMatch(ui.renderUpload(item),/Confirm declaration and publish/);
-  assert.match(ui.renderUpload(item),/Request score proposal/);
+  assert.match(ui.renderUpload(item),/Ask the Atlas to propose a declaration/);
 
   ui.saveProposal(uploadId,{
     basis:'image',scores:dials,model,provenance:'Live · proposed from the uploaded image.',
@@ -93,7 +93,7 @@ test('Owner review exposes the image observation and conflict, and rejects old s
   });
   const review=ui.renderUpload(item);
   assert.match(review,/Image and description disagree/);
-  assert.match(review,/AI image observation<\/strong> A sword &amp; shield/);
+  assert.match(review,/What the Atlas saw<\/strong> A sword &amp; shield/);
   assert.match(review,/Confirm declaration and publish/);
   assert.doesNotMatch(ui.renderUpload({...item,contentType:'audio/mpeg'}),/Confirm declaration and publish/);
 });

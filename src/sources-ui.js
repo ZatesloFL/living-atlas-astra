@@ -209,7 +209,7 @@ export class SourcesUI {
       basis: proposal.basis,
       scores: structuredClone(proposal.scores),
       model: typeof proposal.model === 'string' ? proposal.model : null,
-      provenance: typeof proposal.provenance === 'string' ? proposal.provenance.slice(0, 300) : 'Simulated AI proposal.',
+      provenance: typeof proposal.provenance === 'string' ? proposal.provenance.slice(0, 300) : 'Simulated proposal.',
       ...(hasPhotoReview(proposal) ? {proposalReceiptId: proposal.proposalReceiptId, observation: proposal.observation,
         descriptionDisagrees: proposal.descriptionDisagrees} : {}),
     };
@@ -218,9 +218,9 @@ export class SourcesUI {
   }
 
   async score(item, file, description = '') {
-    if (!this.proposeScores) throw new Error('The AI proposal is unavailable. Your upload is still unpublished.');
+    if (!this.proposeScores) throw new Error('The proposal is unavailable. Your upload is still unpublished.');
     const proposal = await this.proposeScores({file, item, description, room: this.context.room, lens: this.context.lens});
-    if (!pairsValid(proposal?.scores)) throw new Error('The AI proposal did not return both dials for every dimension. Your upload is still unpublished.');
+    if (!pairsValid(proposal?.scores)) throw new Error('The proposal is missing one or more dials. Your upload is still unpublished.');
     if (uploadScoreBasis(item.contentType) === 'image' && !hasPhotoReview(proposal)) {
       throw new Error('A live photo proposal and its Receipt are required. Your upload is still unpublished.');
     }
@@ -353,7 +353,7 @@ export class SourcesUI {
       <form data-form="upload" class="source-upload-form">
         <label>Choose a photo, text or audio file<input type="file" name="file" accept="${uploadAccept}" required></label>
         <label>Photo description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="3"></textarea></label>
-        <p class="source-caption">${uploadLimitLabel} per file. Live photo scoring sends the uploaded image and any description to the AI and supports originals up to 7 MiB and 8,000 pixels per side. Text scoring uses a local sample. Audio can be uploaded and stays unpublished while audio scoring is unavailable.</p>
+        <p class="source-caption">${uploadLimitLabel} per file. To propose a photo declaration, the Atlas sends the uploaded photo and any description to its AI provider. Live assessment supports originals up to 7 MiB and 8,000 pixels per side. Text scoring uses a local sample. Audio can be uploaded and stays unpublished while audio scoring is unavailable.</p>
         <button type="submit">Upload and request scores</button>
       </form>
       ${this.pendingFile ? command('retry-upload', 'Retry upload: ' + this.pendingFile.file.name) : ''}
@@ -378,7 +378,7 @@ export class SourcesUI {
           <fieldset class="source-standing"><legend>Confirm declaration</legend>
             <p class="source-caption">${esc(proposal.provenance)} Review the file and check both dials for each dimension.</p>
             ${basis === 'image' ? `
-              <p><strong>AI image observation</strong> ${esc(proposal.observation)}</p>
+              <p><strong>What the Atlas saw</strong> ${esc(proposal.observation)}</p>
               ${proposal.descriptionDisagrees ? '<p class="source-error"><strong>Image and description disagree.</strong></p>' : ''}
             ` : ''}
             ${scoreInputs(proposal.scores)}
@@ -387,7 +387,7 @@ export class SourcesUI {
         </form>` : basis ? `
         <form data-form="score" data-item-id="${esc(item.id)}">
           ${basis === 'image' ? `<label>Photo description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="2"></textarea></label>` : ''}
-          <button type="submit">Request score proposal</button>
+          <button type="submit">${basis === 'image' ? 'Ask the Atlas to propose a declaration' : 'Request score proposal'}</button>
         </form>` : '<p class="source-caption">Audio scoring is unavailable. This upload remains unpublished.</p>') : ''}
       ${deletable ? `<details class="source-details"><summary>${deleteLabel}</summary>
         <p>Deletes the stored file and preview. The Thing’s record retains a Receipt of the deletion.</p>

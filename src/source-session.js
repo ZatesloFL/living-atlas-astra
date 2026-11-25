@@ -54,7 +54,7 @@ const photoErrors = {
   PHOTO_DIMENSIONS_UNSUPPORTED: 'Photo assessment supports images up to 8,000 pixels on each side. The uploaded copy stays unpublished.',
   CONTEXT_TOO_LARGE: 'Use a shorter description so the image and comparison fit the existing assessment limit.',
   REQUEST_PENDING: 'This photo is already being assessed. Try again after the current request finishes.',
-  RATE_LIMITED: 'The existing AI limit has been reached. Try again later. The photo stays unpublished.',
+  RATE_LIMITED: 'Photo assessment has reached its limit. Try again later. The photo stays unpublished.',
   PHOTO_UNAVAILABLE: 'The stored original could not be loaded for assessment. The photo stays unpublished.'
 };
 
