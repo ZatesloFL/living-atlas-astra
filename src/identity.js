@@ -1,3 +1,4 @@
+import {accountSubject} from './account-state.js';
 import {AXES,asPair,asHard,scoreText} from './scores.js';
 import {DIMENSIONS,PRESETS} from './data.js';
 export const DISPLAY_LABELS={anonymous:'Anonymous presentation',pseudonym:'Pseudonymous',real:'Named'};
@@ -5,18 +6,20 @@ export function identityOf(subject){
   return subject.identity??{display:subject.tier==='anonymous'?'anonymous':subject.tier==='named'?'pseudonym':'real',backing:subject.verifiedHuman?'verified':'none'};
 }
 export function identityBadge(subject){
+  subject=accountSubject(subject);
   const i=identityOf(subject);
   if(subject.isAgent)return `Agent · ${i.backing==='verified'?'verified person operates it':'no verified operator'}`;
   return `${DISPLAY_LABELS[i.display]} · ${accountStateLabel(subject)}`;
 }
 export function accountStateLabel(subject){
+ subject=accountSubject(subject);
  const i=identityOf(subject);
  if(subject.isTest&&subject.age<13)return 'Under-13 rejection fixture · no account';
  if(i.backing!=='verified')return 'Unverified · age unknown';
  if(Number.isFinite(subject.age)&&subject.age<18)return 'Minor 13–17 · simulated; guardian link not connected';
  return Number.isFinite(subject.age)?'Verified adult · simulated':'Verified identity · simulated';
 }
-export function authorName(subject){return identityOf(subject).display==='anonymous'&&!subject.isAgent?'Anonymous':subject.name;}
+export function authorName(subject){subject=accountSubject(subject);return identityOf(subject).display==='anonymous'&&!subject.isAgent?'Anonymous':subject.name;}
 export function accessSettings(lens,place=null){
   const age=Number.isFinite(lens.age)?lens.age:0,verified=lens.identity?.backing==='verified';
   const cap=age<13?'Kids':(!verified||age<18)?'Teen':null;

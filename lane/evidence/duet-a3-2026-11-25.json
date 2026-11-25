@@ -1,0 +1,19 @@
+{
+  "switcher": "Named · Verified adult · simulated",
+  "panel": "Named · Verified adult · simulated",
+  "page": "Named · Verified adult · simulated · 6 dimensions · Access ceilings still apply",
+  "author": "Named · Verified adult · simulated",
+  "stamp": {
+    "profileId": "seed-me",
+    "name": "Me",
+    "identity": {
+      "display": "real",
+      "backing": "verified"
+    },
+    "age": 35,
+    "isAgent": false,
+    "isTest": true,
+    "backing_ref": null
+  },
+  "updatedAuthor": "Pseudonymous · Verified adult · simulated"
+}

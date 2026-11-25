@@ -1,3 +1,4 @@
+import {rememberAccounts,accountSnapshot} from './account-state.js';
 import {standingPreferences} from './standing-policy.js';
 import {asPair,asHard,validPair} from './scores.js';
 import {discoveryDefaults,discoveryState} from './discovery-state.js';
@@ -44,12 +45,14 @@ export class ProfileStore {
         this.completed=!!data.completed&&!!this.activeId;this.entries=Array.isArray(data.entries)?data.entries:[];
       }
     }catch{this.storageWarning='Saved settings could not be read. Set up a fresh local profile to continue.';}
+    rememberAccounts(this.profiles);
     this.ready=verifyChain(this.entries).then(result=>{this.chain=result;return result;}).catch(()=>{this.chain={valid:false,count:this.entries.length};return this.chain;});
   }
   active(){return this.profiles.find(p=>p.id===this.activeId);}
-  current(){const base=this.active()??makeProfile('Profile not set up',{age:0});return {...clone(base),...clone(this.override??{}),identity:{...base.identity,...this.override?.identity},profileId:base.id,profileName:base.name,viewAs:(this.override?.isAgent??base.isAgent)?'agent':'profile',testMode:this.testActive()};}
+  current(){rememberAccounts(this.profiles);const base=this.active()??makeProfile('Profile not set up',{age:0});return {...clone(base),...clone(this.override??{}),identity:{...base.identity,...this.override?.identity},accountState:accountSnapshot(base),profileId:base.id,profileName:base.name,viewAs:(this.override?.isAgent??base.isAgent)?'agent':'profile',testMode:this.testActive()};}
   testActive(){const p=this.active();return !!this.override||!!p?.isTest||p?.identity.backing==='verified'||p?.playAs==='owner'||!!p?.groups.length;}
   persist(){
+    rememberAccounts(this.profiles);
     try{const storage=this.storage();if(!storage)throw new Error('Storage unavailable');storage.setItem(STORAGE_KEY,JSON.stringify({version:1,completed:this.completed,profiles:this.profiles,activeId:this.activeId,regularId:this.regularId,entries:this.entries}));this.storageWarning='';return true;}
     catch{this.storageWarning='This browser blocked saving. Changes and receipts are kept for this session only.';return false;}
   }
