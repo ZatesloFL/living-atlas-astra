@@ -269,3 +269,42 @@ export function registerProjection(input, { ownerId } = {}) {
   registered.set(rootKey, { signature, result: structuredClone(result) });
   return structuredClone(result);
 }
+
+// A Builder revision overlays the existing Place. Its recorded furnishings
+// can change without replacing the original Place, Paths, or other records.
+export function composeBuilderRoom(base, pieces, metadata = {}) {
+  const room = {
+    ...base, ...metadata, layout: {...base.layout}, blocks: [...base.blocks ?? []],
+    kitPieces: [...base.kitPieces ?? []], builderFixtures: []
+  };
+  const components = [...base.layout.components ?? []];
+  const keys = new Set(room.blocks.map(block => block.id));
+  for (const piece of structuredClone(pieces)) {
+    const {block, ...placement} = piece;
+    if (!block || keys.has(block.id)) fail('occupied Builder Thing ' + block?.id);
+    keys.add(block.id);
+    const {position: [x, y, z], yaw, scale} = placement.transform;
+    const location = {block: block.id, position: [x, z], elevation: y, facing: yaw, scale};
+    if (Object.hasOwn(KIT_SCHEMAS, piece.kind)) {
+      block.exhibit = {id:piece.id,kind:piece.kind,settings:piece.settings,position:[x,z],facing:yaw,behaviors:piece.behaviors};
+      validateComponent(block.exhibit);
+      components.push(location);
+    } else {
+      room.builderFixtures.push({...location, id:piece.id, kind:piece.kind, settings:piece.settings});
+    }
+    room.blocks.push(block);
+    room.kitPieces.push({...placement, ref:{placeId:base.id,thingId:block.id}});
+  }
+  if (components.length) room.layout.components = components;
+  return room;
+}
+
+// The normal visitor policy reads the shared catalogs synchronously. Evaluate
+// its ordinary path against just this draft, then restore the published record
+// before returning control to any browser event or promise.
+export function withBuilderRoom(key, draftRoom, inspect) {
+  const live = ROOMS[key];
+  if (!live || live.id !== draftRoom.id || live.ownerId !== draftRoom.ownerId) fail('draft identity changed');
+  ROOMS[key] = draftRoom;
+  try { return inspect(); } finally { ROOMS[key] = live; }
+}
