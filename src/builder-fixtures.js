@@ -1,16 +1,83 @@
-import {BUILDER_PIECES} from './builder-pieces.js';
+import * as THREE from '../vendor/three/three.module.min.js';
+import {BUILDER_PIECES,isHostedSourceKind} from './builder-pieces.js';
 import {authoredPiecePlacement} from './kit-placement.js';
 import {drawModel} from './world-models.js';
+import {readHostedPhotoPreview,sourceStateMessage,uploadedCopyLabel} from './source-media.js';
+
+function hostedPhotoFrame(world,room,block,marker,status){
+  const panel=document.createElement('canvas');
+  panel.width=512;panel.height=352;
+  const context=panel.getContext('2d');
+  const texture=new THREE.CanvasTexture(panel);
+  texture.colorSpace=THREE.SRGBColorSpace;
+  const geometry=new THREE.PlaneGeometry(1.44,.99);
+  const material=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false});
+  const mesh=new THREE.Mesh(geometry,material);
+  mesh.name='Hosted photo preview';
+  mesh.position.set(0,1.53,.092);
+  world.placeMesh(mesh,marker);
+  const controller=new AbortController();
+  const {signal}=controller;
+  world.dynamicResources.push({dispose(){
+    controller.abort();texture.dispose();geometry.dispose();material.dispose();panel.width=panel.height=1;
+  }});
+  const background=()=>{context.fillStyle='#172a38';context.fillRect(0,0,panel.width,panel.height);};
+  const message=(text,state)=>{
+    background();context.textAlign='center';context.textBaseline='middle';context.font='600 24px system-ui';
+    context.fillStyle='#e1ebed';context.fillText(text,panel.width/2,panel.height/2,panel.width-32);
+    mesh.userData.sourceStatus=state;texture.needsUpdate=true;
+  };
+  message(status||'Loading sized photo preview…',status&&block.state!=='pending'?'unavailable':'loading');
+  if(status)return;
+  void (async()=>{
+    try {
+      const bytes=await readHostedPhotoPreview(block,room,world.lens,{signal});
+      const bitmap=await createImageBitmap(bytes);
+      try {
+        signal.throwIfAborted();
+        if(!bitmap.width||!bitmap.height||Math.max(bitmap.width,bitmap.height)>640)throw new Error('Unexpected photo preview size.');
+        const fit=Math.min(panel.width/bitmap.width,panel.height/bitmap.height);
+        const width=bitmap.width*fit,height=bitmap.height*fit;
+        background();context.drawImage(bitmap,(panel.width-width)/2,(panel.height-height)/2,width,height);
+        mesh.userData.sourceStatus='ready';texture.needsUpdate=true;
+      } finally {bitmap.close();}
+    } catch {
+      if(!signal.aborted)message('Photo preview unavailable.','unavailable');
+    }
+  })();
+}
+
+function drawHostedFixture(world,room,piece,block,box,marker){
+  const status=sourceStateMessage(block);
+  const photo=piece.kind==='hosted-photo';
+  box(0,.18,0,1.65,.36,.65,'#566b67');
+  box(0,.75,0,.16,1.05,.24,'#6e7f79');
+  box(0,1.53,0,1.53,1.08,.18,photo?'#ac987c':'#303c4a');
+  world.block(0,0,1.65,.65);
+  if(photo)hostedPhotoFrame(world,room,block,marker,status);
+  else if(!status)world.add('diamond','blue',0,1.53,.13,.18,.18,.045,'#4cacc9',marker,[0,0,Math.PI/2]);
+  const title=world.transform(0,2.22,0);
+  const label=status?BUILDER_PIECES[piece.kind].label:block.title??block.body;
+  const backing=status||(photo?uploadedCopyLabel(block.source):'Open hosted player');
+  world.label(label,backing,title.x,title.y,title.z,marker,2.3,'#b2d4cf');
+}
 
 export function drawBuilderFixtures(world,room,roomKey,blocks){
   const parent=world.placement;
   for(const piece of room.builderFixtures){
     const block=blocks.get(piece.block);
     if(!block)continue;
-    const marker='exhibit:'+roomKey+':'+block.id;
+    const hosted=isHostedSourceKind(piece.kind);
+    const marker='exhibit:'+roomKey+':'+(hosted&&world.builderView?.editing?piece.id:block.id);
     world.placement=authoredPiecePlacement(parent,piece,block,world.lens);
     const box=(x,y,z,width,height,depth,color,material='stone')=>
       world.box(x,y,z,width,height,depth,color,material,marker);
+    if(hosted){
+      world.placement.style=null;
+      drawHostedFixture(world,room,piece,block,box,marker);
+      world.placement=parent;
+      continue;
+    }
     switch(piece.kind){
       case 'bench':
         box(0,.56,0,1.8,.16,.55,'#bca984','wood');

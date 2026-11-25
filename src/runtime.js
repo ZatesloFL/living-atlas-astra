@@ -29,6 +29,7 @@ const {BuildUI}=await import('./build-ui.js');
 const {Builder}=await import('./builder.js');
 const {BuilderStage}=await import('./builder-stage.js');
 const {withBuilderRoom}=await import('./build-projection.js');
+const {subscribeHostedSourceChanges}=await import('./source-catalog.js');
 const {visibleEdge}=await diag.asyncRun('rules module',()=>import('./rules.js'));
 const $=id=>document.getElementById(id);
 const reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
@@ -179,6 +180,7 @@ buildUI=new BuildUI(ui,profiles,{hud,builder,previewLens,stage:showBuildStage,en
   sourceChanged:refreshPublishedRoom,pickBuildPosition:position=>builderStage.pickPosition(position),
   apply:applyPreview,exit:exitPreview,split:value=>{stageFraction=value;if(previewState)previewState.fraction=value;if(graphics.comparison)graphics.comparison.split=value;},
   lenses:()=>({left:currentLens(),right:previewLens(previewState?.right??'seed-child')})});
+subscribeHostedSourceChanges(refreshBuiltScene);
 for(const [id,open] of [['profile-chip',()=>profileUI.switcher()],['test-button',()=>profileUI.testPanel()],['test-banner',()=>profileUI.testPanel()]])$(id).onclick=()=>{if(previewState||buildUI.active)buildUI.exit();open();};
 const audienceBadge=document.createElement('aside');audienceBadge.id='audience-hud';audienceBadge.hidden=true;hud.mount(audienceBadge,30);
 function experienceChanged(next){if(next.preview){ui.toast('Exit Preview as to save changes.');return;}profiles.preferences(next);lens=currentLens();rebuild();profileUI.refresh();}
@@ -211,12 +213,15 @@ function endBuildStage(){
  if(stageRatio!==null){graphics.ratio=stageRatio;stageRatio=null;graphics.resize();}
  graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.apply();
 }
-function refreshPublishedRoom(roomKey){
+function refreshBuiltScene(roomKey){
  const room=ROOMS[roomKey];
  if(room&&(room.layout.scene===kind||room.layout.interior?.scene===kind)&&!travel?.active){
   rebuild(kind,{keepDoors:true});
-  if(builderStage.active){stageCache=null;buildUI.renderStage();}
  }
+ if(builderStage.active&&builderStage.roomKey===roomKey){stageCache=null;buildUI.renderStage();}
+}
+function refreshPublishedRoom(roomKey){
+ refreshBuiltScene(roomKey);
  contentStore.emit(roomKey);
 }
 travel=new FastTravel(ui,access,{hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});

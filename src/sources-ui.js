@@ -11,8 +11,9 @@ const states = {reserved: 'Upload pending', uploaded: 'Unpublished', published: 
 const escapes = {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'};
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => escapes[character]);
 const pairsValid = scores => scores && DIMENSIONS.every(([key]) => validPair(scores[key]));
-const hasPhotoReview = proposal => proposal?.basis === 'image' && proposal.model === PHOTO_SCORE_MODEL &&
+const hasLiveReview = proposal => ['image','audio-transcript'].includes(proposal?.basis) && proposal.model === PHOTO_SCORE_MODEL &&
   validPhotoRecordId(proposal.proposalReceiptId) && validPhotoObservation(proposal.observation) &&
+  (proposal.basis !== 'audio-transcript' || validPhotoRecordId(proposal.transcriptionReceiptId)) &&
   typeof proposal.descriptionDisagrees === 'boolean';
 
 export function formatSourceBytes(bytes) {
@@ -210,8 +211,9 @@ export class SourcesUI {
       scores: structuredClone(proposal.scores),
       model: typeof proposal.model === 'string' ? proposal.model : null,
       provenance: typeof proposal.provenance === 'string' ? proposal.provenance.slice(0, 300) : 'Simulated proposal.',
-      ...(hasPhotoReview(proposal) ? {proposalReceiptId: proposal.proposalReceiptId, observation: proposal.observation,
-        descriptionDisagrees: proposal.descriptionDisagrees} : {}),
+      ...(hasLiveReview(proposal) ? {proposalReceiptId: proposal.proposalReceiptId, observation: proposal.observation,
+        descriptionDisagrees: proposal.descriptionDisagrees,
+        ...(proposal.basis==='audio-transcript'?{transcriptionReceiptId:proposal.transcriptionReceiptId}:{})} : {}),
     };
     else delete this.proposals[id];
     try { this.storage?.setItem(proposalKey, JSON.stringify(this.proposals)); } catch { /* This tab retains the pending declaration. */ }
@@ -221,8 +223,9 @@ export class SourcesUI {
     if (!this.proposeScores) throw new Error('The proposal is unavailable. Your upload is still unpublished.');
     const proposal = await this.proposeScores({file, item, description, room: this.context.room, lens: this.context.lens});
     if (!pairsValid(proposal?.scores)) throw new Error('The proposal is missing one or more dials. Your upload is still unpublished.');
-    if (uploadScoreBasis(item.contentType) === 'image' && !hasPhotoReview(proposal)) {
-      throw new Error('A live photo proposal and its Receipt are required. Your upload is still unpublished.');
+    const basis=uploadScoreBasis(item.contentType);
+    if (basis !== 'text' && (!hasLiveReview(proposal)||proposal.basis!==basis)) {
+      throw new Error('A live proposal and its Receipts are required. Your upload is still unpublished.');
     }
     this.saveProposal(item.id, proposal);
   }
@@ -231,7 +234,7 @@ export class SourcesUI {
     const proposal = this.proposals[item.id];
     if (proposal?.actorId !== this.context.actorId || !pairsValid(proposal.scores)) return null;
     const basis = uploadScoreBasis(item.contentType);
-    if (basis === 'image') return hasPhotoReview(proposal) ? proposal : null;
+    if (basis === 'image' || basis === 'audio-transcript') return proposal.basis===basis && hasLiveReview(proposal) ? proposal : null;
     return basis === 'text' && (proposal.basis ?? 'text') === 'text' ? proposal : null;
   }
 
@@ -298,6 +301,7 @@ export class SourcesUI {
     return `<li><strong>${esc(item.title)}</strong>
       <small>${esc(folder?.title ?? item.kind ?? '')} · ${esc(rightsLabel(item.rights))}</small>
       ${item.preview ? `<p>${esc(typeof item.preview === 'string' ? item.preview : item.preview?.text)}</p>` : ''}
+      ${item.kind==='video' && item.available ? command('place-video','Place in this room',{sourceId:source.id,itemId:item.id}) : ''}
       ${item.editorURL ? command('open-editor', 'Open in Google Docs · simulation', {sourceId: source.id, itemId: item.id}) : ''}
       ${source.simulated && source.syncMode !== 'snapshot' && item.kind !== 'folder' ?
         command('availability', item.available === false ? 'Restore simulated reference' : 'Simulate unavailable reference', {sourceId:source.id,itemId:item.id}) : ''}
@@ -352,8 +356,8 @@ export class SourcesUI {
       ${command('refresh-uploads', 'Refresh storage usage')}
       <form data-form="upload" class="source-upload-form">
         <label>Choose a photo, text or audio file<input type="file" name="file" accept="${uploadAccept}" required></label>
-        <label>Photo description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="3"></textarea></label>
-        <p class="source-caption">${uploadLimitLabel} per file. To propose a photo declaration, the Atlas sends the uploaded photo and any description to its AI provider. Live assessment supports originals up to 7 MiB and 8,000 pixels per side. Text scoring uses a local sample. Audio can be uploaded and stays unpublished while audio scoring is unavailable.</p>
+        <label>Photo or audio description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="3"></textarea></label>
+        <p class="source-caption">${uploadLimitLabel} per file. Live assessment sends the photo or audio to the Atlas’s AI providers. Descriptions are used for comparison. Photo assessment supports up to 7 MiB and 8,000 pixels per side. For audio, use a short PCM WAV with speech. Text scoring uses a local sample.</p>
         <button type="submit">Upload and request scores</button>
       </form>
       ${this.pendingFile ? command('retry-upload', 'Retry upload: ' + this.pendingFile.file.name) : ''}
@@ -373,22 +377,23 @@ export class SourcesUI {
       <small>${esc(states[item.state] ?? 'Upload state unavailable')}${date && item.state!=='deleted' ? ' · uploaded copy, as of ' + date : ''}</small>
       ${item.state !== 'deleted' ? `<p>${formatSourceBytes((item.originalBytes ?? 0) + (item.previewBytes ?? 0))} including preview</p>` : ''}
       ${readable ? command('review-upload', 'Open copy for review', {itemId:item.id}) : ''}
+      ${item.state==='published' && item.contentType.startsWith('image/') ? command('place-photo','Place in this room',{itemId:item.id}) : ''}
       ${item.state === 'uploaded' ? (proposal ? `
         <form data-form="publish" data-item-id="${esc(item.id)}">
           <fieldset class="source-standing"><legend>Confirm declaration</legend>
             <p class="source-caption">${esc(proposal.provenance)} Review the file and check both dials for each dimension.</p>
-            ${basis === 'image' ? `
-              <p><strong>What the Atlas saw</strong> ${esc(proposal.observation)}</p>
-              ${proposal.descriptionDisagrees ? '<p class="source-error"><strong>Image and description disagree.</strong></p>' : ''}
+            ${basis !== 'text' ? `
+              <p><strong>${basis==='image'?'What the Atlas saw':'What the Atlas heard'}</strong> ${esc(proposal.observation)}</p>
+              ${proposal.descriptionDisagrees ? `<p class="source-error"><strong>${basis==='image'?'Image':'Speech'} and description disagree.</strong></p>` : ''}
             ` : ''}
             ${scoreInputs(proposal.scores)}
           </fieldset>
           <button type="submit">Confirm declaration and publish</button>
         </form>` : basis ? `
         <form data-form="score" data-item-id="${esc(item.id)}">
-          ${basis === 'image' ? `<label>Photo description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="2"></textarea></label>` : ''}
-          <button type="submit">${basis === 'image' ? 'Ask the Atlas to propose a declaration' : 'Request score proposal'}</button>
-        </form>` : '<p class="source-caption">Audio scoring is unavailable. This upload remains unpublished.</p>') : ''}
+          ${basis !== 'text' ? `<label>${basis==='image'?'Photo':'Audio'} description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="2"></textarea></label>` : ''}
+          <button type="submit">${basis !== 'text' ? 'Ask the Atlas to propose a declaration' : 'Request score proposal'}</button>
+        </form>` : '<p class="source-caption">Live assessment requires a short PCM WAV with speech. This upload remains unpublished.</p>') : ''}
       ${deletable ? `<details class="source-details"><summary>${deleteLabel}</summary>
         <p>Deletes the stored file and preview. The Thing’s record retains a Receipt of the deletion.</p>
         ${command('delete-upload', item.state === 'reserved' ? 'Cancel upload and release reservation' : 'Delete file and preview', {itemId:item.id})}
@@ -419,7 +424,7 @@ export class SourcesUI {
     this.pendingFile = null;
     if (item.state !== 'uploaded') return 'Upload received.';
     const basis = uploadScoreBasis(item.contentType);
-    if (!basis) return 'Audio uploaded. It remains unpublished while audio scoring is unavailable.';
+    if (!basis) return 'Audio uploaded. This copy stays unpublished. Live assessment requires a short PCM WAV with speech.';
     await this.score(item, basis === 'text' ? pending.file : undefined, pending.description);
     return 'Upload received. Review the proposed dials and confirm the declaration.';
   }
@@ -495,6 +500,13 @@ export class SourcesUI {
         return 'Hosted usage refreshed.';
       }
       if (action === 'retry-upload') return this.uploadPending();
+      if (action === 'place-photo' || action === 'place-video') {
+        const photo=action==='place-photo'&&this.hosted?.items?.find(item=>item.id===itemId&&item.state==='published'&&item.placeId===this.context.placeId);
+        if(action==='place-photo'&&!photo)throw new Error('This published photo is unavailable.');
+        const reference={kind:photo?'upload':'video',sourceId:photo?photo.sourceId:sourceId,itemId};
+        await this.emit('source-placed',{reference});
+        return 'Placed in your draft. Review and publish from Build when you are ready.';
+      }
       if (action === 'review-upload') {
         const item = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.placeId === this.context.placeId);
         if (!item || !['uploaded','published'].includes(item.state)) throw new Error('This upload is unavailable.');
@@ -559,7 +571,7 @@ export class SourcesUI {
         const item = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.state === 'uploaded');
         if (!item || item.placeId !== this.context.placeId) throw new Error('This upload is unavailable.');
         const basis = uploadScoreBasis(item.contentType);
-        if (!basis) throw new Error('Audio scoring is unavailable. This upload remains unpublished.');
+        if (!basis) throw new Error('Live assessment requires a short PCM WAV with speech. This upload remains unpublished.');
         const bytes = basis === 'text' ? await this.uploads.media(item.id, 'original') : undefined;
         await this.score(item, bytes, values.get('description')?.trim() ?? '');
         await this.refreshUploads();
@@ -574,14 +586,14 @@ export class SourcesUI {
         if (!pairsValid(scores)) throw new Error('Choose amount and graphicness for every dimension.');
         let item;
         try {
-          const result = proposal.basis === 'image'
+          const result = proposal.basis !== 'text'
             ? await this.uploads.publish(itemId, scores, {proposalReceiptId: proposal.proposalReceiptId})
             : await this.uploads.publish(itemId, scores);
           item = this.updateHostedItem(result);
         } catch (error) {
-          if (proposal.basis === 'image' && ['PHOTO_ASSESSMENT_REQUIRED', 'PHOTO_ASSESSMENT_MISMATCH'].includes(error?.code)) {
+          if (proposal.basis !== 'text' && ['PHOTO_ASSESSMENT_REQUIRED','PHOTO_ASSESSMENT_MISMATCH','AUDIO_ASSESSMENT_REQUIRED','AUDIO_ASSESSMENT_MISMATCH'].includes(error?.code)) {
             this.saveProposal(itemId, null);
-            throw new Error('Request a fresh photo proposal before publishing. Your upload is still unpublished.');
+            throw new Error('Request a fresh proposal before publishing. Your upload is still unpublished.');
           }
           throw error;
         }

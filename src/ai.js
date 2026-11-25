@@ -3,7 +3,7 @@ import {validPair,scoreText} from './scores.js';
 import {createBrowserTransport,browserLocalReason} from './ai-proxy.js';
 import {localQuestionAnswer} from './docent-questions.js';
 import {PHOTO_DESCRIPTION_LIMIT,PHOTO_SCORE_MODEL,UPLOAD_SCORE_SCHEMA,simulatedUploadScores,validPhotoRecordId,validateUploadScores} from './upload-scores.js';
-import {requestPhotoScores} from './source-session.js';
+import {requestAudioScores,requestPhotoScores} from './source-session.js';
 import {answerFromIndex,validateIndexAnswer} from './discovery-answer.js';
 export const PROPOSAL_SCHEMA={name:'atlas-crossing-proposal-v1',required:['kind','room','reason'],kinds:['answer','tour','note','score','curation','connection']};
 export function validateProposal(value,schema=PROPOSAL_SCHEMA){
@@ -22,7 +22,7 @@ function simulated(context){const room=context.place.key,reason='Simulated propo
  default:throw new Error('No simulated proposal for this crossing');
  }
 }
-export function createAI({transport=null,requestPhotoScores,localReason=browserLocalReason()}={}){
+export function createAI({transport=null,requestPhotoScores,requestAudioScores,localReason=browserLocalReason()}={}){
  const eligible=request=>!request.context?.discovery&&transport?.eligible(request);
  const route=({job,agentId,context})=>context?.discovery?'discovery_local':eligible({job,agentId,context})?'live':context?.action!=='answer'?'action_local':context?.place?.key!=='boycott'?'place_local':agentId!=='docent-silver'?'helper_local':localReason??'preview_origin';
  return {provider:transport?'proxy':'simulated',route,async request({job,context,schema=PROPOSAL_SCHEMA,agentId,signal,isCurrent=()=>true}){
@@ -32,21 +32,23 @@ export function createAI({transport=null,requestPhotoScores,localReason=browserL
  current();
  if(job==='background'&&schema.name===UPLOAD_SCORE_SCHEMA.name){
   if(agentId!=='upload-declaration-helper')throw new Error('Invalid upload declaration helper.');
-  if(copy.uploadBasis==='image'){
+  if(copy.uploadBasis==='image'||copy.uploadBasis==='audio-transcript'){
+   const audio=copy.uploadBasis==='audio-transcript',requestLive=audio?requestAudioScores:requestPhotoScores;
    if(copy.action!=='declare-upload'||!validPhotoRecordId(copy.uploadId)||copy.blocks.length||
-    typeof copy.description!=='string'||[...copy.description].length>PHOTO_DESCRIPTION_LIMIT)throw new Error('Invalid photo score context.');
-   if(typeof requestPhotoScores!=='function')throw new Error('Live photo scoring is unavailable. Your upload is still unpublished.');
-   const result=await requestPhotoScores({id:copy.uploadId,description:copy.description,signal});
+    typeof copy.description!=='string'||[...copy.description].length>PHOTO_DESCRIPTION_LIMIT)throw new Error('Invalid upload score context.');
+   if(typeof requestLive!=='function')throw new Error('Live '+(audio?'audio':'photo')+' scoring is unavailable. Your upload is still unpublished.');
+   const result=await requestLive({id:copy.uploadId,description:copy.description,signal});
    current();
-   validateUploadScores(result?.proposal,'image');
+   validateUploadScores(result?.proposal,copy.uploadBasis);
    const {proposal,model,receiptData}=result;
    if(model!==PHOTO_SCORE_MODEL||receiptData?.provider!=='anthropic'||
     receiptData.job!==job||receiptData.model!==model||receiptData.agentId!==agentId||
-    !validPhotoRecordId(receiptData.receiptId)||(!copy.description.trim()&&proposal.descriptionDisagrees&&receiptData.cached!==true)){
-    throw new Error('Invalid live photo proposal Receipt. Your upload is still unpublished.');
+    !validPhotoRecordId(receiptData.receiptId)||audio&&!validPhotoRecordId(receiptData.transcriptionReceiptId)||
+    (!copy.description.trim()&&proposal.descriptionDisagrees&&receiptData.cached!==true)){
+    throw new Error('Invalid live '+(audio?'audio':'photo')+' proposal Receipt. Your upload is still unpublished.');
    }
    return {proposal,model,agentId,receiptData:{provider:'anthropic',job,model,agentId,result:'proposed',
-    receiptId:receiptData.receiptId,...(receiptData.cached===true?{cached:true}:{})}};
+    receiptId:receiptData.receiptId,...(audio?{transcriptionReceiptId:receiptData.transcriptionReceiptId}:{}),...(receiptData.cached===true?{cached:true}:{})}};
   }
   const proposal=simulatedUploadScores(copy),model='simulated-upload-v1';
   validateUploadScores(proposal,copy.uploadBasis);
@@ -70,4 +72,4 @@ export function provenanceLabel(data){
  if(data?.fallbackReason==='LIVE_UNAVAILABLE')return 'Simulated · live helper unavailable';
  return 'Simulated · local helper';
 }
-export const ai=createAI({transport:createBrowserTransport(),requestPhotoScores});
+export const ai=createAI({transport:createBrowserTransport(),requestPhotoScores,requestAudioScores});

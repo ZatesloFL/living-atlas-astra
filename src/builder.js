@@ -6,8 +6,10 @@ import {appendEntry, canonical, verifyChain} from './ledger.js';
 import {validateScores} from './standing-records.js';
 import {scores} from './scores.js';
 import {LOOKS} from './item-style.js';
+import {makeSourcePiece, sourcedRoom} from './source-catalog.js';
 import {composeBuilderRoom, withBuilderRoom} from './build-projection.js';
 import {BUILDER_DRAW_CEILING, BUILDER_PIECES, builderPieceCost, makeBuilderPiece, snapBuilderPosition, validateBuilderPiece} from './builder-pieces.js';
+import {builderPublication, builderPublications, builderSubject, stampBuilderProvenance, submissionFor} from './builder-provenance.js';
 
 export const BUILDER_STORAGE = 'living-atlas.builder.v1';
 export const ROOM_BUDGET = Object.freeze({instances:80,atlasTiles:12,liveTextures:2,drawCalls:BUILDER_DRAW_CEILING,behaviors:16});
@@ -127,15 +129,11 @@ export class Builder {
       .map(([roomKey,room])=>({roomKey,title:room.title,dirty:this.snapshot(this.data,roomKey,room).dirty}));
   }
 
-  transaction(roomKey,lens,operation) {
+  write(roomKey,operation) {
     const write = async () => {
       if (!await this.ready) throw new Error(this.warning || 'Builder Receipts failed verification.');
-      const room = this.owner(roomKey,lens);
       const data = copy(this.data);
-      const draft = data.drafts[roomKey] ??= copy(this.current(data,roomKey,room));
-      if (draft.ownerId!==room.ownerId) throw new Error('This draft belongs to another owner.');
-      // Prepare the complete next state before exposing the revision to Visit.
-      const result = await operation({data,draft,room,base:this.base.get(roomKey)});
+      const result = await operation(data);
       const serialized = JSON.stringify({version:1,...data});
       const storage = this.storage();
       if (!storage) throw new Error('Builder needs browser storage to keep this change.');
@@ -150,6 +148,15 @@ export class Builder {
       ? navigator.locks.request(BUILDER_STORAGE,write) : write());
     this.queue = task.catch(()=>{});
     return task;
+  }
+
+  transaction(roomKey,lens,operation) {
+    return this.write(roomKey,data=>{
+      const room = this.owner(roomKey,lens);
+      const draft = data.drafts[roomKey] ??= copy(this.current(data,roomKey,room));
+      if (draft.ownerId!==room.ownerId) throw new Error('This draft belongs to another owner.');
+      return operation({data,draft,room,base:this.base.get(roomKey)});
+    });
   }
 
   edit(roomKey,lens,transform) {
@@ -181,6 +188,23 @@ export class Builder {
 
   add(roomKey,lens,kind,options) { return this.edit(roomKey,lens,(draft,room)=>this.newPiece(draft,room,kind,options)); }
 
+  placeSource(roomKey,lens,reference,position=null) {
+    return this.edit(roomKey,lens,(draft,room)=>{
+      const occupied=[...draft.pieces.map(piece=>piece.transform.position),
+        ...(sourcedRoom(room,lens).sourcePlacements??[]).map(piece=>[piece.position[0],0,piece.position[1]])];
+      let local=position;
+      if(!local){
+        for(let index=0;index<21;index++){
+          const x=((index%3)-1)*2.9,z=-Math.floor(index/3)*2.8-1.5;
+          if(occupied.every(([px,,pz])=>Math.hypot(px-x,pz-z)>1.7)){local=[x,0,z];break;}
+        }
+      }
+      if(!local)throw new Error('Move a piece to make room on the source shelves.');
+      const placed=makeSourcePiece(room,lens,reference,{id:id(),position:local});
+      if(!draft.pieces.some(piece=>piece.kind===placed.kind&&piece.ref?.thingId===placed.ref.thingId))draft.pieces.push(placed);
+    });
+  }
+
   update(roomKey,lens,pieceId,patch) {
     return this.edit(roomKey,lens,draft=>{
       const piece = draft.pieces.find(item=>item.id===pieceId);
@@ -189,6 +213,7 @@ export class Builder {
         piece.transform = {...piece.transform,...patch.transform};
         piece.transform.position = snapBuilderPosition(piece.transform.position);
       }
+      if(piece.kind.startsWith('hosted-'))return;
       if (patch.settings) piece.settings={...piece.settings,...patch.settings};
       if (patch.behaviors) piece.behaviors=copy(patch.behaviors);
       if (patch.block) {
@@ -217,7 +242,7 @@ export class Builder {
       if(!original)throw new Error('Choose a piece in this draft.');
       const piece=copy(original);
       piece.id=piece.block.id=id();
-      piece.ref=BUILDER_PIECES[piece.kind].recordKind==='Place'?{placeId:room.id}:{placeId:room.id,thingId:piece.id};
+      if(!piece.kind.startsWith('hosted-'))piece.ref=BUILDER_PIECES[piece.kind].recordKind==='Place'?{placeId:room.id}:{placeId:room.id,thingId:piece.id};
       piece.transform.position=placePosition(draft.pieces);
       draft.pieces.push(piece);
     });
@@ -301,10 +326,10 @@ export class Builder {
     return withBuilderRoom(roomKey,staged,()=>{
       const entry=roomEntry(roomKey,targetLens,EDGES);
       const canEnter=entry.state!=='hidden'&&entry.state!=='private'&&!entry.admission?.blocked&&!!entry.rights?.canEnter&&entry.type!=='window';
-      const view=viewRoom(staged,targetLens);
+      const view=sourcedRoom(viewRoom(staged,targetLens),targetLens);
       const shown=canEnter?selectContent(view,targetLens).blocks.filter(block=>!block.filtered&&!blockNeedsPreview(block,view,targetLens,{approved:true})).map(block=>block.id):[];
       return {canEnter,description:entry.admission?.description??(canEnter?'Entry is available for this Lens.':'Entry is unavailable for this Lens.'),
-        shown,withheld:staged.blocks.filter(block=>!shown.includes(block.id)).map(block=>block.id),reasons:entry.reasons??[]};
+        shown,withheld:view.blocks.filter(block=>!shown.includes(block.id)).map(block=>block.id),reasons:entry.reasons??[]};
     });
   }
 
@@ -337,7 +362,8 @@ export class Builder {
       if (!budget.valid) throw new Error('Room budget exceeded. '+budget.over.map(use=>use.key+' '+use.actual+'/'+use.limit).join(', '));
       const revisionId=id(), pieces=normalizePieces(copy(draft.pieces),room);
       const retained = new Map((head?.diff.pieces??[]).map(piece=>[piece.id,piece]));
-      for(const piece of pieces){
+      const authored = pieces.filter(piece=>!piece.kind.startsWith('hosted-'));
+      for(const piece of authored){
         const previous=retained.get(piece.id);
         const {recordVersionId, ...material}=piece.block;
         const {recordVersionId:priorVersion, ...priorMaterial}=previous?.block??{};
@@ -346,9 +372,9 @@ export class Builder {
       }
       const receipt=await appendEntry(data.receipts,room.ownerId,'build_published',{
         roomKey,revisionId,priorRevisionId:draft.baseVersion,previewReceiptId:draft.preview.id,pieces,
-        ownedRecordVersions:pieces.map(piece=>({placeId:room.id,thingId:piece.id,versionId:piece.block.recordVersionId}))
+        ownedRecordVersions:authored.map(piece=>({placeId:room.id,thingId:piece.id,versionId:piece.block.recordVersionId}))
       });
-      const projected=composeBuilderRoom(base,pieces,{recordVersionId:revisionId});
+      const projected=stampBuilderProvenance(roomKey,composeBuilderRoom(base,pieces,{recordVersionId:revisionId}),data.receipts);
       Object.assign(draft,{baseVersion:revisionId,pieces,undo:[],redo:[],preview:null});
       return {receipt:receiptView(receipt),draft:this.snapshot(data,roomKey,room),projected};
     });
@@ -356,12 +382,58 @@ export class Builder {
     return {receipt:result.receipt,draft:result.draft};
   }
 
+  vouchTarget(roomKey,lens,thingId,receipts) {
+    const room = Object.hasOwn(ROOMS,roomKey) ? ROOMS[roomKey] : null;
+    const actor = lens?.profileId??lens?.id;
+    if (!room?.ownerId || !lens || lens.preview || lens.isAgent || typeof actor!=='string' || !actor ||
+      lens.identity?.backing!=='verified' || !['real','pseudonym'].includes(lens.identity.display)) {
+      throw new Error('A named or pseudonymous verified person can vouch.');
+    }
+    const rights = permission(room,lens);
+    const gate = roomEntry(roomKey,lens,EDGES);
+    if (rights.visibility!=='public' || !rights.canLook ||
+      gate.state==='hidden' || gate.state==='private' || gate.admission?.blocked ||
+      (thingId==null && (!rights.canEnter || gate.type==='window'))) {
+      throw new Error('You can only vouch for a public record you can read or enter.');
+    }
+    const view = viewRoom(room,lens);
+    const node = thingId==null ? room : selectContent(view,lens).blocks.find(block=>
+      block.id===thingId && !block.filtered && !blockNeedsPreview(block,view,lens));
+    if (!node) throw new Error('That Thing is unavailable in your view.');
+    if (actor===room.ownerId || actor===node.ownerId) throw new Error('An independent person must vouch for this record.');
+    const target = builderSubject(room,node);
+    const publication = builderPublication(target,builderPublications(roomKey,room,receipts));
+    if (!publication) {
+      throw new Error('There is no Builder publication Receipt for this version.');
+    }
+    return {room,target,actor,publication};
+  }
+
+  async vouch(roomKey,lens,{thingId=null}={}) {
+    const result = await this.write(roomKey,async data=>{
+      const {target,actor,publication} = this.vouchTarget(roomKey,lens,thingId,data.receipts);
+      const publicationReceiptRef = receiptView(publication).id;
+      const prior = submissionFor(target,actor,publicationReceiptRef,data.receipts);
+      if (prior) return {receipt:receiptView(prior),target};
+      const receipt = await appendEntry(data.receipts,actor,'build_vouched',
+        {target,publicationReceiptRef});
+      const current = this.vouchTarget(roomKey,lens,thingId,data.receipts);
+      if (!same(current.target,target)) throw new Error('The published record changed. Review the current version.');
+      return {receipt:receiptView(receipt),target,projected:stampBuilderProvenance(roomKey,current.room,data.receipts)};
+    });
+    if (result.projected) this.onPublish(roomKey);
+    return {receipt:result.receipt,target:result.target};
+  }
+
   async recover(lens) {
     if (!await this.ready) return;
     for (const {roomKey} of this.list(lens)) {
       const room=this.owner(roomKey,lens);
       const head=this.published(this.data,roomKey,room.ownerId).at(-1);
-      if (head) ROOMS[roomKey]=composeBuilderRoom(this.base.get(roomKey),normalizePieces(copy(head.diff.pieces),room),{recordVersionId:head.diff.revisionId});
+      if (head) {
+        const projected = composeBuilderRoom(this.base.get(roomKey),normalizePieces(copy(head.diff.pieces),room),{recordVersionId:head.diff.revisionId});
+        ROOMS[roomKey] = stampBuilderProvenance(roomKey,projected,this.data.receipts);
+      }
     }
   }
 }

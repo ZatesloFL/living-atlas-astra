@@ -74,10 +74,10 @@ test('Photo observations and disagreement flags are validated independently of t
   }
 });
 
-test('Audio stays unpublished without requesting an AI proposal',async()=>{
+test('Unsupported audio stays unpublished without requesting an AI proposal',async()=>{
   await assert.rejects(proposeUploadScores({request:()=>assert.fail('The audio reached an AI route')},{
     item:{...item,contentType:'audio/mpeg'},room,description:'An owner-supplied transcript.'
-  }),/audio scoring is unavailable.*unpublished/i);
+  }),/audio format is unavailable.*unpublished/i);
 });
 
 test('Owner review exposes the image observation and conflict, and rejects old simulated image suggestions',()=>{
@@ -96,4 +96,28 @@ test('Owner review exposes the image observation and conflict, and rejects old s
   assert.match(review,/What the Atlas saw<\/strong> A sword &amp; shield/);
   assert.match(review,/Confirm declaration and publish/);
   assert.doesNotMatch(ui.renderUpload({...item,contentType:'audio/mpeg'}),/Confirm declaration and publish/);
+});
+
+test('PCM audio requires both live Receipts and shows the transcript disagreement', async()=>{
+  const transcriptionReceiptId='1ada3724-80eb-4d88-b643-53b690d743f8';
+  const audio={...item,contentType:'audio/wav',filename:'fixture.wav'};
+  const proposal={...assessment.proposal,basis:'audio-transcript',observation:'The speaker asks people to protect the park.'};
+  const client=createAI({requestPhotoScores:()=>assert.fail('Audio used the photo route'),
+    requestAudioScores:request=>{
+      assert.deepEqual({id:request.id,description:request.description},{id:uploadId,description:'Ocean waves'});
+      return {...assessment,proposal,receiptData:{...assessment.receiptData,transcriptionReceiptId}};
+    }});
+  const result=await proposeUploadScores(client,{item:audio,room,description:'Ocean waves'});
+  assert.equal(result.transcriptionReceiptId,transcriptionReceiptId);
+  assert.equal(result.proposalReceiptId,receiptId);
+  assert.equal(result.descriptionDisagrees,true);
+  const ui=new SourcesUI({storage:{getItem:()=>null,setItem:()=>{}}});
+  ui.context={actorId:'owner'};
+  ui.saveProposal(uploadId,{...result,transcriptionReceiptId:null});
+  assert.doesNotMatch(ui.renderUpload(audio),/Confirm declaration and publish/);
+  ui.saveProposal(uploadId,result);
+  const review=ui.renderUpload(audio);
+  assert.match(review,/Speech and description disagree/);
+  assert.match(review,/What the Atlas heard/);
+  assert.match(review,/Confirm declaration and publish/);
 });

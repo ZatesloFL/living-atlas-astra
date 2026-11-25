@@ -72,7 +72,7 @@ export function sourceStateMessage(block){
  return (Object.hasOwn(failedStates,source.status)?failedStates[source.status]:null)??(Object.hasOwn(failedStates,block.state)?failedStates[block.state]:'');
 }
 
-function copyLabel(source){
+export function uploadedCopyLabel(source){
  const timestamp=source.uploadedAt??source.syncedAt;
  const date=typeof timestamp==='string'&&/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(timestamp)?timestamp.slice(0,10):null;
  return date?'uploaded copy, as of '+date:'uploaded copy · upload date unavailable';
@@ -87,7 +87,7 @@ export function sourceBadgeHTML(block){
  const sourceName=href?'<a href="'+escapeHTML(href.href)+'" target="_blank" rel="noopener noreferrer">'+escapeHTML(label)+' ↗</a>':escapeHTML(label);
  const pieces=[
   'Source: '+sourceName+(source.itemId===undefined||state?'':' / '+escapeHTML(source.itemId)),
-  isUploadSource(source)?escapeHTML(copyLabel(source)):Object.hasOwn(modes,mode)?modes[mode]:null,
+  isUploadSource(source)?escapeHTML(uploadedCopyLabel(source)):Object.hasOwn(modes,mode)?modes[mode]:null,
   source.simulated?'Simulated source':null,
   source.syncedAt?'Synced '+escapeHTML(source.syncedAt):'Not synced',
   'Rights: '+escapeHTML(source.rights??'Unknown')
@@ -130,6 +130,28 @@ export function sourceActivityAttributes(block,room,lens){
  const preview=block.sourceMedia?.kind==='procedural-gallery'?artSVG(block.sourceMedia.scene,String(block.body??'Simulated gallery item')):block.reps?.text??block.body??'';
  const bytes=new TextEncoder().encode(typeof preview==='string'?preview:JSON.stringify(preview)).byteLength;
  return ' data-simulated-bytes="'+bytes+'" data-source-place="'+escapeHTML(room.id)+'" data-source-id="'+escapeHTML(block.source.sourceId)+'" data-source-item="'+escapeHTML(block.source.itemId)+'" data-source-actor="'+escapeHTML(sourceActor(lens))+'"';
+}
+
+async function fetchSourceBytes({placeId,sourceId,itemId},variant,signal){
+ const fetchBytes=mediaOptions.fetchBytes;
+ if(!fetchBytes)throw new Error('Hosted media is unavailable in this session.');
+ signal?.throwIfAborted();
+ const response=await fetchBytes({placeId,sourceId,itemId,variant,signal});
+ if(response instanceof Response&&!response.ok)throw new Error('Source unavailable.');
+ const blob=response instanceof Response?await response.blob():response;
+ if(!(blob instanceof Blob)||!blob.size)throw new Error('Empty source data.');
+ signal?.throwIfAborted();
+ return blob;
+}
+
+export async function readHostedPhotoPreview(block,room,lens,{signal}={}){
+ if(block?.type!=='image'||!isUploadSource(block.source)||sourceStateMessage(block)||!sourceVisible(block,room,lens)){
+  throw new Error('The hosted photo is unavailable.');
+ }
+ const {sourceId,itemId}=block.source;
+ const bytes=await fetchSourceBytes({placeId:room.id,sourceId,itemId},'preview',signal);
+ if(!/^image\/(?:jpe?g|png|webp)$/i.test(bytes.type))throw new Error('The preview is unavailable.');
+ return bytes;
 }
 
 const roots=new WeakMap();
@@ -188,10 +210,7 @@ function bindUpload(el,controller,urls){
   status.textContent=variant==='preview'?'Loading sized photo preview…':'Loading uploaded copy…';
   if(variant==='original')button.disabled=true;
   try{
-   const response=await fetchBytes({...attribution(el),variant,signal:download.signal});
-   if(response instanceof Response&&!response.ok)throw new Error('Source unavailable.');
-   const blob=response instanceof Response?await response.blob():response;
-   if(!(blob instanceof Blob)||!blob.size)throw new Error('Empty source data.');
+   const blob=await fetchSourceBytes(attribution(el),variant,download.signal);
    if(kind==='image'&&!/^image\/(?:jpeg|png|webp|gif|avif)$/i.test(blob.type)||kind==='audio'&&!/^audio\//i.test(blob.type)||kind==='text'&&!/^text\/plain(?:;|$)/i.test(blob.type))throw new Error('Unexpected media type.');
    const body=kind==='text'?await blob.text():null;
    if(epoch!==request||signal.aborted||!inView(el))return;

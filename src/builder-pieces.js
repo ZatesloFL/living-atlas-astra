@@ -38,6 +38,12 @@ const helper = role => ({
   label: role, category: 'Helpers', recordKind: 'helper', role, cost: fixturesCost(1, 1),
   capabilities: [...ROLE_ACTIONS[role]], defaultSettings: { title: role }, settingsFields: [titleField], behaviorChoices: [],
 });
+const hosted = (label, blockType, instances, drawCalls, liveTextures) => ({
+  label, category: null, recordKind: 'reference', blockType,
+  cost: {...fixturesCost(instances, drawCalls), liveTextures},
+  defaultSettings: {}, settingsFields: [], behaviorChoices: [],
+});
+export const isHostedSourceKind = kind => kind === 'hosted-photo' || kind === 'hosted-video';
 
 const definitions = {
   courtyard: space('Courtyard', 'courtyard', 7, 2),
@@ -75,6 +81,8 @@ const definitions = {
   curator: helper('Curator'),
   maintainer: helper('Maintainer'),
   steward: helper('Steward'),
+  'hosted-photo': hosted('Photo plinth', 'image', 3, 2, 1),
+  'hosted-video': hosted('Video screen', 'video', 4, 2, 0),
   'thing-reference': {
     label: 'Thing reference', category: null, recordKind: 'reference', cost: fixturesCost(2, 1),
     defaultSettings: {}, settingsFields: [], behaviorChoices: [],
@@ -206,6 +214,19 @@ export function validateBuilderPiece(piece, { placeId } = {}) {
   validateSettings(definition, piece.settings);
   validateBehaviors(definition, piece.behaviors);
   if (piece.block) validateContent(piece.block.content);
+  if (isHostedSourceKind(piece.kind)) {
+    const stub = piece.block;
+    if (!ref || !isObject(piece.transform) || Object.keys(piece.transform).length !== 3 || (placeId && ref.placeId !== placeId) || (stub && (
+      stub.id !== piece.id || stub.title !== definition.label || stub.body !== definition.label ||
+      stub.type !== definition.blockType || stub.importance !== 'core' ||
+      stub.backing_ref !== null || !Array.isArray(stub.sources) || stub.sources.length !== 0 ||
+      Object.values(stub.content).some(({amount, graphicness}) => amount !== 0 || graphicness !== 0) ||
+      Object.keys(stub).some(key => !['id','title','body','type','importance','backing_ref','sources','content','recordVersionId'].includes(key)) ||
+      (stub.recordVersionId !== undefined && !isPlaceId(stub.recordVersionId))
+    )) || Object.keys(piece).some(key => !['id','kind','ref','transform','settings','behaviors','block'].includes(key))) {
+      throw new Error('A hosted placement can only reference its source and keep its transform.');
+    }
+  }
   if (Object.hasOwn(KIT_SCHEMAS, definition.kind)) {
     validateComponent({ id: piece.id, kind: piece.kind, position: [position[0], position[2]],
       settings: piece.settings, behaviors: piece.behaviors });
@@ -244,6 +265,7 @@ export function makeBuilderPiece(kind, {
 } = {}) {
   const definition = Object.hasOwn(BUILDER_PIECES, kind) ? BUILDER_PIECES[kind] : null;
   if (!definition || definition.recordKind === 'Path') throw new Error('Choose a kit piece you can place here.');
+  if (isHostedSourceKind(kind) && (!thingId || !originPlaceId)) throw new Error('Choose a hosted Thing to place.');
   let ref = null;
   if (definition.recordKind === 'helper') ref = { actorId: id };
   else if (definition.recordKind === 'reference' && originPlaceId) ref = { placeId: originPlaceId, thingId: thingId ?? id };

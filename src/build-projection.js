@@ -293,7 +293,7 @@ export function composeBuilderRoom(base, pieces, metadata = {}) {
       room.builderFixtures.push({...location, id:piece.id, kind:piece.kind, settings:piece.settings});
     }
     room.blocks.push(block);
-    room.kitPieces.push({...placement, ref:{placeId:base.id,thingId:block.id}});
+    room.kitPieces.push({...placement, ref:piece.kind.startsWith('hosted-')?piece.ref:{placeId:base.id,thingId:block.id}});
   }
   if (components.length) room.layout.components = components;
   return room;

@@ -40,6 +40,8 @@ const messages = {
   PHOTO_ASSESSMENT_REQUIRED: 'Request a live image assessment before confirming this photo.',
   PHOTO_ASSESSMENT_MISMATCH: 'The assessment Receipt does not match this photo. Request its live assessment again.',
   AUDIO_ASSESSMENT_UNAVAILABLE: 'Audio transcription is unavailable. This audio copy stays unpublished.',
+  AUDIO_ASSESSMENT_REQUIRED: 'Request a live transcript assessment before confirming the audio.',
+  AUDIO_ASSESSMENT_MISMATCH: 'The assessment Receipts do not match this audio. Request its live assessment again.',
 };
 
 export function directUploadType(file) {

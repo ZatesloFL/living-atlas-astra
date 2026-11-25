@@ -4,6 +4,7 @@ export const UPLOAD_SCORE_SCHEMA = Object.freeze({name: 'atlas-upload-scores-v1'
 export const PHOTO_DESCRIPTION_LIMIT = 1500;
 export const PHOTO_OBSERVATION_LIMIT = 380;
 export const PHOTO_SCORE_MODEL = 'anthropic/claude-haiku-5-5';
+export const AUDIO_TRANSCRIPTION_MODEL = 'openai/gpt-transcribe';
 export const validPhotoRecordId = value => typeof value === 'string' &&
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
 export const validPhotoObservation = value => typeof value === 'string' && !!value.trim() &&
@@ -35,28 +36,29 @@ export function simulatedUploadScores(context) {
 }
 
 export function validateUploadScores(proposal, basis) {
-  if (!['text', 'image'].includes(basis) || proposal?.kind !== 'upload-scores' || proposal.basis !== basis ||
-    Object.keys(proposal).length !== (basis === 'image' ? 5 : 3) ||
+  if (!['text', 'image', 'audio-transcript'].includes(basis) || proposal?.kind !== 'upload-scores' || proposal.basis !== basis ||
+    Object.keys(proposal).length !== (basis === 'text' ? 3 : 5) ||
     Object.keys(proposal.scores ?? {}).length !== DIMENSIONS.length ||
     DIMENSIONS.some(([key]) => !validPair(proposal.scores[key]))) throw new Error('Invalid upload score proposal.');
-  if (basis === 'image' && (!validPhotoObservation(proposal.observation) || typeof proposal.descriptionDisagrees !== 'boolean')) {
-    throw new Error('Invalid photo score proposal. Your upload is still unpublished.');
+  if (basis !== 'text' && (!validPhotoObservation(proposal.observation) || typeof proposal.descriptionDisagrees !== 'boolean')) {
+    throw new Error('Invalid live score proposal. Your upload is still unpublished.');
   }
 }
 
 export function uploadScoreBasis(contentType) {
   if (contentType?.startsWith('image/')) return 'image';
   if (contentType?.startsWith('text/')) return 'text';
+  if (contentType === 'audio/wav') return 'audio-transcript';
   return null;
 }
 
 export async function proposeUploadScores(ai, {file, item, room, signal, description = ''}) {
   const mime = item.contentType ?? item.content_type ?? file?.type ?? '';
   const basis = uploadScoreBasis(mime);
-  if (!basis) throw new Error('Audio scoring is unavailable. Your upload is still unpublished.');
+  if (!basis) throw new Error('Live assessment for this audio format is unavailable. Use a PCM WAV to request a proposal. Your upload stays unpublished.');
   const context = {action: 'declare-upload', uploadBasis: basis, place: {key: room.id}, blocks: []};
-  if (basis === 'image') {
-    if (!validPhotoRecordId(item.id)) throw new Error('This photo has no hosted upload record.');
+  if (basis !== 'text') {
+    if (!validPhotoRecordId(item.id)) throw new Error('This file has no hosted upload record.');
     context.uploadId = item.id;
     context.description = [...description.trim()].slice(0, PHOTO_DESCRIPTION_LIMIT).join('');
   } else {
@@ -70,15 +72,18 @@ export async function proposeUploadScores(ai, {file, item, room, signal, descrip
     context
   });
   validateUploadScores(proposal, basis);
-  if (basis === 'image') {
-    if (receiptData?.provider !== 'anthropic' || !validPhotoRecordId(receiptData.receiptId)) {
-      throw new Error('The live photo proposal has no valid Receipt. Your upload is still unpublished.');
+  if (basis !== 'text') {
+    const audio=basis==='audio-transcript';
+    if (receiptData?.provider !== 'anthropic' || !validPhotoRecordId(receiptData.receiptId) ||
+        audio && !validPhotoRecordId(receiptData.transcriptionReceiptId)) {
+      throw new Error('The live proposal has incomplete Receipts. Your upload is still unpublished.');
     }
     return {
       basis, scores: proposal.scores, model, provenance: receiptData.cached===true
-        ? 'Live · recovered the existing image assessment and its original description comparison.'
-        : 'Live · proposed from the uploaded image.',
+        ? 'Live · recovered the existing '+(audio?'transcript':'image')+' assessment and its original description comparison.'
+        : audio?'Live · proposed from transcribed speech. Listen to the audio to review sound and intensity.':'Live · proposed from the uploaded image.',
       proposalReceiptId: receiptData.receiptId, observation: proposal.observation,
+      ...(audio?{transcriptionReceiptId:receiptData.transcriptionReceiptId}:{}),
       descriptionDisagrees: proposal.descriptionDisagrees
     };
   }

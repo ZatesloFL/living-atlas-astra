@@ -102,8 +102,17 @@ export class BuildUI {
     this.sources = new SourcesUI({
       uploads: uploadClient,
       proposeScores: input => proposeUploadScores(ai,input),
-      onChange: ({type,items,room,lens}) => {
-        if (type==='uploads-listed') recordUploadInventory(items,lens);
+      onChange: async ({type,items,room,lens,reference}) => {
+        if(type==='source-placed'){
+          const roomKey=this.draft?.roomKey;
+          if(ROOMS[roomKey]?.id!==room.id||!this.builder)throw new Error('Open this Place in Build to place the source.');
+          const next=await this.builder.placeSource(roomKey,lens,reference);
+          this.applyDraft(next);
+          this.panel='outline';
+          this.renderStage();
+          this.render();
+        }
+        else if (type==='uploads-listed') recordUploadInventory(items,lens);
         else if (type==='sources-changed' && this.api.sourceChanged) this.api.sourceChanged(room.id);
         else contentStore.emit(room.id);
       }
@@ -349,6 +358,7 @@ export class BuildUI {
     const definition = BUILDER_PIECES[piece.kind];
     const {position,yaw,scale} = piece.transform;
     const choices = this.availableBehaviors(piece);
+    const editableContent=piece.block&&!piece.kind.startsWith('hosted-');
     return `<header class="builder-panel-head"><h3>${esc(title(piece))}</h3>${click('Hide panel','hide-panel')}</header>
       <form data-builder-form="piece">
         <fieldset><legend>Placement</legend><div class="builder-fields">
@@ -356,13 +366,13 @@ export class BuildUI {
           <label>Turn in degrees<input type="number" inputmode="decimal" name="yaw" value="${degrees(yaw)}" step="any" required></label>
           <label>Size<input type="number" inputmode="decimal" name="scale" value="${scale}" min="${definition?.limits?.minScale??.25}" max="${definition?.limits?.maxScale??4}" step="any" required></label>
         </div></fieldset>
-        ${piece.block ? `<label>Name<input name="title" value="${esc(title(piece))}" maxlength="120" required></label>` : ''}
-        ${piece.block ? `<label>Style<select name="preset" aria-label="Style">
+        ${editableContent ? `<label>Name<input name="title" value="${esc(title(piece))}" maxlength="120" required></label>` : ''}
+        ${editableContent ? `<label>Style<select name="preset" aria-label="Style">
           ${option('Use Place style','',!piece.block.style?.preset)}
           ${Object.keys(LOOKS).map(look=>option(look,look,look===piece.block.style?.preset)).join('')}
         </select></label>` : ''}
-        ${this.renderSettings(piece,definition)}
-        ${piece.block ? `<details class="builder-record"><summary>Declaration</summary><fieldset><legend>Amount and graphicness</legend>${renderedScores(piece.block.content)}</fieldset></details>` : ''}
+        ${editableContent?this.renderSettings(piece,definition):'<p>The source supplies the content and declaration.</p>'}
+        ${editableContent ? `<details class="builder-record"><summary>Declaration</summary><fieldset><legend>Amount and graphicness</legend>${renderedScores(piece.block.content)}</fieldset></details>` : ''}
         <button type="submit" class="builder-primary">Apply draft edits</button>
       </form>
       <details class="builder-record"><summary>Behaviors${piece.behaviors.length ? ` · ${piece.behaviors.length}` : ''}</summary>
@@ -486,6 +496,7 @@ export class BuildUI {
     const position=this.api.pickBuildPosition({x:event.clientX,y:event.clientY});
     if (!position) return;
     this.ignoreKitClick=true;
+    requestAnimationFrame(()=>{this.ignoreKitClick=false;});
     this.placementKind=drag.kind;
     this.placeAt(position);
   }
