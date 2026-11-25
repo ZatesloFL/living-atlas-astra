@@ -1,22 +1,7 @@
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.ATLAS_PLAYWRIGHT_MODULE || 'playwright-core');
 const completeArrival = require('./arrival-setup.cjs');
-
-async function enterPlace(page, placeId) {
-  await page.locator('#atlas-button').click();
-  await page.locator('#atlas-address input').fill(placeId);
-  await page.locator('#atlas-address button').click();
-  await page.locator('#travel-arrival').selectOption('inside');
-
-  const preview = page.locator('[data-preview]');
-  for (let i = 0; i < 8 && await preview.count(); i++) {
-    await preview.first().click();
-    await page.locator('[data-confirm]').click();
-  }
-
-  await page.locator('#travel-go').click();
-  await page.waitForFunction(id => atlasStatus().room === id && !__atlas.travel.active, placeId);
-}
+const {enterPlaceByAddress} = require('./atlas-build-browser-controls.cjs');
 
 async function mappedScene(page, placeId) {
   return page.evaluate(async id => {
@@ -68,7 +53,7 @@ async function mappedScene(page, placeId) {
     await completeArrival(page, {square: false});
     await page.waitForFunction(() => window.atlasStatus?.().room?.startsWith('home/'));
     const driveId = await page.evaluate(() => atlasStatus().room + '/drive');
-    await enterPlace(page, driveId);
+    await enterPlaceByAddress(page, driveId);
     assert.deepEqual((await mappedScene(page, driveId)).drawn, []);
 
     await page.locator('#build-button').click();

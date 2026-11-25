@@ -7,8 +7,8 @@ import {scores} from '../src/scores.js';
 import {verifyChain} from '../src/ledger.js';
 
 const storage=()=>{
-  let value=null;
-  return {getItem:key=>key===BUILDER_STORAGE?value:null,setItem:(key,next)=>{assert.equal(key,BUILDER_STORAGE);value=next;}};
+  const entries=new Map();
+  return {getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value)};
 };
 function starter(){
   const roomKey='builder-test-'+crypto.randomUUID(), ownerId=roomKey+'-owner';
@@ -28,6 +28,9 @@ test('Owner draft, scripted proposal, preview and publish keep their distinct re
   assert.throws(()=>builder.open(roomKey,{...lens,profileId:'another'}),/owner/);
   assert.throws(()=>builder.open(roomKey,{...lens,preview:true}),/owner/);
   assert.throws(()=>builder.open(roomKey,{...lens,isAgent:true}),/owner/);
+  const grant=await builder.atlasRecords.propose(lens,{kind:'grant',areas:['build'],scope:'edit',durationMs:null},'Standing Build edit');
+  await builder.atlasRecords.confirm(lens,grant.id);
+  await assert.rejects(builder.propose(roomKey,lens,'Move the bench left'),/no longer/);
   const proposal=await builder.propose(roomKey,lens,'Place a bench');
   assert.equal(builder.open(roomKey,lens).pieces.length,0);
   const draft=await builder.accept(roomKey,lens,proposal.id), [bench]=draft.pieces;
@@ -49,9 +52,12 @@ test('Owner draft, scripted proposal, preview and publish keep their distinct re
   assert.equal(EDGES.length,paths);
   const {receipts}=JSON.parse(disk.getItem(BUILDER_STORAGE));
   assert.deepEqual(receipts.map(e=>[e.action,e.actor]),[
-    ['build_proposed','atlas'],['build_proposal_accepted',ownerId],['build_previewed',ownerId],
+    ['build_proposal_accepted',ownerId],['build_previewed',ownerId],
     ['build_previewed',ownerId],['build_published',ownerId]]);
   assert.ok((await verifyChain(receipts)).valid);
+  assert.equal(receipts[0].diff.proposalReceipt,proposal.receiptId);
+  const confirmations=builder.atlasRecords.state(lens).receipts;
+  assert.ok(confirmations.some(r=>r.action==='atlas_confirmed'&&r.hash===receipts[0].diff.confirmationReceipt));
 
   // Starting from the same registered initial claim on a reload.
   ROOMS[roomKey]=baseline;

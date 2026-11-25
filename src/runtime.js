@@ -1,6 +1,7 @@
 import {tripDetails} from './trip-words.js';
 import {doorAgreement} from './travel-agreement.js';
 import {AtlasUI} from './atlas-ui.js';
+import {AtlasRecords} from './atlas-records.js';
 import {manualDestination} from './atlas-destinations.js';
 export async function startAtlas(diag){
 const THREE=await diag.asyncRun('engine module',()=>import('../vendor/three/three.module.min.js'));
@@ -47,8 +48,10 @@ const currentLens=()=>previewState?previewLens(previewState.left):access.lens(pr
 let profileUI,page,pageOrigin,selectedRoom,accessUI,travel,waypoint=null,place=null,expiryTimer,waypointRouteCache=null;
 let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>currentLens()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,lastContextUpdate=0,titlePosition=null,active=true,near=null,contextKey='studio';
 let stageCache=null,stageComparison=null,stageFraction=.5,stageRatio=null;
-const builder=new Builder({onPublish:refreshPublishedRoom});
-await builder.recover(lens);
+const atlasRecords=new AtlasRecords();
+const builder=new Builder({onPublish:refreshPublishedRoom,atlasRecords});
+const recoverBuilder=()=>builder.recover(lens,{arrivalRecords:profiles.arrivalRecords,loadArrivalSeed});
+await recoverBuilder();
 const startPrefs=lens.discovery??{},lastPlace=startPrefs.lastPlace,lastInterior=ROOMS[lastPlace?.room]?.layout.interior;
 const savedPlace=lastInterior&&lastPlace.space!==lastInterior.scene?{...lastPlace,room:lastInterior.parent,space:ROOMS[lastPlace.room].layout.scene,position:lastInterior.frontage.arrival,facing:spatialArrival(lastPlace.room,'door').facing}:lastPlace;kind=firstVisit||startPrefs.startAt==='square'?'square':startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)?(savedPlace.space===ROOMS[savedPlace.room].layout.interior?.scene?savedPlace.space:ROOMS[savedPlace.room].layout.scene):'studio';context={room:kind==='square'?'square':kind==='history'?'tallahassee':'studio'};
 const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110));
@@ -72,7 +75,7 @@ function fadeTo(action){if(reducedQuery.matches){action();return;}transition={st
 function changeScene(next){stopMedia();fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':next==='square'?'Town Square':'Makers Row'}`);});}
 function lensChanged(){travel?.cancel();place=null;if(!previewState)profiles.preferences(lens);lens=currentLens();profileUI?.refresh();controls.resetInput();if(page&&!page.root.hidden)rebuild();else fadeTo(()=>rebuild());}
 function arriveHome(id){const draft=profiles.arrivalRecords.starter(profiles.activeId),registered=loadArrivalSeed(draft),r=ROOMS[id];rebuild(registered.arrival.scene);for(const e of EDGES.filter(e=>e.to===id))world.granted.add(e.id);const a=registered.arrival;controls.teleport(...a.position,a.facing);place={id,scene:kind,x:a.position[0],z:a.position[1]};updateContext();}
-async function applyProfile(arrival){await access.endVisits(lens);travel?.cancel();place=null;waypoint=null;const draft=profiles.arrivalRecords.starter(profiles.activeId);if(draft)loadArrivalSeed(draft);lens=currentLens();await builder.recover(lens);controls?.resetInput();
+async function applyProfile(arrival){await access.endVisits(lens);travel?.cancel();place=null;waypoint=null;const draft=profiles.arrivalRecords.starter(profiles.activeId);if(draft)loadArrivalSeed(draft);lens=currentLens();await recoverBuilder();controls?.resetInput();
  if(typeof arrival==='string'&&ROOMS[arrival]){firstArrivalPending=false;arriveHome(arrival);}else if(firstArrivalPending&&profiles.completed){firstArrivalPending=false;controls.teleport(0,6);rebuild('square');ui.title('square');}else if(ROOMS[context.room]?.arrivalSeed&&!permission(ROOMS[context.room],lens).canEnter){if(draft)arriveHome(draft.projection.rootPlaceId);else {controls.teleport(0,6);rebuild('square');}}else rebuild();
  if(lens.form==='page')setTimeout(()=>openPage(typeof arrival==='string'?arrival:context.room),0);profileUI?.refresh();expiryState=expirySignature();}
 
@@ -174,7 +177,7 @@ graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
 ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),readings:ref=>accessUI.standingUI.open(ref),actorRecord:id=>accessUI.standingUI.actor(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>lens.homePlaceId?startTravel(lens.homePlaceId,{choice:'inside'}):changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active&&!builderStage.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
-const atlasUI=new AtlasUI(ui,{lens:()=>lens,room:()=>context.room,discovery:()=>discovery,tripDetails:(id,choice)=>tripDetails(context.room,id,lens,kind,choice),trip:(id,options)=>{if(!travel.start(id,options))throw new Error('This trip is no longer available.');return {status:'preflight started'};},inspector:()=>ui.lens(),applyLens:async(changes,refs)=>{const result=await profiles.applyLensProposal(changes,refs);lens=currentLens();lensChanged();return result;}});ui.api.askAtlas=()=>atlasUI.open();atlasUI.mountStatus(document.querySelector('.location-stack'));
+const atlasUI=new AtlasUI(ui,{lens:()=>lens,room:()=>context.room,discovery:()=>discovery,tripDetails:(id,choice)=>tripDetails(context.room,id,lens,kind,choice),trip:(id,options)=>{if(!travel.start(id,options))throw new Error('This trip is no longer available.');return {status:'preflight started'};},inspector:()=>ui.lens(),applyLens:async(changes,refs)=>{const result=await profiles.applyLensProposal(changes,refs);lens=currentLens();lensChanged();return result;}},{records:atlasRecords});ui.api.askAtlas=()=>atlasUI.open();atlasUI.mountStatus(document.querySelector('.location-stack'));
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{askAtlas:()=>atlasUI.open(),state,apply:applyProfile,switchProfile,staff,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
 rebuild();controls.apply();if(savedStarter&&startPrefs.startAt!=='square'&&!(startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)))arriveHome(savedStarter.projection.rootPlaceId);

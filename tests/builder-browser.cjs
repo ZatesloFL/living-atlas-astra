@@ -1,19 +1,7 @@
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.ATLAS_PLAYWRIGHT_MODULE || 'playwright-core');
 const completeArrival = require('./arrival-setup.cjs');
-
-async function enter(page, id) {
-  await page.locator('#atlas-button').click();
-  await page.locator('#atlas-address input').fill(id);
-  await page.locator('#atlas-address button').click();
-  const preview=page.locator('[data-preview]');
-  for (let i=0;i<8&&await preview.count();i++) {
-    await preview.first().click();
-    await page.locator('[data-confirm]').click();
-  }
-  await page.locator('#travel-go').click();
-  await page.waitForFunction(target=>atlasStatus().room===target&&!__atlas.travel.active,id);
-}
+const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = require('./atlas-build-browser-controls.cjs');
 
 (async()=>{
   const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,
@@ -36,6 +24,22 @@ async function enter(page, id) {
     assert.equal(await dock.getByRole('heading',{name:'Ask the Atlas',exact:true}).isVisible(),true);
     console.log('PASS entering Build from cold starter',home);
 
+    const askBuild = async words => {
+      await dock.locator('#builder-question').fill(words);
+      await dock.locator('[data-builder-form=ask] button[type=submit]').click();
+    };
+    await askBuild('Place a bench');
+    await dock.locator('.builder-status').filter({hasText:/active suggest grant for build/i}).waitFor();
+    assert.equal((await atlasState(page)).grants.length,0);
+    assert.equal(await dock.locator('.builder-proposal').count(),0);
+    await dock.getByRole('button',{name:'Back to visiting',exact:true}).click();
+
+    const grant = await grantBuildAndSources(page);
+    await askAndConfirm(page,'Be Quiet for Build');
+    assert.equal((await atlasState(page)).envelopes.build?.posture,'Quiet');
+    await page.locator('#sheet-close').click();
+    await page.locator('#build-button').click();
+
     await dock.getByRole('button',{name:'Kit',exact:true}).click();
     await dock.getByRole('button',{name:/^Bench/}).click();
     await dock.getByRole('button',{name:'Place at center'}).click();
@@ -50,6 +54,22 @@ async function enter(page, id) {
     },home);
     assert.ok(!ids.live.includes(ids.draft));
     console.log('PASS place and tune bench in draft before Visit sees it',ids.draft);
+
+    await dock.locator('[data-builder-action=panel][data-value=ask]').click();
+    await askBuild('Move the bench left');
+    await dock.locator('.builder-proposal').getByText(/move bench left by one metre/i).waitFor();
+    assert.equal(await page.evaluate(()=>__atlas.build.draft.pieces[0].transform.position[0]),-3);
+    await dock.getByRole('button',{name:'Keep in draft',exact:true}).click();
+    await page.waitForFunction(()=>__atlas.build.draft.pieces[0].transform.position[0]===-4);
+    const atlas = await atlasState(page);
+    const proposed = atlas.receipts.find(r=>r.action==='atlas_proposed'&&r.diff.value?.kind==='extension'&&
+      r.diff.value.area==='build'&&r.diff.value.action==='move-piece'&&r.diff.value.placeId===home);
+    const confirmed = atlas.receipts.find(r=>r.action==='atlas_confirmed'&&r.diff.proposalReceipt===proposed?.hash);
+    assert.equal(proposed?.actor,'atlas');
+    assert.equal(confirmed?.actor,atlas.holder);
+    assert.ok(atlas.receipts.some(r=>r.action==='atlas_applied'&&r.diff.confirmationReceipt===confirmed.hash));
+    assert.deepEqual(atlas.grants.map(g=>g.id),[grant.id]);
+    console.log('PASS explicit Build request under the persistent grant in Quiet posture',{grant:grant.id,proposal:proposed.hash,confirmation:confirmed.hash});
 
     await dock.getByRole('button',{name:'Preview the audience',exact:true}).click();
     await dock.getByRole('button',{name:'View scene',exact:true}).click();
@@ -72,8 +92,8 @@ async function enter(page, id) {
     console.log('PASS preview and confirmed publication',JSON.stringify(declaration));
 
     await dock.getByRole('button',{name:'Back to visiting'}).click();
-    await enter(page,home+'/drive');
-    await enter(page,home);
+    await enterPlaceByAddress(page,home+'/drive');
+    await enterPlaceByAddress(page,home);
     const drawn=async()=>page.evaluate(({home,piece})=>{
       let found=false;
       const expected='exhibit:'+home+':'+piece;
@@ -84,6 +104,7 @@ async function enter(page, id) {
     await page.reload();
     await page.waitForFunction(id=>window.atlasStatus?.().room===id,home);
     assert.ok(await drawn());
+    assert.deepEqual((await atlasState(page)).grants.map(g=>g.id),[grant.id]);
     assert.deepEqual(errors,[]);
     assert.deepEqual(calls,[]);
     if(process.env.ATLAS_EXPECT_STAMP)assert.equal(declaration.build,process.env.ATLAS_EXPECT_STAMP);

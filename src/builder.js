@@ -1,7 +1,8 @@
 import {ROOMS, EDGES} from './data.js';
-import {permission, personId} from './permissions.js';
+import {permission, personId, visibilityOf} from './permissions.js';
 import {roomEntry, selectContent, blockNeedsPreview} from './content.js';
 import {viewRoom} from './audience.js';
+import {containingPlaces} from './admission.js';
 import {appendEntry, canonical, verifyChain} from './ledger.js';
 import {validateScores} from './standing-records.js';
 import {scores} from './scores.js';
@@ -10,6 +11,7 @@ import {makeSourcePiece, sourcedRoom} from './source-catalog.js';
 import {composeBuilderRoom, withBuilderRoom} from './build-projection.js';
 import {BUILDER_DRAW_CEILING, BUILDER_PIECES, builderPieceCost, makeBuilderPiece, snapBuilderPosition, validateBuilderPiece} from './builder-pieces.js';
 import {builderPublication, builderPublications, builderSubject, stampBuilderProvenance, submissionFor} from './builder-provenance.js';
+import {AtlasRecords} from './atlas-records.js';
 
 export const BUILDER_STORAGE = 'living-atlas.builder.v1';
 export const ROOM_BUDGET = Object.freeze({instances:80,atlasTiles:12,liveTextures:2,drawCalls:BUILDER_DRAW_CEILING,behaviors:16});
@@ -19,6 +21,19 @@ const same = (a,b) => canonical(a) === canonical(b);
 const receiptView = receipt => ({id:'builder:'+receipt.hash, time:receipt.time, action:receipt.action, actor:receipt.actor});
 const storageDefault = () => globalThis.localStorage;
 const empty = () => ({drafts:{},receipts:[]});
+const authoredBases = new WeakMap();
+
+function publicContainment(roomKey,lens,rooms,host) {
+  const chain = containingPlaces(roomKey,rooms,host);
+  return !lens.standingInvalid && !!chain?.length && chain.every(key=>visibilityOf(rooms[key],lens)==='public');
+}
+
+function claimedRooms(starter) {
+  const authored = new Map(starter.changes.filter(change=>change?.op==='create' && change.kind==='Place' && change.ref?.placeId)
+    .map(change=>[change.ref.placeId,change.fields]));
+  return Object.fromEntries(starter.projection.rooms.filter(room=>authored.has(room?.placeId)).map(room=>
+    [room.placeId,{visibility:'hidden',...authored.get(room.placeId),id:room.placeId,parentPlaceId:room.parentPlaceId}]));
+}
 
 function placePosition(pieces) {
   const offsets = [[-3,1],[3,1],[-3,-2],[3,-2],[0,-3],[-4,4],[4,4],[0,4],[6,0],[-6,0],[0,-6],[0,6]];
@@ -65,9 +80,10 @@ function estimate(base, pieces) {
 }
 
 export class Builder {
-  constructor({storage=storageDefault,onPublish=()=>{}}={}) {
+  constructor({storage=storageDefault,onPublish=()=>{},atlasRecords=new AtlasRecords(storage)}={}) {
     this.storage = storage;
     this.onPublish = onPublish;
+    this.atlasRecords = atlasRecords;
     this.base = new Map();
     this.data = empty();
     this.queue = Promise.resolve();
@@ -91,7 +107,7 @@ export class Builder {
     if (!room?.ownerId || !room.layout || !lens || lens.isAgent || lens.preview || room.ownerId!==personId(lens)) {
       throw new Error('Build is available to the Place owner.');
     }
-    if (!this.base.has(roomKey)) this.base.set(roomKey,copy(room));
+    if (!this.base.has(roomKey)) this.base.set(roomKey,copy(authoredBases.get(room)??room));
     return room;
   }
 
@@ -141,7 +157,11 @@ export class Builder {
       storage.setItem(BUILDER_STORAGE,serialized);
       this.raw = serialized;
       this.data = data;
-      if(result.projected) ROOMS[roomKey]=result.projected;
+      if(result.projected) {
+        const base = this.base.get(roomKey)??authoredBases.get(ROOMS[roomKey]);
+        if (base) authoredBases.set(result.projected,base);
+        ROOMS[roomKey]=result.projected;
+      }
       return result;
     };
     const task = this.queue.then(()=>globalThis.navigator?.locks
@@ -275,47 +295,50 @@ export class Builder {
     });
   }
 
-  propose(roomKey,lens,request) {
+  async propose(roomKey,lens,request) {
     const text = boundedText(request,260,'Tell the Atlas what you want to place or tune.');
-    return this.transaction(roomKey,lens,async({data,draft,room})=>{
-      const wanted = Object.values(BUILDER_PIECES).find(def=>['Thing','Place'].includes(def.recordKind) && text.toLowerCase().includes(def.label.toLowerCase()));
-      const tuning = /^move (?:the )?(.+?) (left|right|forward|back)\.?$/i.exec(text);
-      const piece = tuning && draft.pieces.find(p=>p.block.title.toLowerCase()===tuning[1].toLowerCase());
-      const delta = tuning && {left:[-1,0],right:[1,0],forward:[0,-1],back:[0,1]}[tuning[2].toLowerCase()];
-      if (!wanted && !piece) throw new Error('Try “Place a bench” or “Move the bench left”.');
-      const change = piece ? {pieceId:piece.id,move:delta} : {kind:wanted.kind};
-      const summary = piece ? 'Move ' + piece.block.title + ' ' + tuning[2].toLowerCase() + ' by one metre.' : 'Place ' + wanted.label.toLowerCase() + ' in the draft.';
-      const proposal = {id:id(),text,summary,status:'pending',change};
-      const receipt = await appendEntry(data.receipts,'atlas','build_proposed',{roomKey,ownerId:room.ownerId,proposalId:proposal.id,change,mode:'scripted'});
-      proposal.receiptId=receiptView(receipt).id;
-      draft.proposals.push(proposal);
-      return copy(proposal);
-    });
+    const room=this.owner(roomKey,lens);
+    await this.atlasRecords.requireInitiative(lens,'build','suggest',{requested:true});
+    const draft=this.open(roomKey,lens);
+    const wanted=Object.values(BUILDER_PIECES).find(def=>['Thing','Place'].includes(def.recordKind)&&text.toLowerCase().includes(def.label.toLowerCase()));
+    const tuning=/^move (?:the )?(.+?) (left|right|forward|back)\.?$/i.exec(text);
+    const piece=tuning&&draft.pieces.find(p=>p.block.title.toLowerCase()===tuning[1].toLowerCase());
+    if(tuning&&!piece)throw new Error('That Thing is no longer in this draft.');
+    if(!wanted&&!piece)throw new Error('Try “Place a bench” or “Move the bench left”.');
+    const direction=tuning?.[2].toLowerCase();
+    const move={left:[-1,0],right:[1,0],forward:[0,-1],back:[0,1]}[direction];
+    const change=piece?{pieceId:piece.id,move}:{kind:wanted.kind};
+    const summary=piece?'Move '+piece.block.title+' '+direction+' by one metre.':'Place '+wanted.label.toLowerCase()+' in the draft.';
+    const proposal=await this.atlasRecords.proposeExtension(lens,{
+      area:'build',action:piece?'move-piece':'place-piece',placeId:room.id,payload:change
+    },text,{requested:true});
+    return {id:proposal.id,text,summary,status:'pending',change,receiptId:proposal.receipt};
   }
 
-  decide(roomKey,lens,proposalId,keep) {
-    return this.transaction(roomKey,lens,async({data,draft,room})=>{
-      const proposal=draft.proposals.find(item=>item.id===proposalId && item.status==='pending');
-      if(!proposal)throw new Error('This proposal is no longer pending.');
-      if(keep){
+  async decide(roomKey,lens,proposalId,keep) {
+    const room=this.owner(roomKey,lens);
+    const proposal=this.atlasRecords.state(lens).proposals.find(p=>p.id===proposalId&&p.status==='proposal'&&
+      p.value.kind==='extension'&&p.value.area==='build'&&p.value.placeId===room.id);
+    if(!proposal)throw new Error('This proposal is no longer pending for this Place.');
+    if(!keep){await this.atlasRecords.decline(lens,proposalId);return this.open(roomKey,lens);}
+    await this.atlasRecords.confirm(lens,proposalId,(value,refs)=>this.transaction(roomKey,lens,async({data,draft,room})=>{
+        const change=await this.atlasRecords.verifyExtension(lens,{area:'build',action:value.action,placeId:room.id,...refs});
         draft.undo.push(copy(draft.pieces));
         if(draft.undo.length>20)draft.undo.shift();
         draft.redo=[];
         draft.preview=null;
-        if(proposal.change.kind)this.newPiece(draft,room,proposal.change.kind);
+        if(change.kind)this.newPiece(draft,room,change.kind);
         else{
-          const piece=draft.pieces.find(p=>p.id===proposal.change.pieceId);
+          const piece=draft.pieces.find(p=>p.id===change.pieceId);
           if(!piece)throw new Error('The proposed Thing is no longer in the draft.');
-          const [x,y,z]=piece.transform.position,[dx,dz]=proposal.change.move;
+          const [x,y,z]=piece.transform.position,[dx,dz]=change.move;
           piece.transform.position=snapBuilderPosition([x+dx,y,z+dz]);
         }
         normalizePieces(draft.pieces,room);
-      }
-      proposal.status=keep?'accepted':'declined';
-      await appendEntry(data.receipts,room.ownerId,keep?'build_proposal_accepted':'build_proposal_declined',
-        {roomKey,proposalId,proposalReceiptId:proposal.receiptId});
-      return this.snapshot(data,roomKey,room);
-    });
+        const receipt=await appendEntry(data.receipts,room.ownerId,'build_proposal_accepted',{roomKey,proposalId,...refs});
+        return {receiptId:receiptView(receipt).id};
+    }));
+    return this.open(roomKey,lens);
   }
   accept(roomKey,lens,proposalId) { return this.decide(roomKey,lens,proposalId,true); }
   reject(roomKey,lens,proposalId) { return this.decide(roomKey,lens,proposalId,false); }
@@ -439,14 +462,48 @@ export class Builder {
     return {receipt:result.receipt,target:result.target};
   }
 
-  async recover(lens) {
-    if (!await this.ready) return;
-    for (const {roomKey} of this.list(lens)) {
-      const room=this.owner(roomKey,lens);
-      const head=this.published(this.data,roomKey,room.ownerId).at(-1);
-      if (head) {
-        const projected = composeBuilderRoom(this.base.get(roomKey),normalizePieces(copy(head.diff.pieces),room),{recordVersionId:head.diff.revisionId});
-        ROOMS[roomKey] = stampBuilderProvenance(roomKey,projected,this.data.receipts);
+  async recover(lens,{arrivalRecords,loadArrivalSeed}={}) {
+    if (!lens || lens.preview || !await this.ready) return;
+    await this.loadPublicClaims(lens,arrivalRecords,loadArrivalSeed);
+    for (const [roomKey,room] of Object.entries(ROOMS)) {
+      if (!room.ownerId || !room.layout) continue;
+      const head = this.published(this.data,roomKey,room.ownerId).at(-1);
+      if (!head) continue;
+      const owner = !lens.isAgent && room.ownerId===personId(lens);
+      const base = this.base.get(roomKey)??authoredBases.get(room)??room;
+      const incoming = EDGES.find(edge=>edge.to===roomKey);
+      if (!owner && !publicContainment(roomKey,lens,ROOMS,incoming?.host)) {
+        if (base!==room && room.recordVersionId===head.diff.revisionId) ROOMS[roomKey]=copy(base);
+        continue;
+      }
+      if (!this.base.has(roomKey)) this.base.set(roomKey,copy(base));
+      const pieces = normalizePieces(copy(head.diff.pieces),room);
+      const projected = stampBuilderProvenance(roomKey,composeBuilderRoom(base,pieces,
+        {recordVersionId:head.diff.revisionId}),this.data.receipts);
+      authoredBases.set(projected,base);
+      ROOMS[roomKey]=projected;
+    }
+  }
+
+  async loadPublicClaims(lens,arrivalRecords,loadArrivalSeed) {
+    if (!arrivalRecords || typeof loadArrivalSeed!=='function' || !await Promise.resolve(arrivalRecords.ready).catch(()=>false) ||
+      !Array.isArray(arrivalRecords.data?.starters) || !Array.isArray(arrivalRecords.data?.receipts)) return;
+    for (const starter of arrivalRecords.data.starters) {
+      const root = starter?.projection?.rootPlaceId;
+      if (!root || Object.hasOwn(ROOMS,root) || !Array.isArray(starter.changes) || !Array.isArray(starter.projection.rooms) ||
+        !arrivalRecords.data.receipts.some(receipt=>
+        receipt.action==='starter_claimed_local' && receipt.actor===starter.holderId &&
+        receipt.diff.draftId===starter.id && receipt.diff.rootPlaceId===root)) continue;
+      const rooms = claimedRooms(starter);
+      const eligible = Object.keys(rooms).some(roomKey=>
+        this.published(this.data,roomKey,starter.holderId).length && publicContainment(roomKey,lens,rooms));
+      if (!eligible) continue;
+      try {
+        // Use Arrival's verified claim with its ordinary registration path.
+        // The visitor pass below overlays only currently public Builder heads.
+        loadArrivalSeed(starter);
+      } catch {
+        this.warning ||= 'A saved public Place could not be restored.';
       }
     }
   }

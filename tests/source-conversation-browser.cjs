@@ -4,6 +4,7 @@ const {readFile} = require('node:fs/promises');
 const {extname, resolve, sep} = require('node:path');
 const {chromium} = require(process.env.ATLAS_PLAYWRIGHT_MODULE || 'playwright-core');
 const completeArrival = require('./arrival-setup.cjs');
+const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = require('./atlas-build-browser-controls.cjs');
 
 const origin = 'https://zateslofl.github.io';
 const assetPrefix = '/living-atlas-astra/';
@@ -113,27 +114,18 @@ async function stubNetwork(context) {
   return {requests, errors, uploads};
 }
 
-async function enterPlace(page, id) {
-  await page.locator('#atlas-button').click();
-  await page.locator('#atlas-address input').fill(id);
-  await page.locator('#atlas-address button').click();
-  await page.locator('#travel-arrival').selectOption('inside');
-  const preview = page.locator('[data-preview]');
-  for (let i = 0; i < 8 && await preview.count(); i++) {
-    await preview.first().click();
-    await page.locator('[data-confirm]').click();
-  }
-  await page.locator('#travel-go').click();
-  await page.waitForFunction(placeId => atlasStatus().room === placeId && !__atlas.travel.active, id);
-}
-
-const recordsKey = 'living-atlas.source-conversation.v1';
-const actionName = stage => 'source_conversation_' + stage;
-async function waitReceipt(page, kind, stage) {
-  await page.waitForFunction(({key, kind, action}) =>
-    JSON.parse(localStorage.getItem(key))?.receipts.some(record => record.action === action && record.diff.kind === kind &&
-      (action !== 'source_conversation_outcome' || record.diff.outcome === 'applied')),
-  {key: recordsKey, kind, action: actionName(stage)});
+const recordsKey = 'living-atlas.atlas-records.v1';
+async function waitReceipt(page, action, phase, area = 'sources') {
+  await page.waitForFunction(({action, phase, area}) => {
+    const state = __atlas.atlas.records.state(__atlas.state().lens);
+    const proposals = state.receipts.filter(r => r.action === 'atlas_proposed' &&
+      r.diff.value?.kind === 'extension' && r.diff.value.area === area && r.diff.value.action === action);
+    if (phase === 'proposed') return proposals.length > 0;
+    const confirms = state.receipts.filter(r => r.action === 'atlas_confirmed' &&
+      proposals.some(proposal => proposal.hash === r.diff.proposalReceipt));
+    return state.receipts.some(r => r.action === 'atlas_applied' &&
+      confirms.some(confirm => confirm.hash === r.diff.confirmationReceipt));
+  }, {action, phase, area});
 }
 
 async function mappedPlace(page, id) {
@@ -163,17 +155,20 @@ async function mappedPlace(page, id) {
     await completeArrival(page, {square: false});
     await page.waitForFunction(() => atlasStatus().room.startsWith('home/'));
     const {driveId, owner} = await page.evaluate(() => ({driveId: atlasStatus().room + '/drive', owner: __atlas.state().lens.profileId}));
-    await enterPlace(page, driveId);
+    await enterPlaceByAddress(page, driveId);
     await page.locator('#build-button').click();
     const builder = page.locator('#builder-hud');
-    await builder.getByRole('button', {name: 'Sources', exact: true}).click();
-    await builder.getByRole('button', {name: 'Connected sources', exact: true}).click();
     const dialog = page.getByRole('dialog', {name: 'Connected sources'});
-    await dialog.waitFor();
-    assert.equal(await dialog.locator('[data-current-place]').innerText(), 'Drive room');
     const log = dialog.locator('[data-source-chat-log]');
     const composer = dialog.locator('form[data-source-chat]');
-    await composer.waitFor();
+    const openSources = async () => {
+      const tab = builder.getByRole('button', {name: 'Sources', exact: true});
+      if (await tab.getAttribute('aria-pressed') !== 'true') await tab.click();
+      await builder.getByRole('button', {name: 'Connected sources', exact: true}).click();
+      await composer.waitFor();
+      assert.equal(await dialog.locator('[data-current-place]').innerText(), 'Drive room');
+    };
+    const closeSources = () => dialog.getByRole('button', {name: 'Close connected sources'}).click();
     const say = async message => {
       await composer.locator('input[name=message]').fill(message);
       await composer.locator('[type=submit]').click();
@@ -182,6 +177,31 @@ async function mappedPlace(page, id) {
       assert.equal(await dialog.locator(':is([data-form=upload], [data-form=publish], [data-source-detail]):visible').count(), 0);
       assert.equal(await builder.locator('[data-builder-form=piece]').isVisible(), false);
     };
+
+    await openSources();
+    await say('Connect my mock Drive in indexed mode');
+    await log.getByText(/active suggest grant for sources/i).last().waitFor();
+    assert.equal((await atlasState(page)).grants.length, 0);
+    assert.deepEqual((await mappedPlace(page, driveId)).sourcePlacements ?? [], []);
+    await closeSources();
+    await builder.getByRole('button', {name: 'Back to visiting', exact: true}).click();
+    const grant = await grantBuildAndSources(page);
+    await askAndConfirm(page, 'Be Conversational for Sources');
+    assert.equal((await atlasState(page)).envelopes.sources?.posture, 'Conversational');
+    await page.locator('#sheet-close').click();
+    await page.locator('#build-button').click();
+
+    // A Build proposal followed by Sources work proves both surfaces use the
+    // same persistent Atlas grant and receipt chain for this profile.
+    const askTab = builder.locator('[data-builder-action=panel][data-value=ask]');
+    if (await askTab.getAttribute('aria-pressed') !== 'true') await askTab.click();
+    await builder.locator('#builder-question').fill('Place a lantern');
+    await builder.locator('[data-builder-form=ask] button[type=submit]').click();
+    await waitReceipt(page, 'place-piece', 'proposed', 'build');
+    await builder.getByRole('button', {name: 'Keep in draft', exact: true}).click();
+    await waitReceipt(page, 'place-piece', 'applied', 'build');
+    await openSources();
+    assert.deepEqual((await atlasState(page)).grants.map(record => record.id), [grant.id]);
 
     // Declare without opening the dial form. A fixture serves the original,
     // records an owner-edited dial, and returns the real client's Receipt shape.
@@ -198,13 +218,13 @@ async function mappedPlace(page, id) {
         assert.equal(await log.locator('[data-proposed-dial="' + dimension + '.' + axis + '"]').innerText(), String(value));
       }
     }
-    await waitReceipt(page, 'declaration', 'proposed');
+    await waitReceipt(page, 'declare-upload', 'proposed');
     await forbidInspector();
     assert.equal(evidence.requests.filter(call => call.action === 'publish').length, 0);
     await say('Set violence amount to 2');
     await log.locator('[data-proposed-dial="violence.amount"]').filter({hasText: /^2$/}).waitFor();
     await say('yes');
-    await waitReceipt(page, 'declaration', 'outcome');
+    await waitReceipt(page, 'declare-upload', 'applied');
     const hosted = [...evidence.uploads.values()][0].item;
     assert.equal(hosted.placeId, driveId);
     assert.equal(hosted.declarationReceiptId, declaration);
@@ -216,7 +236,7 @@ async function mappedPlace(page, id) {
     // Place before and after confirmation to separate preview from projection.
     assert.deepEqual((await mappedPlace(page, driveId)).sourcePlacements ?? [], []);
     await say('Connect my mock Drive in indexed mode');
-    await waitReceipt(page, 'mapping', 'proposed');
+    await waitReceipt(page, 'connect-and-map', 'proposed');
     const mapPreview = dialog.locator('[data-source-mapping-preview]');
     await mapPreview.waitFor();
     assert.match(await mapPreview.innerText(), /notebooks/i);
@@ -234,7 +254,7 @@ async function mappedPlace(page, id) {
     assert.equal(drawCount, 2, 'Two mapped alcoves draw in the draft preview before confirmation');
     assert.deepEqual((await mappedPlace(page, driveId)).sourcePlacements ?? [], []);
     await say('yes');
-    await waitReceipt(page, 'mapping', 'outcome');
+    await waitReceipt(page, 'connect-and-map', 'applied');
     const approved = (await mappedPlace(page, driveId)).sourcePlacements;
     assert.deepEqual(approved.map(piece => piece.kind), ['alcove', 'alcove']);
     await forbidInspector();
@@ -242,22 +262,22 @@ async function mappedPlace(page, id) {
 
     // Place and publish using only words, then reveal both existing inspectors.
     await say('Place ' + fileName + ' on the left');
-    await waitReceipt(page, 'placement', 'proposed');
+    await waitReceipt(page, 'place-source', 'proposed');
     const placementPreview = dialog.locator('[data-source-placement-preview]');
     await placementPreview.waitFor();
     assert.match(await placementPreview.innerText(), /Window study\.png/i);
     assert.ok(!(await page.evaluate(() => __atlas.build.draft.pieces.some(piece => piece.kind === 'hosted-photo'))));
     await page.waitForFunction(() => __atlas.buildScene()?.getObjectByName('Hosted photo preview')?.userData.sourceStatus === 'ready');
     await say('yes');
-    await waitReceipt(page, 'placement', 'outcome');
+    await waitReceipt(page, 'place-source', 'applied');
     const draft = await page.evaluate(() => __atlas.build.draft.pieces.find(piece => piece.kind === 'hosted-photo'));
     assert.ok(draft?.transform.position[0] < 0);
     assert.ok(!(await mappedPlace(page, driveId)).kitPieces.some(piece => piece.id === draft.id));
     await say('Publish draft');
-    await waitReceipt(page, 'publication', 'proposed');
+    await waitReceipt(page, 'publish-draft', 'proposed');
     await forbidInspector();
     await say('yes');
-    await waitReceipt(page, 'publication', 'outcome');
+    await waitReceipt(page, 'publish-draft', 'applied');
     const published = await mappedPlace(page, driveId);
     const block = published.blocks.find(block => block.source?.itemId === hosted.id);
     assert.equal(block?.standing.declarationRef.receiptRef, declaration);
@@ -281,7 +301,7 @@ async function mappedPlace(page, id) {
     if (!await mappingRecord.evaluate(details => details.open)) await mappingRecord.locator('summary').click();
     assert.equal(await mappingRecord.locator('[name=mode]').inputValue(), 'indexed');
     assert.match(await mappingRecord.innerText(), /Approved mapping.*Folders become alcoves/i);
-    await dialog.getByRole('button', {name: 'Close connected sources'}).click();
+    await closeSources();
     const outline = builder.getByRole('button', {name: 'Outline', exact: true});
     if (await outline.getAttribute('aria-pressed') !== 'true') await outline.click();
     await builder.locator('[data-builder-action=select][data-value="' + draft.id + '"]').click();
@@ -294,43 +314,79 @@ async function mappedPlace(page, id) {
     const journal = await page.evaluate(async key => {
       const {verifyChain} = await import('./src/ledger.js');
       const {receipts} = JSON.parse(localStorage.getItem(key));
-      return {valid: (await verifyChain(receipts)).valid, receipts};
+      return {valid: (await verifyChain(receipts)).valid, receipts,
+        legacy: localStorage.getItem('living-atlas.source-conversation.v1')};
     }, recordsKey);
     assert.equal(journal.valid, true);
-    const grant = journal.receipts.find(r => r.action === 'source_conversation_granted');
-    assert.equal(grant?.actor, owner);
-    assert.equal(grant?.diff.placeId, driveId);
+    assert.equal(journal.legacy, null);
+    assert.deepEqual((await atlasState(page)).grants.map(record => record.id), [grant.id]);
     const pairs = [];
-    for (const kind of ['declaration', 'mapping', 'placement', 'publication']) {
-      const confirms = journal.receipts.filter(r => r.action === actionName('confirmed') && r.diff.kind === kind);
-      assert.equal(confirms.length, 1, kind);
-      const confirm = confirms[0];
-      const propose = journal.receipts.find(r => 'source-conversation:' + r.hash === confirm.diff.proposalReceiptId);
-      assert.equal(propose?.action, actionName('proposed'), kind);
-      assert.equal(propose.diff.kind, kind);
+    for (const [area, action, grants] of [
+      ['build', 'place-piece', {build: grant.id}],
+      ['sources', 'declare-upload', {sources: grant.id}],
+      ['sources', 'connect-and-map', {sources: grant.id}],
+      ['sources', 'place-source', {sources: grant.id, build: grant.id}],
+      ['sources', 'publish-draft', {sources: grant.id, build: grant.id}],
+    ]) {
+      const proposals = journal.receipts.filter(r => r.action === 'atlas_proposed' &&
+        r.diff.value?.kind === 'extension' && r.diff.value.area === area && r.diff.value.action === action);
+      const confirms = journal.receipts.filter(r => r.action === 'atlas_confirmed' &&
+        proposals.some(proposal => proposal.hash === r.diff.proposalReceipt));
+      assert.equal(confirms.length, 1, action);
+      const [confirm] = confirms;
+      const propose = proposals.find(proposal => proposal.hash === confirm.diff.proposalReceipt);
       assert.equal(propose.actor, 'atlas');
+      assert.equal(propose.diff.value.placeId, driveId);
+      assert.deepEqual(propose.diff.basis.grants, grants);
       assert.equal(confirm.actor, owner);
-      assert.equal(confirm.diff.grantId, grant.diff.grantId);
-      assert.ok(propose.id < confirm.id && propose.hash !== confirm.hash, kind);
-      const confirmation = 'source-conversation:' + confirm.hash;
-      const outcome = journal.receipts.find(r => r.action === actionName('outcome') && r.diff.confirmationReceiptId === confirmation);
-      assert.equal(outcome?.diff.outcome, 'applied', kind);
-      assert.ok(outcome.id > confirm.id);
-      if (kind === 'declaration') assert.equal(outcome.diff.appliedReceiptId, declaration);
-      if (kind === 'mapping') assert.match(outcome.diff.appliedReceiptId, /^source:[a-f0-9]{64}$/);
-      if (kind === 'publication') assert.match(outcome.diff.appliedReceiptId, /^builder:[a-f0-9]{64}$/);
-      pairs.push({kind, proposal: confirm.diff.proposalReceiptId, confirmation, applied: outcome.diff.appliedReceiptId});
+      assert.ok(propose.id < confirm.id && propose.hash !== confirm.hash, action);
+      const outcome = journal.receipts.find(r => r.action === 'atlas_applied' && r.diff.confirmationReceipt === confirm.hash);
+      assert.ok(outcome?.id > confirm.id, action);
+      const applied = outcome.diff.result?.appliedReceipt ?? null;
+      if (action === 'declare-upload') assert.equal(applied, declaration);
+      if (action === 'connect-and-map') assert.match(applied, /^source:[a-f0-9]{64}$/);
+      if (action === 'publish-draft') assert.match(applied, /^builder:[a-f0-9]{64}$/);
+      pairs.push({area, action, proposal: propose.hash, confirmation: confirm.hash, outcome: outcome.hash, applied});
     }
+
+    await openSources();
+    assert.deepEqual((await atlasState(page)).grants.map(record => record.id), [grant.id]);
+    await say('Connect my mock gallery in indexed mode');
+    await dialog.locator('[data-source-mapping-preview]').filter({hasText: /Mock gallery/}).waitFor();
+    const pending = (await atlasState(page)).proposals.findLast(p => p.value.action === 'connect-and-map' && p.status === 'proposal');
+    assert.equal(pending?.value.payload.kind, 'collection-db');
+
+    // Revoke Sources through Ask Atlas in another view of the same profile.
+    // The original pending proposal stays open and must recheck authority.
+    const other = await context.newPage();
+    try {
+      await other.goto(origin + assetPrefix + '?page&test');
+      await other.locator('#page-ask-atlas').click();
+      await askAndConfirm(other, 'Revoke the Atlas grant for Sources');
+    } finally {await other.close();}
+    const narrowed = (await atlasState(page)).grants.find(record => record.id === grant.id);
+    assert.equal(narrowed?.active, true);
+    assert.deepEqual(narrowed?.areas, ['build']);
+    await say('yes');
+    await log.getByText(/active edit grant for sources|sources grant changed/i).last().waitFor();
+    const denied = await atlasState(page);
+    assert.ok(!denied.receipts.some(r => r.action === 'atlas_confirmed' && r.diff.proposalReceipt === pending.receipt));
+    assert.deepEqual((await mappedPlace(page, driveId)).sourcePlacements.map(piece => piece.blockId), approved.map(piece => piece.blockId));
+    await closeSources();
+
     await page.reload();
     await page.waitForFunction(() => window.__atlas);
     const restored = await mappedPlace(page, driveId);
     assert.equal(restored.kitPieces.find(piece => piece.id === draft.id)?.ref.thingId, block.id);
     assert.deepEqual(restored.sourcePlacements.map(piece => piece.blockId), approved.map(piece => piece.blockId));
+    assert.deepEqual((await atlasState(page)).grants.map(({id, areas}) => ({id, areas})), [{id: grant.id, areas: ['build']}]);
     assert.deepEqual(errors, []);
     assert.deepEqual(evidence.errors, []);
     for (const action of ['request', 'upload', 'publish']) assert.equal(evidence.requests.filter(call => call.action === action).length, 1);
     console.log('PASS inspectors match the confirmed declaration, source mapping, and placement');
-    console.log(JSON.stringify({scope: 'Drive room', assets: served ? 'Pages' : 'checkout', pairs, syntheticDeclaration: declaration, paidCalls: 0}));
+    console.log('PASS one shared standing grant survives panel reopen and reload, and partial revocation blocks its pending Sources proposal');
+    console.log(JSON.stringify({scope: 'Drive room', assets: served ? 'Pages' : 'checkout', grant: grant.id, pairs,
+      syntheticDeclaration: declaration, paidCalls: 0}));
   } catch (error) {
     if (evidence?.errors.length) console.error('Intercepted browser request errors:', evidence.errors);
     const log = page?.locator('[data-source-chat-log]');

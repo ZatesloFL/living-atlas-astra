@@ -9,6 +9,7 @@ import {GALLERY_PLACE, recordUploadInventory} from './source-catalog.js';
 import {uploadClient} from './source-session.js';
 import {proposeUploadScores} from './upload-scores.js';
 import {contentStore} from './content.js';
+import {requireSourceScope} from './source-conversation.js';
 import {AXES,DIMENSIONS,scores,scoreText} from './scores.js';
 import {BUILDER_PIECES,describeBuilderBehavior} from './builder-pieces.js';
 import {LOOKS} from './item-style.js';
@@ -89,6 +90,7 @@ export class BuildUI {
     this.profiles = profiles;
     this.api = api;
     this.builder = api.builder;
+    this.atlasRecords = this.builder?.atlasRecords;
     this.draft = null;
     this.active = false;
     this.panel = 'ask';
@@ -100,6 +102,7 @@ export class BuildUI {
     this.fraction = .5;
     this.track = [];
     this.sources = new SourcesUI({
+      records:this.atlasRecords,
       uploads: uploadClient,
       proposeScores: input => proposeUploadScores(ai,input),
       onChange:event=>this.sourceEvent(event)
@@ -107,7 +110,7 @@ export class BuildUI {
     this.mount();
   }
 
-  async sourceEvent({type,items,room,lens,reference,position,plan,previewReceiptId}) {
+  async sourceEvent({type,items,room,lens,reference,position,plan,proposalReceipt,confirmationReceipt}) {
     if(type==='uploads-listed'){recordUploadInventory(items,lens);return;}
     if(type==='sources-changed'){
       if(this.api.sourceChanged)this.api.sourceChanged(room.id);
@@ -122,17 +125,22 @@ export class BuildUI {
     const roomKey=this.draft?.roomKey;
     if(ROOMS[roomKey]?.id!==room.id||!this.builder)throw new Error('Open this Place in Build to change this draft.');
     if(type==='source-preview'){
+      await requireSourceScope(this.atlasRecords,lens,'suggest','placement');
       const preview=this.builder.previewSource(roomKey,lens,reference,position);
       this.sourcePreview={draft:preview.draft,selectedId:preview.piece.id};
       this.renderStage();
       return {piece:preview.piece};
     }
     if(type==='source-mapping-preview'){
+      await requireSourceScope(this.atlasRecords,lens);
       this.sourcePreview={draft:this.draft,mapping:plan};
       this.renderStage();
       return;
     }
-    if(type==='source-placed'){
+    if(type==='source-placed'||type==='source-placed-manual'){
+      if(type==='source-placed')({reference,position}=await this.atlasRecords.verifyExtension(lens,{
+        area:'sources',action:'place-source',placeId:room.id,proposalReceipt,confirmationReceipt
+      }));
       const next=await this.builder.placeSource(roomKey,lens,reference,position);
       this.sourcePreview=null;
       this.applyDraft(next);
@@ -142,6 +150,7 @@ export class BuildUI {
       return {draft:next};
     }
     if(type==='source-publish-preview'){
+      await requireSourceScope(this.atlasRecords,lens,'suggest','publication');
       const draft=this.builder.open(roomKey,lens);
       if(!draft.dirty)throw new Error('The draft has no changes to publish.');
       const budget=this.builder.budget(roomKey,lens);
@@ -150,6 +159,9 @@ export class BuildUI {
       return {...assessment,budget};
     }
     if(type==='source-publish-confirmed'){
+      const {previewReceiptId}=await this.atlasRecords.verifyExtension(lens,{
+        area:'sources',action:'publish-draft',placeId:room.id,proposalReceipt,confirmationReceipt
+      });
       if(this.builder.open(roomKey,lens).preview?.id!==previewReceiptId){
         throw new Error('The draft changed. Ask for a fresh publication proposal.');
       }
@@ -338,6 +350,7 @@ export class BuildUI {
 
   renderAsk() {
     return `<header class="builder-panel-head"><h3>Ask the Atlas</h3>${click('Hide panel','hide-panel')}</header>
+      <p>Use your personal Build grant for these proposals. ${click('Grants and initiative','atlas-grants')}</p>
       <form data-builder-form="ask" class="builder-ask">
         <label for="builder-question">What would you like to change?</label>
         <textarea id="builder-question" name="prompt" rows="2" maxlength="260" required placeholder="Add a lantern beside the reading area"></textarea>
@@ -581,6 +594,7 @@ export class BuildUI {
   }
 
   command(action,value) {
+    if(action==='atlas-grants'){this.exit();this.ui.api.askAtlas?.();return;}
     if (this.busy) return;
     if (action==='exit') {this.exit();return;}
     if (action==='hide-panel') {this.panel=null;this.render();return;}
