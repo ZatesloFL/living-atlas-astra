@@ -121,6 +121,12 @@ export function sourcedRoom(room, lens) {
   const uploadedBlocks = uploads.map(item => withSourceBadge(uploadBlock(item, room)));
   if (!views.length && !uploadedBlocks.length && !room.blocks?.some(block => block.projectedSource)) return room;
 
+  // Adapters contribute ordered candidates. Place them together so each source
+  // occupies a different run of slots without moving the room's authored kit.
+  const sourcePlacements = views.flatMap(view => view.placements).map((piece, index) => ({
+    ...piece, position: [((index % 3) - 1) * 2.9, -Math.floor(index / 3) * 2.8 - 1.5]
+  }));
+
   return {
     ...room,
     blocks: [...(room.blocks ?? []).filter(block => !block.projectedSource),
@@ -132,7 +138,7 @@ export function sourcedRoom(room, lens) {
         status: block.source.status, lastSync: block.source.syncedAt
       }))],
     mapping: views.find(view => view.mapping?.id)?.mapping.id ?? room.mapping,
-    sourcePlacements: views.flatMap(view => view.placements)
+    sourcePlacements
   };
 }
 

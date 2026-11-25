@@ -54,6 +54,36 @@ test('A simulated Drive attaches to the registered Drive shell and the hosted de
   assert.match(articleHTML(id, owner), /owner deleted/i);
 });
 
+test('Mapped sources share a Place grid without moving authored pieces', async () => {
+  const owner = makeProfile('Synthetic catalog owner');
+  const actor = {actorId: owner.id};
+  const placeId = 'sources-shared-grid-' + owner.id;
+  const room = {
+    id: placeId, ownerId: owner.id, visibility: 'hidden', blocks: [],
+    kitPieces: [{id: 'authored', kind: 'fixture', transform: {position: [4, 0, 6], yaw: 0, scale: 1}}],
+    layout: {components: [{block: 'held', position: [5, 7], facing: 0}]},
+  };
+  const before = structuredClone(room);
+  const attach = async (kind, recipe) => {
+    const {id} = await connectedSources.create({placeId, owner: owner.id, kind}, actor);
+    const proposal = await connectedSources.proposeMapping(id, recipe, actor);
+    await connectedSources.approveMapping(id, proposal.id, actor);
+  };
+
+  await attach('collection-db', 'gallery-plinths');
+  const initial = sourcedRoom(room, owner).sourcePlacements;
+  await attach('drive', 'drive-alcoves');
+  const mapped = sourcedRoom(room, owner);
+  assert.deepEqual(mapped.sourcePlacements.slice(0, 3), initial);
+  assert.deepEqual(mapped.sourcePlacements.map(piece => [piece.kind, piece.position]), [
+    ['plinth', [-2.9, -1.5]], ['plinth', [0, -1.5]], ['plinth', [2.9, -1.5]],
+    ['alcove', [-2.9, -4.3]], ['alcove', [0, -4.3]],
+  ]);
+  assert.deepEqual(mapped.kitPieces, before.kitPieces);
+  assert.deepEqual(mapped.layout, before.layout);
+  assert.deepEqual(room, before);
+});
+
 test('Text upload suggestions stay local and photos require live scoring', async () => {
   const model = createAI({transport:{eligible:()=>true,request:()=>assert.fail('Upload content reached the live guide')}});
   const suggestion = await proposeUploadScores(model, {

@@ -81,9 +81,8 @@ function presentItem(item, source) {
   return result;
 }
 
-function placement(block, item, index) {
-  const position = [((index % 3) - 1) * 2.9, -Math.floor(index / 3) * 2.8 - 1.5];
-  return { itemId: item.id, blockId: block.id, kind: item.kind === 'folder' ? 'alcove' : 'plinth', position, facing: 0 };
+function placement(block, item) {
+  return { itemId: item.id, blockId: block.id, kind: item.kind === 'folder' ? 'alcove' : 'plinth', facing: 0 };
 }
 
 function mockRecord({ id, placeId, owner, kind, label }) {
@@ -257,7 +256,7 @@ export class ConnectedSources {
     source.lastSync = syncedAt;
     const ordered = source.kind === 'collection-db' ? items.slice().sort(byDate) : items;
     const blocks = ordered.map(item => projectItem(item, source, syncedAt));
-    const placed = ordered.flatMap((item, index) => item.kind === 'document' ? [] : [placement(blocks[index], item, index)]);
+    const placed = ordered.flatMap((item, index) => item.kind === 'document' ? [] : [placement(blocks[index], item)]);
     return clone({ source, mapping: record.mapping, pendingMapping: source.owner === actorId ? record.proposal : null,
       items: ordered.map(item => presentItem(item, source)), blocks, placements: placed, status: 'ready',
       snapshot: frozen && record.snapshot ? { hash: record.snapshot.hash, capturedAt: record.snapshot.capturedAt } : null });
