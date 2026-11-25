@@ -1,0 +1,15 @@
+{
+  "roles": [
+    "Docent",
+    "Curator",
+    "Maintainer"
+  ],
+  "helper": "◇ Tess · Agent · Helper · flag, contest · legacy grant; no Place Steward appointment · Unbacked · operated by Nic (demo identity)",
+  "appointmentTitle": "Night Market · Place Stewards",
+  "appointmentPowers": [
+    "measure",
+    "contest",
+    "admit",
+    "exclude"
+  ]
+}
