@@ -2,10 +2,11 @@ import {DIMENSIONS,scoreText} from './scores.js';
 import {standingState,targetRef,readingsFor,declarationSnapshot} from './standing-records.js';
 import {visibilityOf} from './permissions.js';
 import {deriveStanding} from './standing-facets.js';
+import {versionLabel} from './audience.js';
 export const standingEscape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function readingTable(ref,node,room,lens){
- const state=standingState(lens),scope={publishedOnly:visibilityOf(room,lens)==='public'},declared=declarationSnapshot(state,ref,node,room,scope),reading=readingsFor(state,ref,scope);
- return `<div class="standing-table-wrap"><table class="standing-table"><caption>Declared · Steward · Audience</caption><thead><tr><th>Dimension</th><th>Declared</th><th>Steward</th><th>Audience</th></tr></thead><tbody>${DIMENSIONS.map(([key,label])=>`<tr><th>${label}</th><td>${scoreText(declared.scores[key])}</td><td>${reading.steward?scoreText(reading.steward[key]):'unmeasured'}</td><td>${reading.audienceReading?scoreText(reading.audienceReading[key]):'unmeasured'}</td></tr>`).join('')}</tbody></table></div>`;
+ const state=standingState(lens),scope={publishedOnly:visibilityOf(room,lens)==='public'},declared=declarationSnapshot(state,ref,node,room,scope),reading=readingsFor(state,ref,scope),version=versionLabel(room,lens);
+ return `<div class="standing-table-wrap">${version?`<p class="declaration-version">${standingEscape(version)}</p>`:''}<table class="standing-table"><caption>Declared · Steward · Audience</caption><thead><tr><th>Dimension</th><th>Declared</th><th>Steward</th><th>Audience</th></tr></thead><tbody>${DIMENSIONS.map(([key,label])=>`<tr><th>${label}</th><td>${scoreText(declared.scores[key])}</td><td>${reading.steward?scoreText(reading.steward[key]):'unmeasured'}</td><td>${reading.audienceReading?scoreText(reading.audienceReading[key]):'unmeasured'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 export function readingCard(room,lens,block=null){
  const ref=targetRef(room,block);

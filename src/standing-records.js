@@ -39,6 +39,10 @@ export function pendingMeasurements(state,ref,{publishedOnly=true}={}){
  return history.filter(e=>e.kind==='remeasurement_requested'&&!resolved.has(e.id));
 }
 export function declarationSnapshot(state,ref,node,room,{publishedOnly=true}={}){
+ // A Place's catalog fallback belongs to its delivered audience view. Callers
+ // may retain the raw Place as node for ownership; it is not that view's scores.
+ // Things keep their own declarations, including external receipt references.
+ if(!ref.thingId)node=room;
  const current=latestDeclaration(state,ref,{publishedOnly});
  const external=node.standing?.declarationRef;
  if(!current&&typeof external?.receiptRef==='string'&&typeof external.versionId==='string')return {id:external.receiptRef,versionId:external.versionId,scores:scores(node.content??room.content),owner:node.ownerId??room.ownerId??null,creator:node.creatorId??room.creatorId??room.ownerId??null,source:'referenced declaration receipt'};

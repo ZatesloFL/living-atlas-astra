@@ -32,7 +32,7 @@ export class CommunityUI {
   this.bindFollow(()=>['trails','trail'].includes(this.section)?this.trails():this.section==='events'?this.events():this.board(this.club));
   this.body.querySelectorAll('[data-card]').forEach(button=>button.onclick=()=>this.run(()=>this.preview(button.dataset.card)));
   this.body.querySelectorAll('[data-index-enter]').forEach(button=>button.onclick=()=>this.run(()=>this.enterCard(this.currentCard(button.dataset.indexEnter))));
-  this.body.querySelectorAll('[data-index-reading]').forEach(button=>button.onclick=()=>this.api.readings?.(JSON.parse(button.dataset.indexReading)));
+  this.body.querySelectorAll('[data-index-reading]').forEach(button=>button.onclick=()=>{const ref=JSON.parse(button.dataset.indexReading);this.pending?.abort();this.ui.close();this.api.readings?.(ref);});
   this.body.querySelectorAll('[data-index-knock]').forEach(button=>button.onclick=()=>this.run(async()=>{const card=this.currentCard(button.dataset.indexKnock);button.disabled=true;const request=await this.discovery.access.knock(card.room,this.lens());const receipt=this.discovery.access.data.ledgers[ROOMS[card.room].id].at(-1);button.textContent='Knock sent · awaiting owner';this.ui.toast('Knock recorded · '+receipt.hash.slice(0,12));return request;}));
  }
  preview(id,query=this.activeQuery){

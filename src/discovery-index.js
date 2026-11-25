@@ -1,6 +1,6 @@
 import {ROOMS,DIMENSIONS} from './data.js';
 import {AXES} from './scores.js';
-import {viewRoom} from './audience.js';
+import {viewRoom,versionLabel} from './audience.js';
 import {sourcedRoom} from './source-catalog.js';
 import {sourceVisible,sourceStateMessage} from './source-media.js';
 import {selectContent,blockAccess} from './content.js';
@@ -34,7 +34,7 @@ function recordMetadata(node,room,lens,standing,ref=targetRef(room,node===room?n
  const reading=standing?standing.resolveMeasurements(references.measurementRecordsRef,lens):readingsFor(state,ref,{publishedOnly});
  const record=standing?standing.resolveReading(references.declarationRecordReadingRef,lens):deriveStanding(state,{target:ref});
  const declared=declarationSnapshot(state,ref,node,room,{publishedOnly});
- return {ref,references,declaration:declared.scores,declarationSource:declared.source,
+ return {ref,references,declaration:declared.scores,declarationSource:declared.source,versionLabel:versionLabel(room,lens),
   readings:{declared:declared.scores,steward:reading.steward,audience:reading.audienceReading},
   facets:readingSummary(record)};
 }
@@ -71,7 +71,7 @@ function communityEntry(type,node,places,lens) {
  const first=targets[0],room=first.view,gate=blockAccess(node,room,lens);if(gate.hidden||gate.withheld)return null;
  // Trails/events are authored catalog data. Their own readings are unmeasured until a subject is published through the registrar.
  return {...first,id:type+':'+node.id,type,target:node.id,title:node.title,summary:node.intro,node,view:room,community:true,
-  ref:null,references:null,declaration:node.content,declarationSource:'authored community catalog',
+  ref:null,references:null,declaration:node.content,declarationSource:'authored community catalog',versionLabel:'',
   readings:{declared:node.content,steward:null,audience:null},facets:Object.fromEntries(Object.keys(FACETS).map(key=>[key,'unmeasured'])),
   curator:node.curator,curatorRecord:CURATORS.find(c=>c.id===node.curator),owner:{id:null,name:'Owner not supplied',presentation:'pseudonym'},publishedAt:null,vouches:null,sourceBadge:node.sourceBadge??null,
   softGaps:[...new Set([...targets.flatMap(t=>t.softGaps),...gapsFor(node,room,lens)])],
@@ -98,7 +98,7 @@ export function catalogIndex(lens,{from='square',standing,now=Date.now()}={}) {
   const node=card.type==='layer'?ROOMS[card.room]?.layers?.find(l=>l.id===card.target):visiblePeople(lens,{located:true}).find(p=>p.id===card.target);
   const room=card.room??node?.room,entry=places.get(room);
   if(!entry||!node||card.type==='layer'&&!layerAccess(entry.view,node,lens).visible)continue;
-  const metadata=card.type==='layer'?{ref:null,references:null,declaration:node.content,readings:{declared:node.content,steward:null,audience:null},facets:Object.fromEntries(Object.keys(FACETS).map(key=>[key,'unmeasured'])),metadataFrom:'Layer declaration · layer readings unmeasured',softGaps:[...new Set([...entry.softGaps,...gapsFor(node,entry.view,lens)])]}:
+  const metadata=card.type==='layer'?{ref:null,references:null,versionLabel:'',declaration:node.content,readings:{declared:node.content,steward:null,audience:null},facets:Object.fromEntries(Object.keys(FACETS).map(key=>[key,'unmeasured'])),metadataFrom:'Layer declaration · layer readings unmeasured',softGaps:[...new Set([...entry.softGaps,...gapsFor(node,entry.view,lens)])]}:
    {metadataFrom:'Venue declaration and readings · facets refer to the presented person',facets:standing?readingSummary(standing.actorRecord(node.id,lens,{place:room,...(node.author.isAgent?{helperId:node.id}:{})})):Object.fromEntries(Object.keys(FACETS).map(key=>[key,null]))};
   entries.push({...entry,...metadata,id:card.type+':'+card.target,type:card.type,target:card.target,title:card.title,node});
  }
