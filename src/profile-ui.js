@@ -35,6 +35,7 @@ export class ProfileUI {
     this.ui.content.innerHTML=`<p class="muted">Tap a profile to switch. These are local view and account-state previews, not additional accounts. Built-in fixtures simulate identity and access; TEST MODE stays visible. The under-13 fixture tests rejection only and is not an account state.</p>
       <div class="profile-list">${profiles.map(p=>`<button data-profile="${p.id}" class="profile-option ${p.id===this.store.activeId?'selected':''}" aria-pressed="${p.id===this.store.activeId}"><span><strong>${esc(p.name)}</strong><small>${esc(identityBadge(p))}</small></span><span class="profile-tag">${p.isTest?'TEST':'6 dimensions'}</span></button>`).join('')}</div>
       <span class="section-label">This profile</span><p class="muted profile-account-state">${esc(identityBadge(current??this.api.state().lens))}</p>
+      ${this.api.askAtlas?'<button id="profile-atlas" class="primary">Ask Atlas</button>':''}
       ${current&&!this.store.arrivalRecords?.starter(current.id)?'<p class="muted">A starter place, a Drive room and a workshop for this local profile, whenever you are ready.</p><button id="profile-arrival" class="secondary">See your space</button>':''}
       <div class="settings-form"><label>Presentation<select id="profile-display"><option value="anonymous" ${current?.identity.display==='anonymous'?'selected':''}>Anonymous presentation</option><option value="pseudonym" ${current?.identity.display==='pseudonym'?'selected':''}>Pseudonymous</option><option value="real" ${current?.identity.display==='real'?'selected':''}>Named</option></select></label>
       <label>Profile name<input id="profile-name" maxlength="40" value="${esc(current?.name??'My profile')}" autocomplete="off"></label></div>
@@ -43,6 +44,7 @@ export class ProfileUI {
       <div id="delete-confirm"></div><button id="profile-crossings" class="secondary">Your crossing receipts</button><button id="profile-history" class="secondary">Profile receipts · ${this.store.entries.filter(e=>e.action==='profile_switched').length} switches</button><button id="open-test" class="secondary">Developer test panel</button>
       ${this.store.active()?.dialsMigrated?'<p class="reason">Your saved scalar limits now apply to both amount and graphicness. Adjust either dial in Lens whenever you want.</p>':''}${this.store.storageWarning?`<p class="reason">${esc(this.store.storageWarning)}</p>`:''}`;
     this.ui.content.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>this.run(()=>this.choose(b.dataset.profile)));
+    $('profile-atlas')?.addEventListener('click',()=>this.api.askAtlas());
     $('profile-arrival')?.addEventListener('click',()=>this.run(()=>this.setup(current)));
     $('profile-display').onchange=e=>this.run(async()=>{this.store.setDisplay(e.target.value);await this.api.apply();this.switcher();});
     $('profile-save-as').onclick=()=>this.run(async()=>{await this.store.saveAs($('profile-name').value);await this.api.apply();this.switcher();this.ui.toast('Profile saved.');});

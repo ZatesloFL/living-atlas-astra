@@ -1,0 +1,47 @@
+import {ai} from './ai.js';
+import {ATLAS_INTENT_SCHEMA,AREA_LABELS,ATLAS_SCOPES} from './atlas-intents.js';
+import {AtlasRecords} from './atlas-records.js';
+import {personId} from './permissions.js';
+import {assuranceExplanation} from './lens-state.js';
+import {esc} from './block-renderer.js';
+
+export function intentWords(value){
+ const areas=value.areas?.map(a=>AREA_LABELS[a]).join(', ');
+ if(value.kind==='grant')return `Grant Atlas ${value.scope} scope for ${areas}, ${value.durationMs===null?'standing, with no expiry':'leased for '+value.durationMs/60000+' minutes'}. Look reads the named areas; suggest proposes; edit may apply only what you confirm. Hard limits and door terms still apply.`;
+ if(value.kind==='envelope')return `${areas}: ${value.posture}. ${value.posture==='Quiet'?'Atlas speaks when you ask and acts in the open when asked.':value.posture==='Conversational'?'Atlas may propose, explain and ask; it acts on your yes.':`Your specification — may act unasked: “${value.unasked}”; always ask about: “${value.alwaysAsk}”; watch for: ${value.watch.map(s=>'“'+s+'”').join('; ')}.`}`;
+ if(value.kind==='revoke')return `Remove Atlas’s grant for ${areas||'all your areas'}. Other areas stay as granted.`;
+ return value.text??'';
+}
+
+export class AtlasUI {
+ constructor(ui,api,{records=new AtlasRecords(),brain=ai}={}){this.ui=ui;this.api=api;this.records=records;this.brain=brain;this.messages=[];this.pending=null;if(!document.querySelector('[data-atlas-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href=new URL('../atlas.css',import.meta.url).href;link.dataset.atlasStyle='';document.head.append(link);}}
+ lens(){return this.api.lens();}
+ sync(){const holder=personId(this.lens());if(holder!==this.holder){this.holder=holder;this.messages=[];this.pending=null;this.controller?.abort();}return holder;}
+ open(){this.sync();this.ui.open('ask-atlas','Local interpretation · proposals need your yes','Ask Atlas');this.render();}
+ render(){
+  const lens=this.lens(),state=this.records.state(lens),root=this.ui.content;
+  root.innerHTML=`<p>${esc(assuranceExplanation(lens))}</p><p>Ask in your own words. This prototype interprets these requests locally through the shared AI interface. No live model call is made here.</p><p>Atlas can help with your Lens, travel and Discovery under your own grant. Hard floors cannot be granted away.</p><div class="atlas-conversation" aria-live="polite">${this.messages.map(m=>`<p><strong>${m.who==='you'?'You':'Atlas'}</strong> · ${esc(m.text)}</p>`).join('')}</div>${this.pending?`<section class="atlas-proposal"><h3>Proposal · not applied</h3><p>${esc(intentWords(this.pending.value))}</p><p>Proposal receipt: <code>${esc(this.pending.receipt)}</code></p><button id="atlas-confirm" class="primary">Yes, confirm this proposal</button><button id="atlas-decline">No, leave it unchanged</button></section>`:''}<form id="atlas-ask-form"><label>Ask Atlas<textarea id="atlas-ask" rows="3" maxlength="1600" required placeholder="Give Atlas standing edit access for my Lens and travel"></textarea></label><button type="submit">Ask</button></form><p id="atlas-message" role="status"></p><details><summary>Ways to ask</summary><p>“Give Atlas standing edit access for my Lens and travel.”</p><p>“Be Quiet for my Lens.”</p><p>For Proactive, name the area, what Atlas may do unasked, what it must always ask about, and what to watch for. Nothing is selected for you.</p></details><button id="atlas-audit">Inspect grants, initiative and receipts</button>${this.api.inspector?'<button id="atlas-inspector">Inspect my twelve Lens dials</button>':''}<p>${state.grants.some(g=>g.active)?'A grant is on file. Each act rechecks its scope and expiry.':'No Atlas grant is active for this profile.'} The Lens filters; Atlas attends.</p>`;
+  root.querySelector('#atlas-ask-form').onsubmit=e=>{e.preventDefault();this.ask(root.querySelector('#atlas-ask').value);};
+  root.querySelector('#atlas-confirm')?.addEventListener('click',()=>this.confirm());
+  root.querySelector('#atlas-decline')?.addEventListener('click',()=>this.run(async()=>{await this.records.decline(this.lens(),this.pending.id);this.pending=null;this.messages.push({who:'atlas',text:'The proposal was declined. Nothing changed.'});this.render();}));
+  root.querySelector('#atlas-audit').onclick=()=>this.audit();root.querySelector('#atlas-inspector')?.addEventListener('click',()=>this.api.inspector());
+ }
+ async run(action){try{await action();}catch(error){const status=this.ui.content.querySelector('#atlas-message');if(status)status.textContent=error.message;else this.ui.toast(error.message);}}
+ async ask(words){return this.run(async()=>{
+  this.sync();if(this.pending)throw new Error('Confirm or decline the open proposal first.');this.records.holder(this.lens());
+  const holder=this.holder;this.controller?.abort();this.controller=new AbortController();this.messages.push({who:'you',text:words});
+  const result=await this.brain.request({job:'guide',agentId:'atlas',schema:ATLAS_INTENT_SCHEMA,context:{action:'personal-intent',question:words,place:{key:this.api.room?.()??'studio'},blocks:[]},signal:this.controller.signal,isCurrent:()=>personId(this.lens())===holder&&this.ui.mode==='ask-atlas'});
+  if(result.proposal.kind==='clarify')this.messages.push({who:'atlas',text:result.proposal.text});
+  else this.pending=await this.records.propose(this.lens(),result.proposal,words);
+  this.render();
+ });}
+ async confirm(){return this.run(async()=>{const pending=this.pending;if(!pending)return;this.sync();if(this.pending!==pending)throw new Error('The profile changed. Ask again in this profile.');
+  const result=await this.records.confirm(this.lens(),pending.id);this.pending=null;
+  this.messages.push({who:'atlas',text:'Confirmed and recorded. '+intentWords(result.value)+' Receipt '+result.receipt});this.api.changed?.();this.render();
+ });}
+ audit(){this.sync();const state=this.records.state(this.lens()),root=this.ui.content;this.ui.open('atlas-audit','Your grant and initiative records','Atlas · inspector');
+  root.innerHTML=`<p>These are this profile’s local records. Hard limits, legal floors, other owners’ terms and confirmation remain binding.</p><button id="atlas-back">Ask Atlas</button><h3>Grants</h3>${state.grants.map(g=>`<section class="atlas-grant"><h4>${g.active?'Active':g.revokedAt?'Revoked':'Expired'} · ${esc(g.scope)}</h4><p>${g.areas.map(a=>AREA_LABELS[a]).join(', ')} · ${g.expires?'Expires '+esc(g.expires):'Standing · no expiry'}</p><code>${esc(g.id)}</code>${g.active?`<details><summary>Narrow by hand</summary><form data-atlas-narrow="${esc(g.id)}">${g.areas.map(a=>`<label><input type="checkbox" name="area" value="${a}" checked>${AREA_LABELS[a]}</label>`).join('')}<label>Scope<select name="scope">${ATLAS_SCOPES.slice(0,ATLAS_SCOPES.indexOf(g.scope)+1).map(s=>`<option ${s===g.scope?'selected':''}>${s}</option>`).join('')}</select></label><button>Narrow grant · record receipt</button></form></details><button data-atlas-revoke="${esc(g.id)}">Revoke grant</button>`:''}</section>`).join('')||'<p>No grants on file.</p>'}<h3>Initiative by area</h3>${Object.entries(AREA_LABELS).map(([area,label])=>{const e=state.envelopes[area];return `<section><h4>${label} · ${e?.posture??'Not set'}</h4>${e?`<p>User’s specification: ${esc(e.specification)}</p><p>${esc(intentWords(e))}</p><code>${esc(e.receipt)}</code>`:'<p>Atlas is not attending this area. You may still ask directly.</p>'}</section>`;}).join('')}<p>Proactive specifications are recorded as your words. This local round has no background monitoring service; travel checks happen in an open trip. Ask Atlas to change an initiative setting.</p><p id="atlas-message" role="status"></p><details><summary>Your ${state.receipts.length} Atlas receipts</summary>${[...state.receipts].reverse().map(r=>`<article><strong>${esc(r.action.replaceAll('_',' '))}</strong><p>${esc(r.time)} · ${esc(r.actor)}</p><code>${esc(r.hash)}</code><pre>${esc(JSON.stringify(r.diff,null,2))}</pre></article>`).join('')}</details>`;
+  root.querySelector('#atlas-back').onclick=()=>this.open();root.querySelectorAll('[data-atlas-revoke]').forEach(b=>b.onclick=()=>this.run(async()=>{await this.records.revoke(this.lens(),b.dataset.atlasRevoke);this.api.changed?.();this.audit();}));
+  root.querySelectorAll('[data-atlas-narrow]').forEach(f=>f.onsubmit=e=>{e.preventDefault();this.run(async()=>{await this.records.narrow(this.lens(),f.dataset.atlasNarrow,{areas:[...f.querySelectorAll('[name=area]:checked')].map(i=>i.value),scope:f.elements.scope.value});this.api.changed?.();this.audit();});});
+ }
+}

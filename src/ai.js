@@ -1,4 +1,5 @@
 import {validPair,scoreText} from './scores.js';
+import {ATLAS_INTENT_SCHEMA,atlasIntent,validateAtlasIntent} from './atlas-intents.js';
 // One provider boundary with validated simulation when live help is unavailable.
 import {createBrowserTransport,browserLocalReason} from './ai-proxy.js';
 import {localQuestionAnswer} from './docent-questions.js';
@@ -30,6 +31,11 @@ export function createAI({transport=null,requestPhotoScores,requestAudioScores,l
  const snapshot=JSON.stringify(context),copy=structuredClone(context);
  const current=()=>{if(signal?.aborted||!isCurrent()||JSON.stringify(context)!==snapshot)throw new DOMException('Request cancelled','AbortError');};
  current();
+ if(schema.name===ATLAS_INTENT_SCHEMA.name){
+  if(agentId!=='atlas'||job!=='guide'||copy.action!=='personal-intent'||copy.blocks.length)throw new Error('Invalid personal Atlas context.');
+  const proposal=atlasIntent(copy.question);validateAtlasIntent(proposal);current();
+  return {proposal,model:'local-atlas-intent-v1',agentId,receiptData:{provider:'simulated',job,model:'local-atlas-intent-v1',agentId,result:'proposed',localReason:'personal_intent_local'}};
+ }
  if(job==='background'&&schema.name===UPLOAD_SCORE_SCHEMA.name){
   if(agentId!=='upload-declaration-helper')throw new Error('Invalid upload declaration helper.');
   if(copy.uploadBasis==='image'||copy.uploadBasis==='audio-transcript'){

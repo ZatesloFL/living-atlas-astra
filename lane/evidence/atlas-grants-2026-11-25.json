@@ -1,0 +1,216 @@
+{
+  "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+  "receipts": [
+    {
+      "id": 1,
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "actor": "atlas",
+      "action": "atlas_proposed",
+      "time": "2026-11-25T18:52:04.500Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "id": "ee73362e-6135-4103-af93-a73b4ee1e7f3",
+        "value": {
+          "kind": "grant",
+          "areas": [
+            "lens",
+            "travel"
+          ],
+          "scope": "edit",
+          "durationMs": null
+        },
+        "words": "Give Atlas standing edit access for my Lens and travel"
+      },
+      "hash": "c4fb39b1dded0dbc5c71c4f4b8768bf25138f15cb78017160d91385580cfdb4a"
+    },
+    {
+      "id": 2,
+      "prevHash": "c4fb39b1dded0dbc5c71c4f4b8768bf25138f15cb78017160d91385580cfdb4a",
+      "actor": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+      "action": "atlas_confirmed",
+      "time": "2026-11-25T18:52:05.356Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "id": "ee73362e-6135-4103-af93-a73b4ee1e7f3",
+        "proposalReceipt": "c4fb39b1dded0dbc5c71c4f4b8768bf25138f15cb78017160d91385580cfdb4a"
+      },
+      "hash": "7a8c389082f14015234957f9ec80f4f9a838117e14d51d3fffc29371fe3a586a"
+    },
+    {
+      "id": 3,
+      "prevHash": "7a8c389082f14015234957f9ec80f4f9a838117e14d51d3fffc29371fe3a586a",
+      "actor": "atlas",
+      "action": "atlas_applied",
+      "time": "2026-11-25T18:52:05.356Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "id": "ee73362e-6135-4103-af93-a73b4ee1e7f3",
+        "proposalReceipt": "c4fb39b1dded0dbc5c71c4f4b8768bf25138f15cb78017160d91385580cfdb4a",
+        "confirmationReceipt": "7a8c389082f14015234957f9ec80f4f9a838117e14d51d3fffc29371fe3a586a",
+        "result": null
+      },
+      "hash": "4644831e3280ed35b27c86183f259842b8c7ed120b563758e1fc2fb220b52d64"
+    },
+    {
+      "id": 4,
+      "prevHash": "4644831e3280ed35b27c86183f259842b8c7ed120b563758e1fc2fb220b52d64",
+      "actor": "atlas",
+      "action": "atlas_proposed",
+      "time": "2026-11-25T18:52:06.399Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "id": "82cac341-cd53-4768-806e-18a61ea0a171",
+        "value": {
+          "kind": "envelope",
+          "areas": [
+            "travel"
+          ],
+          "posture": "Proactive",
+          "specification": "Be Proactive for travel. You may warn me unasked. Always ask before crossing. Watch for soft-limit gaps.",
+          "unasked": "warn me unasked",
+          "alwaysAsk": "crossing",
+          "watch": [
+            "soft-limit gaps"
+          ]
+        },
+        "words": "Be Proactive for travel. You may warn me unasked. Always ask before crossing. Watch for soft-limit gaps."
+      },
+      "hash": "fd49daac203e65616a11a3e574a429ae6fe79c0fc9f9c8dc4503c0b7c0a2a8d4"
+    },
+    {
+      "id": 5,
+      "prevHash": "fd49daac203e65616a11a3e574a429ae6fe79c0fc9f9c8dc4503c0b7c0a2a8d4",
+      "actor": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+      "action": "atlas_confirmed",
+      "time": "2026-11-25T18:52:07.252Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "id": "82cac341-cd53-4768-806e-18a61ea0a171",
+        "proposalReceipt": "fd49daac203e65616a11a3e574a429ae6fe79c0fc9f9c8dc4503c0b7c0a2a8d4"
+      },
+      "hash": "a62d1ed17b0d593d5a70a41371cbc230644caaa2355ddcc49d49e434536f2fa4"
+    },
+    {
+      "id": 6,
+      "prevHash": "a62d1ed17b0d593d5a70a41371cbc230644caaa2355ddcc49d49e434536f2fa4",
+      "actor": "atlas",
+      "action": "atlas_applied",
+      "time": "2026-11-25T18:52:07.252Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "id": "82cac341-cd53-4768-806e-18a61ea0a171",
+        "proposalReceipt": "fd49daac203e65616a11a3e574a429ae6fe79c0fc9f9c8dc4503c0b7c0a2a8d4",
+        "confirmationReceipt": "a62d1ed17b0d593d5a70a41371cbc230644caaa2355ddcc49d49e434536f2fa4",
+        "result": null
+      },
+      "hash": "1a2a053d6947cf243834dec5810f712fb276d51287223e16a51098d1d14ceb55"
+    },
+    {
+      "id": 7,
+      "prevHash": "1a2a053d6947cf243834dec5810f712fb276d51287223e16a51098d1d14ceb55",
+      "actor": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+      "action": "atlas_grant_narrowed",
+      "time": "2026-11-25T18:52:10.631Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "grant": "ee73362e-6135-4103-af93-a73b4ee1e7f3",
+        "changes": {
+          "areas": [
+            "lens"
+          ],
+          "scope": "suggest"
+        }
+      },
+      "hash": "dfa33c7e8c6218215afbe93c32b7c3bd9fcf1d756d708efee31cf904494101e6"
+    },
+    {
+      "id": 8,
+      "prevHash": "dfa33c7e8c6218215afbe93c32b7c3bd9fcf1d756d708efee31cf904494101e6",
+      "actor": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+      "action": "atlas_grant_revoked",
+      "time": "2026-11-25T18:52:11.435Z",
+      "diff": {
+        "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+        "grant": "ee73362e-6135-4103-af93-a73b4ee1e7f3"
+      },
+      "hash": "7476a6983e979bff750507864db2a0be7b11642a0f6c85f4ed8050df6f128b8a"
+    }
+  ],
+  "grants": [
+    {
+      "kind": "grant",
+      "areas": [
+        "lens"
+      ],
+      "scope": "suggest",
+      "durationMs": null,
+      "id": "ee73362e-6135-4103-af93-a73b4ee1e7f3",
+      "to": {
+        "person": "atlas"
+      },
+      "approvedBy": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+      "createdAt": "2026-11-25T18:52:05.356Z",
+      "expires": null,
+      "receipt": "4644831e3280ed35b27c86183f259842b8c7ed120b563758e1fc2fb220b52d64",
+      "revokedAt": "2026-11-25T18:52:11.435Z",
+      "active": false
+    }
+  ],
+  "envelopes": {
+    "travel": {
+      "kind": "envelope",
+      "areas": [
+        "travel"
+      ],
+      "posture": "Proactive",
+      "specification": "Be Proactive for travel. You may warn me unasked. Always ask before crossing. Watch for soft-limit gaps.",
+      "unasked": "warn me unasked",
+      "alwaysAsk": "crossing",
+      "watch": [
+        "soft-limit gaps"
+      ],
+      "receipt": "1a2a053d6947cf243834dec5810f712fb276d51287223e16a51098d1d14ceb55",
+      "time": "2026-11-25T18:52:07.252Z"
+    }
+  },
+  "proposals": [
+    {
+      "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+      "id": "ee73362e-6135-4103-af93-a73b4ee1e7f3",
+      "value": {
+        "kind": "grant",
+        "areas": [
+          "lens",
+          "travel"
+        ],
+        "scope": "edit",
+        "durationMs": null
+      },
+      "words": "Give Atlas standing edit access for my Lens and travel",
+      "receipt": "c4fb39b1dded0dbc5c71c4f4b8768bf25138f15cb78017160d91385580cfdb4a",
+      "status": "applied",
+      "outcome": "4644831e3280ed35b27c86183f259842b8c7ed120b563758e1fc2fb220b52d64"
+    },
+    {
+      "holder": "a41b680e-e000-43b8-84e6-3a495c1fb04c",
+      "id": "82cac341-cd53-4768-806e-18a61ea0a171",
+      "value": {
+        "kind": "envelope",
+        "areas": [
+          "travel"
+        ],
+        "posture": "Proactive",
+        "specification": "Be Proactive for travel. You may warn me unasked. Always ask before crossing. Watch for soft-limit gaps.",
+        "unasked": "warn me unasked",
+        "alwaysAsk": "crossing",
+        "watch": [
+          "soft-limit gaps"
+        ]
+      },
+      "words": "Be Proactive for travel. You may warn me unasked. Always ask before crossing. Watch for soft-limit gaps.",
+      "receipt": "fd49daac203e65616a11a3e574a429ae6fe79c0fc9f9c8dc4503c0b7c0a2a8d4",
+      "status": "applied",
+      "outcome": "1a2a053d6947cf243834dec5810f712fb276d51287223e16a51098d1d14ceb55"
+    }
+  ]
+}
