@@ -11,7 +11,7 @@ const {HUD}=await import('./hud.js');const hud=window.atlasHud??new HUD();
 const {UI}=await diag.asyncRun('UI module',()=>import('./ui.js'));
 const {ProfileStore}=await diag.asyncRun('profiles module',()=>import('./profiles.js'));
 const {ProfileUI}=await diag.asyncRun('profile UI module',()=>import('./profile-ui.js'));
-const {roomEntry}=await diag.asyncRun('content rules module',()=>import('./content.js'));
+const {roomEntry,contentStore}=await diag.asyncRun('content rules module',()=>import('./content.js'));
 const {PageRenderer}=await diag.asyncRun('Page module',()=>import('./page.js'));
 const {AccessStore}=await diag.asyncRun('access module',()=>import('./access-store.js'));
 const {AccessUI}=await diag.asyncRun('access UI module',()=>import('./access-ui.js'));
@@ -26,6 +26,9 @@ const {versionLabel}=await import('./audience.js');
 const {doorPolicy}=await import('./admission.js');
 const {LayerUI}=await import('./experience-ui.js');
 const {BuildUI}=await import('./build-ui.js');
+const {Builder}=await import('./builder.js');
+const {BuilderStage}=await import('./builder-stage.js');
+const {withBuilderRoom}=await import('./build-projection.js');
 const {visibleEdge}=await diag.asyncRun('rules module',()=>import('./rules.js'));
 const $=id=>document.getElementById(id);
 const reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
@@ -38,6 +41,9 @@ const previewLens=id=>access.lens({...structuredClone(profiles.profiles.find(p=>
 const currentLens=()=>previewState?previewLens(previewState.left):access.lens(profiles.current());
 let profileUI,page,pageOrigin,selectedRoom,accessUI,travel,waypoint=null,place=null,expiryTimer,waypointRouteCache=null;
 let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>currentLens()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,lastContextUpdate=0,titlePosition=null,active=true,near=null,contextKey='studio';
+let stageCache=null,stageComparison=null,stageFraction=.5,stageRatio=null;
+const builder=new Builder({onPublish:refreshPublishedRoom});
+await builder.recover(lens);
 const startPrefs=lens.discovery??{},lastPlace=startPrefs.lastPlace,lastInterior=ROOMS[lastPlace?.room]?.layout.interior;
 const savedPlace=lastInterior&&lastPlace.space!==lastInterior.scene?{...lastPlace,room:lastInterior.parent,space:ROOMS[lastPlace.room].layout.scene,position:lastInterior.frontage.arrival,facing:spatialArrival(lastPlace.room,'door').facing}:lastPlace;kind=firstVisit||startPrefs.startAt==='square'?'square':startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)?(savedPlace.space===ROOMS[savedPlace.room].layout.interior?.scene?savedPlace.space:ROOMS[savedPlace.room].layout.scene):'studio';context={room:kind==='square'?'square':kind==='history'?'tallahassee':'studio'};
 const camera=diag.run('camera',()=>new THREE.PerspectiveCamera(innerHeight>innerWidth?67:61,innerWidth/innerHeight,.08,110));
@@ -61,11 +67,11 @@ function fadeTo(action){if(reducedQuery.matches){action();return;}transition={st
 function changeScene(next){stopMedia();fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':next==='square'?'Town Square':'Makers Row'}`);});}
 function lensChanged(){travel?.cancel();place=null;if(!previewState)profiles.preferences(lens);lens=currentLens();profileUI?.refresh();controls.resetInput();if(page&&!page.root.hidden)rebuild();else fadeTo(()=>rebuild());}
 function arriveHome(id){const draft=profiles.arrivalRecords.starter(profiles.activeId),registered=loadArrivalSeed(draft),r=ROOMS[id];rebuild(registered.arrival.scene);for(const e of EDGES.filter(e=>e.to===id))world.granted.add(e.id);const a=registered.arrival;controls.teleport(...a.position,a.facing);place={id,scene:kind,x:a.position[0],z:a.position[1]};updateContext();}
-async function applyProfile(arrival){await access.endVisits(lens);travel?.cancel();place=null;waypoint=null;const draft=profiles.arrivalRecords.starter(profiles.activeId);if(draft)loadArrivalSeed(draft);lens=currentLens();controls?.resetInput();
+async function applyProfile(arrival){await access.endVisits(lens);travel?.cancel();place=null;waypoint=null;const draft=profiles.arrivalRecords.starter(profiles.activeId);if(draft)loadArrivalSeed(draft);lens=currentLens();await builder.recover(lens);controls?.resetInput();
  if(typeof arrival==='string'&&ROOMS[arrival]){firstArrivalPending=false;arriveHome(arrival);}else if(firstArrivalPending&&profiles.completed){firstArrivalPending=false;controls.teleport(0,6);rebuild('square');ui.title('square');}else if(ROOMS[context.room]?.arrivalSeed&&!permission(ROOMS[context.room],lens).canEnter){if(draft)arriveHome(draft.projection.rootPlaceId);else {controls.teleport(0,6);rebuild('square');}}else rebuild();
  if(lens.form==='page')setTimeout(()=>openPage(typeof arrival==='string'?arrival:context.room),0);profileUI?.refresh();expiryState=expirySignature();}
 
-async function switchProfile(id){if(previewState)buildUI.exit();await profiles.switchProfile(id);await applyProfile();}
+async function switchProfile(id){if(previewState||buildUI?.active)buildUI.exit();await profiles.switchProfile(id);await applyProfile();}
 function enter(edge){
   const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window'||result.admission?.blocked)return;
   if(edge.interiorExit){startTravel(edge.interiorExit,{choice:'door'});return;}
@@ -107,6 +113,16 @@ function DISTRICT_NAME(id){return {square:'Town Square',studio:'Makers Row',comm
 function loop(time){
   frame=requestAnimationFrame(loop);if(!active)return;
   const elapsed=(time-lastTime)/1000||.016,dt=Math.min(elapsed,.05);lastTime=time;
+  if(builderStage.active){
+    const comparison=graphics.comparison;
+    try{
+      graphics.comparison=stageComparison?{scene:stageComparison.scene,split:stageFraction}:null;
+      builderStage.render(graphics,dt);
+    }catch(error){endBuildStage();diag.record('Build stage',error,'Back to the published Place.');buildUI.exit();}
+    finally{graphics.comparison=comparison;}
+    if(labels&&!stageComparison&&builderStage.active)labels.update(builderStage.world,builderStage.camera);
+    return;
+  }
   let fade=0;if(transition){const p=(performance.now()-transition.start)/420;fade=p<.5?p*2:2-p*2;if(p>=.5&&!transition.done){transition.done=true;try{transition.action();}catch(error){diag.fallback('scene transition',error);return;}}if(p>=1){transition=null;fade=0;}}
   travel?.update(dt);updateWaypoint();
   try{controls.update(dt,world);}catch(error){diag.record('controls update',error,'Movement disabled; Page form remains available.');controls=staticControls();}
@@ -139,30 +155,70 @@ function resume3D(id){
 }
 function openPage(id=context.room){
   stopMedia();
-  if(previewState)buildUI.exit();travel?.cancel();ui.close();controls.resetInput();active=false;cancelAnimationFrame(frame);transition=null;pageOrigin=context.room;page?.close();lens.form='page';profiles.preferences(lens);
+  if(previewState||buildUI?.active)buildUI.exit();travel?.cancel();ui.close();controls.resetInput();active=false;cancelAnimationFrame(frame);transition=null;pageOrigin=context.room;page?.close();lens.form='page';profiles.preferences(lens);
   page=new PageRenderer({lens,room:id,originRoom:context.room,access,profiles,onAccessChange:refreshAccess,diagnostics:diag,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onVisit:next=>{selectedRoom=next;},onLensChange:next=>{lens=next;profiles.preferences(lens);rebuild();profileUI?.refresh();},on3D:resume3D});
   page.open(id);diag.setMode('Page form');if(diag.params.has('test'))window.__atlasPage=page;
 }
 diag.pageState=()=>({lens,room:context.room,access,profiles,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onLensChange:next=>{lens=next;profiles.preferences(lens);}});
 diag.stop3D=()=>{clearInterval(expiryTimer);travel?.cancel();diag.threeFailed=true;active=false;cancelAnimationFrame(frame);try{controls?.resetInput();}catch{}};
 graphics=diag.run('renderer',()=>new Renderer($('world'),{diagnostics:diag,safe:diag.safe}));
+const builderStage=new BuilderStage({canvas:$('world'),onSelect:id=>buildUI.selectPiece(id),
+  canPlace:()=>buildUI.placing,onPlace:position=>buildUI.placeAt(position)});
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
 ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),readings:ref=>accessUI.standingUI.open(ref),actorRecord:id=>accessUI.standingUI.actor(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>lens.homePlaceId?startTravel(lens.homePlaceId,{choice:'inside'}):changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
-try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
+try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active&&!builderStage.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{state,apply:applyProfile,switchProfile,staff,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
 rebuild();controls.apply();if(savedStarter&&startPrefs.startAt!=='square'&&!(startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)))arriveHome(savedStarter.projection.rootPlaceId);
 if(!firstVisit&&startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)&&Array.isArray(savedPlace.position)&&savedPlace.position.length===2&&savedPlace.position.every(Number.isFinite)&&world.canStand(...savedPlace.position)){controls.teleport(...savedPlace.position,Number(savedPlace.facing)||0);place=ROOMS[savedPlace.room].layout.interior&&kind!==ROOMS[savedPlace.room].layout.interior.scene?null:{id:savedPlace.room,scene:kind,x:savedPlace.position[0],z:savedPlace.position[1]};updateContext();}
 accessUI=new AccessUI(ui,access,{state,changed:refreshAccess});
 layerUI=new LayerUI(ui,access,{state,changed:experienceChanged});
-buildUI=new BuildUI(ui,profiles,{hud,apply:applyPreview,exit:exitPreview,split:value=>{if(previewState)previewState.fraction=value;if(graphics.comparison)graphics.comparison.split=value;},lenses:()=>({left:currentLens(),right:previewLens(previewState?.right??'seed-child')})});
-for(const [id,open] of [['profile-chip',()=>profileUI.switcher()],['test-button',()=>profileUI.testPanel()],['test-banner',()=>profileUI.testPanel()]])$(id).onclick=()=>{if(previewState)buildUI.exit();open();};
+buildUI=new BuildUI(ui,profiles,{hud,builder,previewLens,stage:showBuildStage,endStage:endBuildStage,
+  sourceChanged:refreshPublishedRoom,pickBuildPosition:position=>builderStage.pickPosition(position),
+  apply:applyPreview,exit:exitPreview,split:value=>{stageFraction=value;if(previewState)previewState.fraction=value;if(graphics.comparison)graphics.comparison.split=value;},
+  lenses:()=>({left:currentLens(),right:previewLens(previewState?.right??'seed-child')})});
+for(const [id,open] of [['profile-chip',()=>profileUI.switcher()],['test-button',()=>profileUI.testPanel()],['test-banner',()=>profileUI.testPanel()]])$(id).onclick=()=>{if(previewState||buildUI.active)buildUI.exit();open();};
 const audienceBadge=document.createElement('aside');audienceBadge.id='audience-hud';audienceBadge.hidden=true;hud.mount(audienceBadge,30);
 function experienceChanged(next){if(next.preview){ui.toast('Exit Preview as to save changes.');return;}profiles.preferences(next);lens=currentLens();rebuild();profileUI.refresh();}
 function applyPreview(config){travel?.cancel();place=null;waypoint=null;previewState=config;lens=currentLens();if(config.split){if(previewRatio===null)previewRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}else if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
 function exitPreview(){previewState=null;place=null;lens=currentLens();if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
+function showBuildStage({roomKey,draft,selectedId,camera:mode,preview,lens:ownerLens}){
+ const sceneKey=JSON.stringify([roomKey,draft.pieces,preview?.assessment?.receipt?.id,preview?.split,preview?.diff]);
+ if(sceneKey!==stageCache?.key){
+  if(!builderStage.active){travel?.cancel();transition=null;controls.resetInput();stopMedia();}
+  const room=builder.roomFor(roomKey,ownerLens,draft),scene=room.layout.interior?.scene??room.layout.scene;
+  const layout=room.layout.interior?{...room.layout.interior,slot:[0,0],facing:0,scale:1}:room.layout;
+  const left=preview?.left??ownerLens;
+  const next=withBuilderRoom(roomKey,room,()=>new World(scene,left,reducedQuery.matches,
+    preview?.diff?preview.right:null,{roomKey,editing:!preview,allowed:preview?new Set(preview.assessment?.checks?.shown??[]):null}));
+  stageComparison?.dispose();stageComparison=null;
+  if(preview?.split){
+   const allowed=new Set(builder.inspect(roomKey,room,preview.right).shown);
+   stageComparison=withBuilderRoom(roomKey,room,()=>new World(scene,preview.right,reducedQuery.matches,null,{roomKey,allowed}));
+  }
+  stageFraction=preview?.fraction??.5;
+  if(stageComparison&&stageRatio===null){stageRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}
+  if(!stageComparison&&stageRatio!==null){graphics.ratio=stageRatio;stageRatio=null;graphics.resize();}
+  stageCache={key:sceneKey,world:next,layout};
+ }
+ builderStage.show({world:stageCache.world,layout:stageCache.layout,roomKey,pieces:draft.pieces,selectedId,camera:mode,preview:!!preview});
+}
+function endBuildStage(){
+ if(!builderStage.active)return;
+ builderStage.clear();stageComparison?.dispose();stageComparison=null;stageCache=null;
+ if(stageRatio!==null){graphics.ratio=stageRatio;stageRatio=null;graphics.resize();}
+ graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.apply();
+}
+function refreshPublishedRoom(roomKey){
+ const room=ROOMS[roomKey];
+ if(room&&(room.layout.scene===kind||room.layout.interior?.scene===kind)&&!travel?.active){
+  rebuild(kind,{keepDoors:true});
+  if(builderStage.active){stageCache=null;buildUI.renderStage();}
+ }
+ contentStore.emit(roomKey);
+}
 travel=new FastTravel(ui,access,{hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
 function landArrival(arrival,route,confirmed){
  const next=new World(arrival.scene,lens,reducedQuery.matches);retainDoors(next);for(const e of EDGES)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.id);
@@ -183,7 +239,7 @@ let expiryState=expirySignature();expiryTimer=setInterval(()=>{const next=expiry
 function expirySignature(){return access.visitGrants.map(g=>g.id+':'+g.state+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|')+'#'+access.data.grants.map(g=>g.id+':'+!!g.revokedAt+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|');}
 function refreshAccess({preserveAccess=false}={}){place=null;lens=currentLens();if(world)rebuild(kind,{keepDoors:true});if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
 function setWaypoint(id){if(planRoute(context.room,id,lens)===null||!permission(ROOMS[id],lens).canLook){ui.toast('No permitted route for a waypoint.');return;}waypoint=id;ui.fadeTitle();updateWaypoint();}
-function startTravel(id,options){ui.close();if(previewState)buildUI.exit();if(page){page.close();resume3D(pageOrigin);}travel.start(id,options);}
+function startTravel(id,options){ui.close();if(previewState||buildUI?.active)buildUI.exit();if(page){page.close();resume3D(pageOrigin);}travel.start(id,options);}
 function goAddress(value){const id=resolveAddress(value,lens);if(!id||roomEntry(id,lens,EDGES).state==='hidden'){ui.toast('No accessible room at that address.');return;}if(planRoute(context.room,id,lens)===null){accessUI.open(id);return;}startTravel(id);}
 function updateWaypoint(){
  const panel=document.getElementById('compass');if(!panel||!world)return;const target=waypoint;

@@ -6,8 +6,9 @@ import {flushCrossingSurfaces} from './crossing-surfaces.js';
 import {flushGlowBatch} from './glow-batch.js';
 import {drawKit,flushKit} from './kit-world.js';
 import {exhibitPlacement} from './kit-placement.js';
-import {selectContent} from './content.js';
+import {selectContent,blockNeedsPreview} from './content.js';
 import {sourcedRoom} from './source-catalog.js';
+import {drawBuilderFixtures} from './builder-fixtures.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {itemStyle} from './item-style.js';
 import {layerSelection} from './layers.js';
@@ -39,8 +40,8 @@ function random(seed){let a=seed;return()=>{a=(a*1664525+1013904223)>>>0;return 
 const pose=new THREE.Object3D();
 const makersSun=new THREE.Color(0xffdfad),commonsSun=new THREE.Color(0xd2e6c3);
 export class World {
-  constructor(kind,lens,reduced=false,diffLens=null){
-    this.diffLens=diffLens;
+  constructor(kind,lens,reduced=false,diffLens=null,builderView=null){
+    this.diffLens=diffLens;this.builderView=builderView;
     this.kind=kind;this.hall=hallRoom(kind);this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
     this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;this.portalSurfaces=[];this.groundBands=[];
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
@@ -75,7 +76,7 @@ export class World {
   }
   box(x,y,z,w,h,d,c,mat='stone',id=null,rotation){this.add('box',mat,x,y,z,w,h,d,c,id,rotation);}
   block(x,z,w,d){if(this.placement?.ghost)return;if(this.placement){const p=this.transform(x,0,z),c=Math.abs(Math.cos(this.placement.facing)),s=Math.abs(Math.sin(this.placement.facing)),scale=this.placement.scale;x=p.x;z=p.z;[w,d]=[(c*w+s*d)*scale,(s*w+c*d)*scale];}this.colliders.push({x,z,w:w/2+.24,d:d/2+.24});}
-  transform(x,y,z){const l=this.placement;return new THREE.Vector3(x,y,z).multiplyScalar(l.scale).applyAxisAngle(new THREE.Vector3(0,1,0),l.facing).add(new THREE.Vector3(l.slot[0],0,l.slot[1]));}
+  transform(x,y,z){const l=this.placement;return new THREE.Vector3(x,y,z).multiplyScalar(l.scale).applyAxisAngle(new THREE.Vector3(0,1,0),l.facing).add(new THREE.Vector3(l.slot[0],l.elevation??0,l.slot[1]));}
   placeMesh(mesh,id){if(this.placement.ghost){mesh.material=material.ghost;id=null;if(mesh.userData.ids)mesh.userData.ids.fill(null);}else if(this.placement.style){mesh.material=mesh.material.clone();this.dynamicResources.push(mesh.material);mesh.material.color?.lerp(new THREE.Color(this.placement.style.accent),this.placement.style.mix);}
     mesh.position.copy(this.transform(...mesh.position.toArray()));mesh.scale.multiplyScalar(this.placement.scale);mesh.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.placement.facing));mesh.userData.id=id;this.scene.add(mesh);this.pickables.push(mesh);}
   renderRooms(){
@@ -83,15 +84,22 @@ export class World {
     const visible=(id,lens)=>roomVisible(id,lens)&&!EDGES.some(e=>e.to===id&&visibleEdge(e,lens).state==='hidden');
     for(const [id,original] of Object.entries(ROOMS)){
       if(this.hall?id!==this.hall:original.layout?.scene!==this.kind)continue;
-      const own=visible(id,this.lens),other=this.diffLens&&visible(id,this.diffLens),rights=permission(original,this.lens),ghost=!own&&other&&rights.visibility==='public';
+      const build=this.builderView?.roomKey===id?this.builderView:null;
+      const editing=build?.editing===true&&permission(original,this.lens).owner;
+      const own=editing||visible(id,this.lens),other=this.diffLens&&visible(id,this.diffLens),rights=permission(original,this.lens),ghost=!own&&other&&rights.visibility==='public';
       if(!own&&!ghost)continue;
       const viewLens=ghost?this.diffLens:this.lens;
-      const r=sourcedRoom(viewRoom(original,viewLens),viewLens),style=itemStyle(r,viewLens);
+      const r=sourcedRoom(editing?original:viewRoom(original,viewLens),viewLens),style=itemStyle(r,viewLens);
       if(!this.hall&&r.layout.interior&&rights.canLook&&!ghost){drawFrontage(this,r,id);this.renderedRooms.push({id,frontage:true,version:r.version?.id,style});continue;}
       const layout=this.hall?exhibitSpace(r):r.layout;
       this.placement={scale:1,facing:0,...layout,style,ghost};if(rights.canLook){if(this.hall)Object.assign(this.placement,exhibitSpace(r,style.scale));else this.placement.scale*=style.scale;}
       if(!this.hall)drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
-      if(rights.canLook&&!ghost&&r.layout.components)drawKit(this,{...r,layout:this.placement},id);
+      if(rights.canLook&&!ghost&&r.layout.components)drawKit(this,{...r,layout:this.placement},id,{unfiltered:editing,allowed:build?.allowed});
+      if(rights.canLook&&!ghost&&r.builderFixtures?.length){
+        const shown=editing?r.blocks:selectContent(r,this.lens).blocks.filter(block=>!block.filtered&&!blockNeedsPreview(block,r,this.lens,{approved:true}));
+        const blocks=new Map(shown.filter(block=>!build?.allowed||build.allowed.has(block.id)).map(block=>[block.id,block]));
+        drawBuilderFixtures(this,r,id,blocks);
+      }
       if(rights.canLook&&!ghost&&r.sourcePlacements?.length){
         const displayed=new Map(selectContent(r,this.lens).blocks.filter(block=>!block.filtered&&block.state==='ready').map(block=>[block.id,block]));
         const parent=this.placement;

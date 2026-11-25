@@ -2,11 +2,12 @@ import * as THREE from '../vendor/three/three.module.min.js';
 import {selectContent,blockAccess} from './content.js';
 import {drawArt} from './kit-art.js';
 import {subscribeMedia,players} from './kit-media.js';
-import {exhibitPlacement} from './kit-placement.js';
+import {authoredPiecePlacement} from './kit-placement.js';
 // Fixture solids join the existing instance batches. All pictures share one atlas/draw.
-export function drawKit(w,room,id){
- const blocks=selectContent(room,w.lens).blocks.filter(b=>b.exhibit&&!blockAccess(b,room,w.lens).hidden);
- for(const placement of room.layout.components??[]){const block=blocks.find(b=>b.id===placement.block);if(!block)continue;const c=block.exhibit,parent=w.placement;w.placement=exhibitPlacement(parent,placement);const x=0,z=0,k='exhibit:'+id+':'+block.id,pick=k;
+export function drawKit(w,room,id,{unfiltered=false,allowed=null}={}){
+ const blocks=(unfiltered?room.blocks:selectContent(room,w.lens).blocks.filter(b=>!blockAccess(b,room,w.lens).hidden))
+   .filter(b=>b.exhibit&&(!allowed||allowed.has(b.id)));
+ for(const placement of room.layout.components??[]){const block=blocks.find(b=>b.id===placement.block);if(!block)continue;const c=block.exhibit,parent=w.placement;w.placement=authoredPiecePlacement(parent,placement,block,w.lens);const x=0,z=0,k='exhibit:'+id+':'+block.id,pick=k;
   const box=(dx,y,dz,sx,sy,sz,color,mat='wood',target=pick)=>w.box(x+dx,y,z+dz,sx,sy,sz,color,mat,target);
   if(c.kind==='screen'){box(0,1.4,0,2.8,1.9,.2,'#223d45');box(0,.25,0,2.95,.2,.75,'#c2ae82');w.block(x,z,2.8,.45);tile(w,{x,y:1.45,z:z+.115,width:2.55,height:1.5,component:c,id:pick,screen:id+':'+c.id});}
   if(c.kind==='photoWall'){box(0,1.5,0,4.5,2.7,.2,'#506d68');w.block(x,z,4.5,.2);for(let i=0;i<c.settings.photos.length;i++){const dx=(i%3-1)*1.38,y=1+Math.floor(i/3)*1.2,target=pick+':'+i;box(dx,y,.14,1.29,1.01,.12,'#d3bc8e','wood',target);tile(w,{x:x+dx,y,z:z+.215,width:1.12,height:.83,component:c,photo:i,id:target});box(dx,y+.58,.37,.3,.06,.2,'#dac9a4','metal',target);}}
