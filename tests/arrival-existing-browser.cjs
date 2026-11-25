@@ -33,7 +33,7 @@ const fs=require('node:fs/promises');
   await check('The existing profile completes the same interview, Lens, proposal and starter claim path, landing at home',async()=>{
    await manage();await page.locator('#profile-arrival').click();await page.locator('#setup-form button').click();
    await page.locator('[name=hobbies]').fill('Reading');await page.locator('[name=sources]').fill('https://example.org/synthetic-reading');
-   await page.locator('#arrival-interview-next').click();assert.equal(await page.locator('[name=depth]').inputValue(),'Deep');
+   await page.locator('#arrival-interview-next').click();assert.equal(await page.locator('[name=depth]').inputValue(),'Deep');assert.equal(await page.locator('#arrival-preset').inputValue(),'');assert.match(await page.locator('#arrival-lens-choice').innerText(),/saved Lens positions/);assert.equal(await page.locator('[data-arrival-dial=disturbing][data-axis=amount]').inputValue(),String(original.limits.disturbing.amount));
    await page.locator('#arrival-lens-next').click();await page.locator('[data-proposal-choice=keep]').click();
    await page.locator('#arrival-create').click();await page.waitForFunction(home=>atlasStatus().room===home&&document.querySelector('#sheet').hidden,home);
    const saved=await state(),profile=saved.profile.profiles.find(p=>p.id===original.id);
