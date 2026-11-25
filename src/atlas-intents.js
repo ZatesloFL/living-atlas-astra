@@ -1,9 +1,14 @@
+import {DIMENSIONS,validPair} from './scores.js';
+import {BUILDER_ATLAS_AREAS,extensionAreas} from './atlas-builder-contract.js';
+
 export const ATLAS_INTENT_SCHEMA={name:'atlas-personal-intent-v1'};
-export const ATLAS_AREAS=['lens','travel','discovery'];
+export const ATLAS_AREAS=['lens','travel','discovery',...Object.keys(BUILDER_ATLAS_AREAS)];
 export const ATLAS_SCOPES=['look','suggest','edit'];
-export const AREA_LABELS={lens:'Lens',travel:'Travel',discovery:'Discovery'};
+export const AREA_LABELS={lens:'Lens',travel:'Travel',discovery:'Discovery',...BUILDER_ATLAS_AREAS};
 const clear=text=>({kind:'clarify',text});
-const areasIn=text=>ATLAS_AREAS.filter(a=>new RegExp(a==='travel'?'\\b(travel|trips?|crossings?|visits?)\\b':a==='discovery'?'\\b(discovery|search)\\b':'\\blens\\b','i').test(text));
+const areaWords={lens:'lens',travel:'travel|trips?|crossings?|visits?',discovery:'discovery|search',build:'build|building|builder',sources:'sources?|uploads?'};
+const areaNames=Object.values(AREA_LABELS).join(', ');
+const areasIn=text=>ATLAS_AREAS.filter(area=>new RegExp('\\b('+areaWords[area]+')\\b','i').test(text));
 const clause=(text,start)=>text.match(new RegExp(start+'\\s+([^.;\\n]+)','i'))?.[1]?.trim()??'';
 
 // Local interpretation, through ai.request. It cannot actuate anything.
@@ -14,13 +19,13 @@ export function atlasIntent(text,{limits={}}={}){
  const posture=['Quiet','Conversational','Proactive'].find(p=>new RegExp('\\b'+p+'\\b','i').test(text));
  if(posture){
   areas.splice(0,areas.length,...areasIn(text.split(/[.;\n]/)[0]));
-  if(!areas.length)return clear('Which area should use that initiative setting: Lens, Travel or Discovery?');
+  if(!areas.length)return clear('Which area should use that initiative setting? Choose from '+areaNames+'.');
   const unasked=clause(text,'(?:you may|may act unasked:|unasked:)'),alwaysAsk=clause(text,'(?:always ask(?: me)?(?: before)?|must ask:)'),watch=clause(text,'(?:watch for|watch:)');
   if(posture==='Proactive'&&(!unasked||!alwaysAsk||!watch))return clear('For Proactive, tell Atlas what it may do unasked, what it must always ask about, and what to watch for. Nothing has changed.');
   return {kind:'envelope',areas,posture,specification:text,unasked,alwaysAsk,watch:watch?[watch]:[]};
  }
  if(/\b(grant|allow|let|permission|access)\b/i.test(text)){
-  if(!areas.length)return clear('Which areas may Atlas help with: Lens, Travel or Discovery? Name the areas and choose a standing grant or a lease duration.');
+  if(!areas.length)return clear('Name the areas Atlas may help with. Choose from '+areaNames+' and say whether the grant is standing or leased.');
   const duration=text.match(/\b(?:for|lease(?:d)?(?: for)?)\s+(\d+)\s*(minutes?|hours?|days?)\b/i),standing=/\bstanding\b/i.test(text);
   if(standing&&duration)return clear('Choose a standing grant or one lease duration, so the grant has one clear end condition.');
   if(!standing&&!duration)return clear('Should this grant be standing, or leased for a number of minutes, hours or days?');
@@ -48,6 +53,7 @@ export function atlasIntent(text,{limits={}}={}){
 }
 
 export function validateAtlasIntent(value){
+ if(value?.kind==='extension'){extensionAreas(value);return value;}
  const fields={clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],lens:['changes'],trip:['target','choice','description'],destination:['query']};
  if(!value||!fields[value.kind]||Object.keys(value).some(k=>!['kind',...fields[value.kind]].includes(k)))throw new Error('Invalid Atlas intent.');
  if(value.kind==='clarify'){if(typeof value.text!=='string'||!value.text||value.text.length>2000)throw new Error('Invalid clarification.');return value;}
@@ -62,4 +68,3 @@ export function validateAtlasIntent(value){
  }
  return value;
 }
-import {DIMENSIONS,validPair} from './scores.js';
