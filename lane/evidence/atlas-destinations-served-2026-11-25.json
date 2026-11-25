@@ -1,0 +1,39 @@
+{
+  "naturalDestination": "boycott",
+  "refusals": [
+    {
+      "address": "tlh/after-dark",
+      "text": "No accessible room at that address. I tried “tlh/after-dark” as an exact room address and checked your current Lens, access and route. Nothing has been crossed.",
+      "rect": {
+        "x": 173.671875,
+        "y": 351.140625,
+        "width": 619.328125,
+        "height": 67.59375,
+        "top": 351.140625,
+        "right": 793,
+        "bottom": 418.734375,
+        "left": 173.671875
+      },
+      "height": 650,
+      "focused": true
+    },
+    {
+      "address": "tlh/no-such-place",
+      "text": "No accessible room at that address. I tried “tlh/no-such-place” as an exact room address and checked your current Lens, access and route. Nothing has been crossed.",
+      "rect": {
+        "x": 173.671875,
+        "y": 351.140625,
+        "width": 619.328125,
+        "height": 67.59375,
+        "top": 351.140625,
+        "right": 793,
+        "bottom": 418.734375,
+        "left": 173.671875
+      },
+      "height": 650,
+      "focused": true
+    }
+  ],
+  "exactAddressLanded": "studio",
+  "errors": []
+}

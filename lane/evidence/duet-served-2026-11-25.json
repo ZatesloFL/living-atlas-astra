@@ -1,0 +1,80 @@
+{
+  "time": "2026-11-25T19:29:15.504775+00:00",
+  "runtimeCommit": "11631549b7d76febe99b214f8b78d3f8589ac29b",
+  "pagesWorkflow": 45685480975,
+  "workflowConclusion": "success",
+  "files": [
+    {
+      "path": "index.html",
+      "status": 200,
+      "matches": true,
+      "sha256": "9bb1debdd89c29d5df7c27401e59ec51d23fba4f6a5c1fac32656c6c53642e2b"
+    },
+    {
+      "path": "src/atlas-destinations.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "aec07fbb7d822ee90ed33d4c5a97b5b217552d9e94c70724eb296b49cc44fe87"
+    },
+    {
+      "path": "src/atlas-ui.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "b3d97207fe0b7c8cd90eea3620c110cdf1c4514fb0f71ee9ca7370ebbb6d0a1f"
+    },
+    {
+      "path": "src/atlas-records.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "58aa7737c3e881c7d61f1a926c612097d6f2c9ca1bbc9eb64b4ec7639753065f"
+    },
+    {
+      "path": "src/ui.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "bdfb90aa6d8bddf0d7d515a524a9fdc77fbbde24e9a8735addd04ef22687c63a"
+    },
+    {
+      "path": "src/runtime.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "08bfc7e75cb1a43cf4574fd449c8889637f717a1f49eecb6be768cb25b0654fc"
+    },
+    {
+      "path": "src/page.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "3b879bb5e98d55d67ace7c0f9ab0278053af30c3a26fae276df7bc8da58c3009"
+    },
+    {
+      "path": "src/community-world.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "281080c6acdf08adcd79ec281a6fa756ce766ed369a619d30f2b702f28ea3999"
+    },
+    {
+      "path": "src/discovery-view.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "8d31ec5f6baea6e6053cd2f4e2f89088b5683d901b7878ed8a5740a29d88ecae"
+    },
+    {
+      "path": "src/travel-words-ui.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "1dd1b01a138a96891f60aaa466caf619e9bd860486699c5192dd61d512971ceb"
+    },
+    {
+      "path": "src/arrival-ui.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "1dcca1433ebb09936323a714f81730f0d2928c7bd3890acc396839319480064c"
+    },
+    {
+      "path": "src/crossing-history.js",
+      "status": 200,
+      "matches": true,
+      "sha256": "4bc9a8eaf1c9c54c867e4f7185dea0919cf81ab99887ffaeaa1e348b3fa1face"
+    }
+  ]
+}
