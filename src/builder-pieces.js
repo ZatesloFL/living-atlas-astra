@@ -80,7 +80,6 @@ const definitions = {
   docent: helper('Docent'),
   curator: helper('Curator'),
   maintainer: helper('Maintainer'),
-  steward: helper('Steward'),
   'hosted-photo': hosted('Photo plinth', 'image', 3, 2, 1),
   'hosted-video': hosted('Video screen', 'video', 4, 2, 0),
   'thing-reference': {
