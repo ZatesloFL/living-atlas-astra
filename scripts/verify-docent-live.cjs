@@ -7,14 +7,14 @@ const {execFileSync}=require('node:child_process');
 const {writeFile}=require('node:fs/promises');
 const assert=require('node:assert/strict');
 // Optional process-scoped trust of an already approved environment proxy CA.
-const ca=process.env.ATLAS_PROXY_CA;let pin;
+const ca=process.env.ATLAS_PROXY_CA;let pin=process.env.ATLAS_TEST_SPKI;
 if(ca){const pem=execFileSync('openssl',['x509','-in',ca,'-pubkey','-noout']);const der=execFileSync('openssl',['pkey','-pubin','-outform','DER'],{input:pem});pin=require('node:crypto').createHash('sha256').update(der).digest('base64');}
 const mode=process.env.ATLAS_LIVE_CASE||'baseline';
 if(!['baseline','typed','unknown','reliability','duet'].includes(mode))throw new Error('Choose baseline, typed, unknown, reliability or duet.');
 const output=process.env.ATLAS_LIVE_OUTPUT||'work/asking';require('node:fs').mkdirSync(output,{recursive:true});
 const endpoint='https://ftnxmuenqfqkodizyekk.supabase.co/functions/v1/ai-proxy';
 const userAgent='Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36';
-const record={captureType:'real deployed proxy response, synthetic question from a fresh phone-class Chromium browser',mode,startedAt:new Date().toISOString(),url:'https://zateslofl.github.io/living-atlas-astra/?safe&form=3d&room=studio&test',userAgent,viewport:{width:393,height:851},freshStorage:true,networkBridge:false,environmentCertificate:pin?'Supplied environment proxy CA pinned for this disposable Chromium process only; persistent trust store unchanged':'Default browser certificate trust',network:[],captures:[]};
+const record={captureType:'real deployed proxy response, synthetic question from a fresh phone-class Chromium browser',mode,startedAt:new Date().toISOString(),url:'https://zateslofl.github.io/living-atlas-astra/?safe&form=3d&room=studio&test',userAgent,viewport:{width:393,height:851},freshStorage:true,networkBridge:false,environmentCertificate:pin?'Public keys obtained through verified TLS pinned for this disposable Chromium process only; persistent trust store unchanged':'Default browser certificate trust',network:[],captures:[]};
 const save=()=>writeFile(output+'/live-'+mode+'.json',JSON.stringify(record,null,2)+'\n');
 (async()=>{
  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader',...(pin?['--ignore-certificate-errors-spki-list='+pin]:[])]});

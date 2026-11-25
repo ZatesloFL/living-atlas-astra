@@ -1,0 +1,921 @@
+{
+  "captureType": "real deployed proxy response, synthetic question from a fresh phone-class Chromium browser",
+  "startedAt": "2026-11-25T18:28:48.988Z",
+  "url": "https://zateslofl.github.io/living-atlas-astra/?safe&form=3d&room=studio&test",
+  "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36",
+  "viewport": {
+    "width": 393,
+    "height": 851
+  },
+  "environmentCertificate": "Public keys obtained through verified TLS pinned for this disposable Chromium process only; persistent trust store unchanged",
+  "network": [
+    {
+      "path": "session",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:29:18.131Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:29:19.750Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:29:43.362Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:30:06.935Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:30:30.152Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:30:53.299Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:31:16.639Z"
+    },
+    {
+      "path": "request",
+      "method": "POST",
+      "status": 200,
+      "at": "2026-11-25T18:31:39.644Z"
+    }
+  ],
+  "captures": [
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "b05e675c-ae71-408d-a790-aef40dd40fc1",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b1b1669834504157edd4f1f3b8d6b41ee790441035d7363e6a7fb2805a813f18",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead",
+            "context"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What bus service did residents boycott?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "organized a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "b53c52bb-9765-49c6-a6df-5f0f695244e7"
+        }
+      }
+    },
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "54262e86-2979-4281-8fd0-916eb0abd22a",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b1b1669834504157edd4f1f3b8d6b41ee790441035d7363e6a7fb2805a813f18",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead",
+            "context"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What bus service did residents boycott?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "09b45a74-0720-4faf-a204-6e6caf5429aa"
+        }
+      }
+    },
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "6104b4f6-f236-44e2-88d6-ad0566bdfc10",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b1b1669834504157edd4f1f3b8d6b41ee790441035d7363e6a7fb2805a813f18",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead",
+            "context"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What bus service did residents boycott?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "organized a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "a78350a8-6f64-4e48-907a-de9bb63e41df"
+        }
+      }
+    },
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "d82189bf-823b-41d1-a88a-821d36e02e2d",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b1b1669834504157edd4f1f3b8d6b41ee790441035d7363e6a7fb2805a813f18",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead",
+            "context"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What bus service did residents boycott?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "organized a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "dad83982-5eee-4f03-943b-52ab3f5c5a27"
+        }
+      }
+    },
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "30c4a5c7-d5da-45c7-99bf-e8c0c5a9f28a",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b1b1669834504157edd4f1f3b8d6b41ee790441035d7363e6a7fb2805a813f18",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead",
+            "context"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What bus service did residents boycott?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "organized a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "248bdd21-1965-41dc-9ceb-1b8b85849fc6"
+        }
+      }
+    },
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "689ad91b-65f6-4af1-872a-f0e8fbeb27ff",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b1b1669834504157edd4f1f3b8d6b41ee790441035d7363e6a7fb2805a813f18",
+          "visibleBlockIds": [
+            "place-overview"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is this hall about?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "A community\u2019s campaign against segregated public transport.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "d27cd628-e6a9-4a8a-811a-791c6e57c60b"
+        }
+      }
+    },
+    {
+      "httpStatus": 200,
+      "request": {
+        "requestId": "a64a85f2-0d44-4b21-8dfd-6ed2d0138caa",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b1b1669834504157edd4f1f3b8d6b41ee790441035d7363e6a7fb2805a813f18",
+          "visibleBlockIds": [
+            "place-overview"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is the airspeed of a swallow?"
+        }
+      },
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "c7328820-c191-4954-8d93-20dff46411b4"
+        }
+      }
+    }
+  ],
+  "edgeFunctionVersion": 8,
+  "deployedCommit": "6e90d1c",
+  "scene": "hall:boycott",
+  "clientResults": [
+    {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "organized a boycott of the city\u2019s segregated bus service",
+        "citations": [
+          "lead"
+        ]
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "receiptData": {
+        "provider": "proxy",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "b53c52bb-9765-49c6-a6df-5f0f695244e7"
+      }
+    },
+    {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "a boycott of the city\u2019s segregated bus service",
+        "citations": [
+          "lead"
+        ]
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "receiptData": {
+        "provider": "proxy",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "09b45a74-0720-4faf-a204-6e6caf5429aa"
+      }
+    },
+    {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "organized a boycott of the city\u2019s segregated bus service",
+        "citations": [
+          "lead"
+        ]
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "receiptData": {
+        "provider": "proxy",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "a78350a8-6f64-4e48-907a-de9bb63e41df"
+      }
+    },
+    {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "organized a boycott of the city\u2019s segregated bus service",
+        "citations": [
+          "lead"
+        ]
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "receiptData": {
+        "provider": "proxy",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "dad83982-5eee-4f03-943b-52ab3f5c5a27"
+      }
+    },
+    {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "organized a boycott of the city\u2019s segregated bus service",
+        "citations": [
+          "lead"
+        ]
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "receiptData": {
+        "provider": "proxy",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "248bdd21-1965-41dc-9ceb-1b8b85849fc6"
+      }
+    },
+    {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "A community\u2019s campaign against segregated public transport.",
+        "citations": [
+          "place-overview"
+        ]
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "receiptData": {
+        "provider": "proxy",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "d27cd628-e6a9-4a8a-811a-791c6e57c60b"
+      }
+    },
+    {
+      "proposal": {
+        "kind": "answer",
+        "room": "boycott",
+        "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+        "text": "I don't know from the blocks available in this view.",
+        "citations": []
+      },
+      "model": "anthropic/claude-haiku-5-5",
+      "receiptData": {
+        "provider": "proxy",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "result": "proposed",
+        "receiptId": "c7328820-c191-4954-8d93-20dff46411b4"
+      }
+    }
+  ]
+}

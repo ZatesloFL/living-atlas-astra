@@ -2,7 +2,7 @@
 // Town Square so older scenario tests retain their intended starting context.
 module.exports=async function completeArrival(page,{square=true,start='scratch',preset=null}={}){
  await page.locator('#setup-form button[type=submit]').click();
- await page.locator('#arrival-interview-next').click();if(preset)await page.locator('#arrival-preset').selectOption(preset);await page.locator('#arrival-lens-next').click();
+ await page.locator('#arrival-interview-next').click();if(preset){await page.locator('#arrival-preset').locator('xpath=ancestor::details').locator('summary').click();await page.locator('#arrival-preset').selectOption(preset);}await page.locator('#arrival-lens-next').click();
  await page.locator('[name=arrival-start][value='+start+']').check();await page.locator('#arrival-create').click();
  await page.waitForFunction(()=>!document.querySelector('#arrival-create')?.closest('.access-overlay:not([hidden])')&&document.querySelector('#sheet')?.hidden);
  if(!square)return;

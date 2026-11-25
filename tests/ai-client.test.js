@@ -115,3 +115,17 @@ test('six real paired-Lens v5 captures replay with their exact proposal and rece
   if(index===5)assert.equal(result.proposal.text,"I don't know from the blocks available in this view.");else assert.deepEqual(result.proposal.citations,['lead']);
  }
 });
+
+test('seven real v8 hall captures replay exact quoted answers and the unsupported abstention',async()=>{
+ const {readFile}=await import('node:fs/promises'),{allowedBlocks,catalog}=await import('../supabase/functions/ai-proxy/protocol.js');
+ const capture=JSON.parse(await readFile(new URL('./fixtures/docent-proxy-live-overview-v8.json',import.meta.url),'utf8'));
+ assert.equal(capture.edgeFunctionVersion,8);assert.equal(capture.scene,'hall:boycott');assert.equal(capture.captures.length,7);
+ for(const [index,wire] of capture.captures.entries()){
+  const c={place:{key:'boycott'},action:'answer',question:wire.request.context.question,blocks:allowedBlocks(wire.request.context),lens:{...wire.request.context.lens,ageBand:wire.request.context.lens.audience}};
+  const client=createAI({transport:createProxyTransport({endpoint:AI_PROXY_ENDPOINT,fetchImpl:async(url,opts)=>{
+   if(url.endsWith('/session'))return session();const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;expected.context.catalogRevision=catalog.revision;assert.deepEqual(sent,expected);return Response.json(wire.response);
+  }})});
+  const result=await client.request(request(c));assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},capture.clientResults[index]);
+  if(index===5)assert.deepEqual(result.proposal.citations,['place-overview']);if(index===6)assert.deepEqual(result.proposal.citations,[]);
+ }
+});
