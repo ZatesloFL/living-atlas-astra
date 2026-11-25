@@ -9,6 +9,8 @@ import postgres from 'postgres';
 import { GUIDE_SCHEMA, ORIGIN, digest } from '../supabase/functions/ai-proxy/core.js';
 import { createHandler } from '../supabase/functions/ai-proxy/handler.js';
 import { PHOTO_AGENT, PHOTO_MODEL, PHOTO_PURPOSE, PHOTO_SCHEMA } from '../supabase/functions/ai-proxy/photo.js';
+import { UPLOAD_REVIEW_PURPOSE, AUDIO_TRANSCRIPT_SCHEMA, AUDIO_SCORES_SCHEMA, TRANSCRIPTION_MODEL,
+  pcmDurationMs } from '../supabase/functions/ai-proxy/audio.js';
 import { catalog } from '../supabase/functions/ai-proxy/protocol.js';
 import { Store } from '../supabase/functions/ai-proxy/store.js';
 
@@ -16,7 +18,8 @@ const migrations = await Promise.all([
   '20261113120000_atlas_ai.sql',
   '20261113204500_ai_failure_class.sql',
   '20261124180017_atlas_connected_sources.sql',
-  '20261125051804_atlas_photo_proposals.sql'
+  '20261125051804_atlas_photo_proposals.sql',
+  '20261125143000_atlas_audio_review.sql'
 ].map(file => readFile(new URL('../supabase/migrations/' + file, import.meta.url), 'utf8')));
 const original = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRr0AAAAASUVORK5CYII=', 'base64');
 const preview = Buffer.from('independent preview fixture');
@@ -35,7 +38,8 @@ const usage = {
 const storageOrigin = 'https://fixture-storage.invalid';
 const secret = name => ({
   ALLOWED_ORIGINS: ORIGIN, SUPABASE_URL: storageOrigin,
-  SUPABASE_SERVICE_ROLE_KEY: 'fixture-storage-role', ANTHROPIC_API_KEY: 'fixture-anthropic-key'
+  SUPABASE_SERVICE_ROLE_KEY: 'fixture-storage-role', ANTHROPIC_API_KEY: 'fixture-anthropic-key',
+  OPENAI_API_KEY: 'fixture-openai-key'
 })[name];
 const ownerDescription = 'Owner description canary';
 let cluster, sql, fixtureDir, store;
@@ -134,7 +138,7 @@ async function ownerWithPhoto(handle) {
   const authorized = await handle(request('/session', { holder: guide.holder, purpose: PHOTO_PURPOSE }));
   assert.equal(authorized.status, 200);
   const photo = await authorized.json();
-  return { holderId: holder.id, guide: guide.session, photo: photo.session, uploadId };
+  return { holderId: holder.id, holder: guide.holder, guide: guide.session, photo: photo.session, uploadId };
 }
 
 function stub({ bytes = original, beforeReply = async () => {} } = {}) {
@@ -312,4 +316,230 @@ test('Deletion during provider work keeps the measured cost Receipt and prevents
   assert.equal(receipt.cost_basis, 'measured');
   assert.equal(Number(receipt.cost_microusd), 526);
   assert.equal((await sql`SELECT * FROM atlas_sources.photo_proposals WHERE upload_id=${owner.uploadId}`).length, 0);
+});
+
+function pcmWave(seconds) {
+  const sampleBytes = seconds * 16000 * 2;
+  const wave = Buffer.alloc(44 + sampleBytes);
+  wave.write('RIFF');
+  wave.writeUInt32LE(wave.length - 8, 4);
+  wave.write('WAVEfmt ', 8);
+  wave.writeUInt32LE(16, 16);
+  wave.writeUInt16LE(1, 20);
+  wave.writeUInt16LE(1, 22);
+  wave.writeUInt32LE(16000, 24);
+  wave.writeUInt32LE(32000, 28);
+  wave.writeUInt16LE(2, 32);
+  wave.writeUInt16LE(16, 34);
+  wave.write('data', 36);
+  wave.writeUInt32LE(sampleBytes, 40);
+  return wave;
+}
+
+const audioSpec = (uploadId, schemaId, description = ownerDescription) => ({
+  requestId: randomUUID(), job: 'background', agentId: PHOTO_AGENT, schemaId,
+  context: schemaId === AUDIO_TRANSCRIPT_SCHEMA ? { uploadId } : { uploadId, description },
+});
+
+async function insertAudio(ownerId, wave, type = 'audio/wav') {
+  const uploadId = randomUUID();
+  await sql`SELECT atlas_sources.reserve_upload(${ownerId}, ${uploadId}::uuid, 'fixture/audio-space',
+    ${'upload-' + uploadId}, 'synthetic.wav', ${type}, ${hash(wave)}, ${wave.length})`;
+  await sql`INSERT INTO storage.objects (bucket_id, name, metadata)
+    VALUES ('atlas-user-uploads', ${uploadId + '/original'}, ${sql.json({ size: wave.length, mimetype: type })})`;
+  await sql`SELECT atlas_sources.finish_upload(${ownerId}, ${uploadId}::uuid)`;
+  return uploadId;
+}
+
+async function reviewFor(handle, holder) {
+  const review = await handle(request('/session', { holder, purpose: UPLOAD_REVIEW_PURPOSE }));
+  assert.equal(review.status, 200, await review.clone().text());
+  return (await review.json()).session;
+}
+
+async function ownerWithAudio(handle, wave, type) {
+  const response = await handle(request('/session', {}));
+  assert.equal(response.status, 200, await response.clone().text());
+  const guide = await response.json();
+  const [holder] = await sql`SELECT id FROM atlas_ai.holder_leases WHERE token_sha256=${await digest(guide.holder)}`;
+  const uploadId = await insertAudio(holder.id, wave, type);
+  const review = await reviewFor(handle, guide.holder);
+  return { holderId: holder.id, guide: guide.session, review, uploadId };
+}
+
+const speech = 'Synthetic transcript canary: People protest a proposed bus schedule.';
+const audioOutcome = {
+  scores: { ...ratings(0, 0), viewpoint: { amount: 2, graphicness: 0 } },
+  observation: 'The spoken words discuss a public protest.', descriptionDisagrees: true,
+};
+const transcribedModel = 'openai/' + TRANSCRIPTION_MODEL;
+const assessedModel = 'anthropic/' + PHOTO_MODEL;
+
+function audioStub(wave, { transcript = speech, transcriptionUsage = { type: 'duration', seconds: 2 } } = {}) {
+  const calls = { storage: [], transcription: [], assessment: [] };
+  const fetchImpl = async (input, options) => {
+    const url = new URL(input);
+    if (url.origin === storageOrigin) {
+      calls.storage.push(url.pathname);
+      return new Response(wave, { headers: { 'Content-Length': wave.length } });
+    }
+    if (url.href === 'https://api.openai.com/v1/audio/transcriptions') {
+      assert.equal(options.headers.Authorization, 'Bearer fixture-openai-key');
+      const file = options.body.get('file');
+      assert.equal(file.name, 'recording.wav');
+      assert.equal(file.type, 'audio/wav');
+      assert.deepEqual(Buffer.from(await file.arrayBuffer()), wave);
+      assert.equal(options.body.get('model'), TRANSCRIPTION_MODEL);
+      assert.equal(options.body.get('response_format'), 'json');
+      calls.transcription.push(url.href);
+      return Response.json({ text: transcript, usage: transcriptionUsage });
+    }
+    assert.equal(url.href, 'https://api.anthropic.com/v1/messages');
+    calls.assessment.push(JSON.parse(options.body));
+    return Response.json({ stop_reason: 'end_turn', usage: { input_tokens: 250, output_tokens: 60 },
+      content: [{ type: 'text', text: JSON.stringify(audioOutcome) }] });
+  };
+  return { handle: handler(fetchImpl), calls };
+}
+
+test('Audio review uses verified bytes and pays each provider once across proposal and transcription replays', async () => {
+  const wave = pcmWave(2);
+  assert.equal(pcmDurationMs(wave), 2000);
+  const { handle, calls } = audioStub(wave);
+  const owner = await ownerWithAudio(handle, wave);
+  const before = await publicQuota();
+  const routes = await sql`SELECT * FROM atlas_ai.routing_config ORDER BY route_key`;
+  const transcription = audioSpec(owner.uploadId, AUDIO_TRANSCRIPT_SCHEMA);
+  const assessment = audioSpec(owner.uploadId, AUDIO_SCORES_SCHEMA);
+  const wait = await handle(request('/request', assessment, owner.review));
+  assert.equal(wait.status, 409);
+  assert.equal((await wait.json()).code, 'TRANSCRIPT_UNAVAILABLE');
+
+  const transcriptResponse = await handle(request('/request', transcription, owner.review));
+  const transcript = await transcriptResponse.json();
+  assert.equal(transcriptResponse.status, 200, JSON.stringify(transcript));
+  assert.equal(transcript.model, transcribedModel);
+  assert.equal(transcript.receiptData.result, 'transcribed');
+  assert.equal(transcript.receiptData.receiptId, transcript.transcriptionReceiptId);
+  assert.equal(transcript.receiptData.audioDurationMs, 2000);
+  assert.doesNotMatch(JSON.stringify(transcript), /Synthetic transcript canary/);
+  const first = await receiptFor(transcript.transcriptionReceiptId);
+  assert.equal(first.result, 'accepted');
+  assert.equal(first.cost_basis, 'measured');
+  assert.equal(Number(first.audio_duration_ms), 2000);
+  assert.equal(Number(first.cost_microusd), 150);
+  assert.equal(first.input_tokens, null);
+  const [privateText] = await sql`SELECT transcript FROM atlas_sources.audio_transcripts WHERE upload_id=${owner.uploadId}`;
+  assert.equal(privateText.transcript, speech);
+
+  const scoreResponse = await handle(request('/request', assessment, owner.review));
+  const result = await scoreResponse.json();
+  assert.equal(scoreResponse.status, 200, JSON.stringify(result));
+  assert.equal(result.model, assessedModel);
+  assert.equal(result.receiptData.transcriptionReceiptId, transcript.transcriptionReceiptId);
+  assert.deepEqual(result.proposal, { kind: 'upload-scores', basis: 'audio-transcript', ...audioOutcome });
+  const second = await receiptFor(result.receiptData.receiptId);
+  assert.equal(second.result, 'accepted');
+  assert.equal(second.audio_duration_ms, null);
+  assert.equal(second.cost_basis, 'measured');
+  assert.equal(Number(second.cost_microusd), 55);
+  const [erased] = await sql`SELECT transcript FROM atlas_sources.audio_transcripts WHERE upload_id=${owner.uploadId}`;
+  assert.equal(erased.transcript, null);
+  assert.match(calls.assessment[0].messages[0].content, /Synthetic transcript canary/);
+  assert.match(calls.assessment[0].messages[0].content, /Owner description for comparison only/);
+  assert.equal(calls.assessment[0].max_tokens, 1024);
+  assert.deepEqual(calls.assessment[0].thinking, { type: 'disabled' });
+
+  const after = await publicQuota();
+  assert.equal(after.calls_used - before.calls_used, 2);
+  assert.equal(Number(after.spent_microusd) - Number(before.spent_microusd), 205);
+  assert.equal(Number(after.reserved_microusd), 0);
+  const [openaiSpend] = await sql`SELECT spent_microusd FROM atlas_ai.quota_windows WHERE bucket='provider:openai'`;
+  assert.ok(Number(openaiSpend.spent_microusd) >= 150);
+  const [holder] = await sql`SELECT calls_used, spent_microusd FROM atlas_ai.quota_windows WHERE bucket=${'holder:' + owner.holderId}`;
+  assert.equal(holder.calls_used, 2);
+  assert.equal(Number(holder.spent_microusd), 205);
+  const [meter] = await sql`SELECT served_bytes FROM atlas_sources.egress_totals WHERE owner_id=${owner.holderId}`;
+  assert.equal(Number(meter.served_bytes), wave.length);
+  assert.deepEqual(await sql`SELECT * FROM atlas_ai.routing_config ORDER BY route_key`, routes);
+
+  const reopenedTranscript = await (await handle(request('/request', { ...transcription, requestId: randomUUID() }, owner.review))).json();
+  assert.equal(reopenedTranscript.transcriptionReceiptId, transcript.transcriptionReceiptId);
+  assert.equal(reopenedTranscript.receiptData.cached, true);
+  const reopenedProposal = await (await handle(request('/request', { ...assessment, requestId: randomUUID() }, owner.review))).json();
+  assert.deepEqual(reopenedProposal, { ...result, receiptData: { ...result.receiptData, cached: true } });
+  assert.equal(calls.storage.length, 1);
+  assert.equal(calls.transcription.length, 1);
+  assert.equal(calls.assessment.length, 1);
+  assert.deepEqual(await publicQuota(), after);
+  const leases = await sql`SELECT accounting FROM atlas_ai.call_leases WHERE id IN
+   (${transcript.transcriptionReceiptId}::uuid,${result.receiptData.receiptId}::uuid)`;
+  assert.doesNotMatch(JSON.stringify({ first, second, leases }), /Synthetic transcript canary|Owner description canary/);
+});
+
+test('An upload-review lease upgrades only the idle old photo lease and still assesses photos', async () => {
+  const { handle, calls } = stub();
+  const owner = await ownerWithPhoto(handle);
+  const wave = pcmWave(2);
+  const audioId = await insertAudio(owner.holderId, wave);
+  const rejected = await handle(request('/request', audioSpec(audioId, AUDIO_TRANSCRIPT_SCHEMA), owner.photo));
+  assert.equal(rejected.status, 403);
+  const review = await reviewFor(handle, owner.holder);
+  const [oldPhoto] = await sql`SELECT revoked_at FROM atlas_ai.session_leases WHERE token_sha256=${await digest(owner.photo)}`;
+  const [guide] = await sql`SELECT revoked_at FROM atlas_ai.session_leases WHERE token_sha256=${await digest(owner.guide)}`;
+  assert.ok(oldPhoto.revoked_at);
+  assert.equal(guide.revoked_at, null);
+  const response = await handle(request('/request', photoSpec(owner.uploadId), review));
+  assert.equal(response.status, 200, await response.clone().text());
+  assert.equal((await response.json()).proposal.basis, 'image');
+  assert.equal(calls.provider.length, 1);
+});
+
+test('Audio admission validates ownership and the bounded PCM original before any transcription dispatch', async () => {
+  const wave = pcmWave(31);
+  const { handle, calls } = audioStub(wave);
+  const owner = await ownerWithAudio(handle, wave);
+  const foreign = await ownerWithAudio(handle, wave);
+  const wrongOwner = await handle(request('/request', audioSpec(owner.uploadId, AUDIO_TRANSCRIPT_SCHEMA), foreign.review));
+  assert.equal(wrongOwner.status, 404);
+  assert.equal((await wrongOwner.json()).code, 'AUDIO_UNAVAILABLE');
+  const unsupportedId = await insertAudio(owner.holderId, wave, 'audio/mpeg');
+  const unsupported = await handle(request('/request', audioSpec(unsupportedId, AUDIO_TRANSCRIPT_SCHEMA), owner.review));
+  assert.equal(unsupported.status, 422);
+  assert.equal((await unsupported.json()).code, 'AUDIO_FORMAT_UNSUPPORTED');
+  assert.deepEqual(calls.storage, []);
+
+  const tooLong = await handle(request('/request', audioSpec(owner.uploadId, AUDIO_TRANSCRIPT_SCHEMA), owner.review));
+  const tooLongBody = await tooLong.json();
+  assert.equal(tooLong.status, 413);
+  assert.equal(tooLongBody.code, 'AUDIO_TOO_LONG');
+  const receipt = await receiptFor(tooLongBody.receiptId);
+  assert.equal(receipt.cost_basis, 'not-dispatched');
+  assert.equal(Number(receipt.cost_microusd), 0);
+  assert.equal(calls.storage.length, 1);
+  assert.deepEqual(calls.transcription, []);
+  assert.deepEqual(calls.assessment, []);
+});
+
+test('Token-only transcription usage retains the reserve and cannot trigger another paid stage', async () => {
+  const wave = pcmWave(2);
+  const { handle, calls } = audioStub(wave, { transcriptionUsage: { type: 'tokens', input_tokens: 20, output_tokens: 5 } });
+  const owner = await ownerWithAudio(handle, wave);
+  const first = await handle(request('/request', audioSpec(owner.uploadId, AUDIO_TRANSCRIPT_SCHEMA), owner.review));
+  const failure = await first.json();
+  assert.equal(first.status, 502);
+  assert.equal(failure.code, 'TRANSCRIPTION_FAILED');
+  assert.equal(failure.failureClass, 'provider_usage_invalid');
+  const receipt = await receiptFor(failure.receiptId);
+  assert.equal(receipt.cost_basis, 'reserved');
+  assert.equal(Number(receipt.cost_microusd), 4500);
+  assert.equal(receipt.audio_duration_ms, null);
+  const retried = await handle(request('/request', audioSpec(owner.uploadId, AUDIO_TRANSCRIPT_SCHEMA), owner.review));
+  assert.equal(retried.status, 409);
+  assert.deepEqual(await retried.json(), { code: 'REQUEST_COMPLETED', receiptId: failure.receiptId });
+  const assessed = await handle(request('/request', audioSpec(owner.uploadId, AUDIO_SCORES_SCHEMA), owner.review));
+  assert.equal(assessed.status, 409);
+  assert.equal((await assessed.json()).code, 'TRANSCRIPT_UNAVAILABLE');
+  assert.equal(calls.transcription.length, 1);
+  assert.deepEqual(calls.assessment, []);
 });

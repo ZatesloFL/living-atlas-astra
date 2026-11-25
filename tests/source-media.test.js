@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {ROOMS,createLens} from '../src/data.js';
 import {blockHTML} from '../src/block-renderer.js';
 import {heroHTML} from '../src/presentation.js';
-import {videoReference,videoReferenceHTML} from '../src/source-media.js';
+import {configureSourceMedia,readHostedPhotoPreview,videoReference,videoReferenceHTML} from '../src/source-media.js';
 
 const l={...createLens(),profileId:'media-owner',depth:'Deep'};
 const source={sourceId:'test-source',itemId:'test-item',label:'Source fixture',rights:'rights-reserved',mode:'live',status:'ready'};
@@ -43,4 +43,19 @@ test('Hosted photos show upload date and a private byte-read control to their ow
  assert.doesNotMatch(html,/example.invalid|\ssrc=/);
  assert.equal(blockHTML(hosted,ROOMS.studio,{...l,profileId:'other'},{approved:true}),'');
  assert.equal(blockHTML(hosted,ROOMS.studio,{...l,isAgent:true},{approved:true}),'');
+});
+
+test('3D requests only the sized hosted preview after checking current source rights and availability',async()=>{
+ const hosted={...block,source:{...source,kind:'upload',owner:'media-owner'}};
+ const bytes=new Blob(['preview fixture'],{type:'image/jpeg'});
+ const calls=[];
+ configureSourceMedia({fetchBytes:async payload=>{calls.push(payload);return bytes;}});
+ try {
+  await assert.rejects(readHostedPhotoPreview(hosted,ROOMS.studio,{...l,profileId:'other'}),/unavailable/);
+  await assert.rejects(readHostedPhotoPreview({...hosted,source:{...hosted.source,status:'deleted'}},ROOMS.studio,l),/unavailable/);
+  await assert.rejects(readHostedPhotoPreview(hosted,ROOMS.studio,l,{signal:AbortSignal.abort()}),{name:'AbortError'});
+  assert.deepEqual(calls,[]);
+  assert.equal(await readHostedPhotoPreview(hosted,ROOMS.studio,l),bytes);
+  assert.deepEqual(calls,[{placeId:ROOMS.studio.id,sourceId:'test-source',itemId:'test-item',variant:'preview',signal:undefined}]);
+ } finally {configureSourceMedia();}
 });
