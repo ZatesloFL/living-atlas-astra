@@ -33,7 +33,7 @@ export function createAI({transport=null,requestPhotoScores,requestAudioScores,l
  current();
  if(schema.name===ATLAS_INTENT_SCHEMA.name){
   if(agentId!=='atlas'||job!=='guide'||copy.action!=='personal-intent'||copy.blocks.length)throw new Error('Invalid personal Atlas context.');
-  const proposal=atlasIntent(copy.question);validateAtlasIntent(proposal);current();
+  const proposal=atlasIntent(copy.question,{limits:copy.lensLimits});validateAtlasIntent(proposal);current();
   return {proposal,model:'local-atlas-intent-v1',agentId,receiptData:{provider:'simulated',job,model:'local-atlas-intent-v1',agentId,result:'proposed',localReason:'personal_intent_local'}};
  }
  if(job==='background'&&schema.name===UPLOAD_SCORE_SCHEMA.name){

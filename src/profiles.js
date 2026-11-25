@@ -5,6 +5,7 @@ import {discoveryDefaults,discoveryState} from './discovery-state.js';
 import {PRESETS,DIMENSIONS} from './data.js';
 import {appendEntry,verifyChain} from './ledger.js';
 import {unsetDials,personalPair} from './lens-state.js';
+import {changedLens,lensBasis} from './lens-proposals.js';
 export const STORAGE_KEY='living-atlas.profiles.v4';
 export const GROUPS=[['family','Family','made'],['writing-circle','Writing circle','made'],['tallahassee-resident','Verified Tallahassee resident','credential'],['neighborhood','My neighborhood','credential']];
 const clone=value=>structuredClone(value);
@@ -90,6 +91,11 @@ export class ProfileStore {
     await this.record('profile_deleted',{id,name:p.name});this.profiles=this.profiles.filter(p=>p.id!==id);
     if(this.activeId===id){const next=this.profiles.find(p=>!p.seed&&!p.isTest)??this.profiles.find(p=>!p.seed);if(next)await this.record('profile_switched',{from:id,to:next.id});this.activeId=next?.id??null;this.override=null;this.completed=!!next;}
     if(this.regularId===id)this.regularId=this.profiles.find(p=>!p.seed&&!p.isTest)?.id??null;this.persist();
+  });}
+  applyLensProposal(changes,{holder,basis,proposalReceipt,confirmationReceipt}){return this.transact(async()=>{
+    const current=this.current();if(this.activeId!==holder||lensBasis(current)!==basis)throw new Error('The active profile or Lens changed before confirmation could apply.');
+    const next=changedLens(current,changes),receipt=await this.record('lens_changed',{before:current.limits,after:next.limits,proposalReceipt,confirmationReceipt,source:'Atlas'});
+    this.active().limits=clone(next.limits);this.active().preset='Custom';const persisted=this.persist();return {receipt:receipt.hash,persisted};
   });}
   preferences(lens){const p=this.active();if(!p)return;for(const key of ['preset','limits','hard','show','trustFrom','depth','form','stylePreset','acceptedLayers','layerMode','layerTypes','itemStyles','layerConsents','discovery','standingPreferences'])if(lens[key]!==undefined)p[key]=clone(lens[key]);this.persist();}
   setDisplay(display){const p=this.active();if(!p||!['anonymous','pseudonym','real'].includes(display))return;p.identity.display=display;this.persist();}

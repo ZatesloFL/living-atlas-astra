@@ -1,6 +1,7 @@
 import {appendEntry,verifyChain} from './ledger.js';
 import {personId} from './permissions.js';
 import {ATLAS_AREAS,ATLAS_SCOPES,validateAtlasIntent} from './atlas-intents.js';
+import {lensBasis,validateLensChanges} from './lens-proposals.js';
 
 export const ATLAS_RECORDS_KEY='living-atlas.atlas-records.v1';
 const clone=value=>structuredClone(value);
@@ -35,11 +36,13 @@ export class AtlasRecords {
   };return globalThis.navigator?.locks?navigator.locks.request(ATLAS_RECORDS_KEY,run):run();
  });this.queue=job.catch(()=>{});return job;}
  propose(lens,value,words){validateAtlasIntent(value);if(value.kind==='clarify')throw new Error('A clarification is not an act.');return this.write(lens,async(data,record)=>{
-  const id=crypto.randomUUID(),r=await record('atlas','atlas_proposed',{id,value:clone(value),words:String(words).slice(0,1600)});return {id,value:clone(value),receipt:r.hash,status:'proposal'};
+  if(value.kind==='lens'){this.require(lens,'lens','suggest',data);validateLensChanges(value.changes,lens);}
+  const id=crypto.randomUUID(),basis=value.kind==='lens'?lensBasis(lens):null,r=await record('atlas','atlas_proposed',{id,value:clone(value),words:String(words).slice(0,1600),basis});return {id,value:clone(value),basis,receipt:r.hash,status:'proposal'};
  });}
  confirm(lens,id,apply){return this.write(lens,async(data,record,holder)=>{
   const p=this.state(lens,Date.now(),data).proposals.find(p=>p.id===id&&p.status==='proposal');if(!p)throw new Error('This proposal is no longer open for this profile.');validateAtlasIntent(p.value);
   if(!['grant','envelope','revoke'].includes(p.value.kind))this.require(lens,p.value.kind==='lens'?'lens':'travel','edit',data);
+  if(p.value.kind==='lens'){if(p.basis!==lensBasis(lens))throw new Error('Your Lens or assurance changed. Decline this proposal and ask again.');validateLensChanges(p.value.changes,lens);if(!apply)throw new Error('No Lens actuator is connected.');}
   const confirmation=await record(holder,'atlas_confirmed',{id,proposalReceipt:p.receipt});
   if(p.value.kind==='revoke')for(const g of this.state(lens,Date.now(),data).grants.filter(g=>g.active&&(!p.value.areas.length||g.areas.some(a=>p.value.areas.includes(a))))){
    const remaining=p.value.areas.length?g.areas.filter(a=>!p.value.areas.includes(a)):[];

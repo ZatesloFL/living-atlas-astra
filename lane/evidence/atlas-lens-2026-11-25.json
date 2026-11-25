@@ -1,0 +1,124 @@
+{
+  "proposal": "Proposal · not applied\n\nSet your Lens to Violence: amount 0, graphicness 0; Disturbing themes: amount 1, graphicness 1. Only these dimensions change. Hard locks and account assurance stay in force.\n\nProposal receipt: 132711ebde8420543b36677a96ae78bf5fa236368b8103d83c0f6dc9d43b2dff\n\nYes, confirm this proposalNo, leave it unchanged",
+  "before": {
+    "violence": {
+      "amount": null,
+      "graphicness": null
+    },
+    "sexual": {
+      "amount": null,
+      "graphicness": null
+    },
+    "language": {
+      "amount": null,
+      "graphicness": null
+    },
+    "disturbing": {
+      "amount": null,
+      "graphicness": null
+    },
+    "viewpoint": {
+      "amount": null,
+      "graphicness": null
+    },
+    "sensory": {
+      "amount": null,
+      "graphicness": null
+    }
+  },
+  "after": {
+    "violence": {
+      "amount": 0,
+      "graphicness": 0
+    },
+    "sexual": {
+      "amount": null,
+      "graphicness": null
+    },
+    "language": {
+      "amount": null,
+      "graphicness": null
+    },
+    "disturbing": {
+      "amount": 1,
+      "graphicness": 1
+    },
+    "viewpoint": {
+      "amount": null,
+      "graphicness": null
+    },
+    "sensory": {
+      "amount": null,
+      "graphicness": null
+    }
+  },
+  "assurance": "Your account is not yet age-verified. Adult-range doors stay closed until it is.",
+  "receipts": [
+    {
+      "id": 3,
+      "prevHash": "0e084888f62e8654f84cd326ec3ab149196d6dcb59a0cfa8d9c02e387077e541",
+      "actor": "8d460adc-c754-4143-b0e3-949dc7d5817f",
+      "action": "lens_changed",
+      "time": "2026-11-25T18:57:30.108Z",
+      "diff": {
+        "before": {
+          "violence": {
+            "amount": null,
+            "graphicness": null
+          },
+          "sexual": {
+            "amount": null,
+            "graphicness": null
+          },
+          "language": {
+            "amount": null,
+            "graphicness": null
+          },
+          "disturbing": {
+            "amount": null,
+            "graphicness": null
+          },
+          "viewpoint": {
+            "amount": null,
+            "graphicness": null
+          },
+          "sensory": {
+            "amount": null,
+            "graphicness": null
+          }
+        },
+        "after": {
+          "violence": {
+            "amount": 0,
+            "graphicness": 0
+          },
+          "sexual": {
+            "amount": null,
+            "graphicness": null
+          },
+          "language": {
+            "amount": null,
+            "graphicness": null
+          },
+          "disturbing": {
+            "amount": 1,
+            "graphicness": 1
+          },
+          "viewpoint": {
+            "amount": null,
+            "graphicness": null
+          },
+          "sensory": {
+            "amount": null,
+            "graphicness": null
+          }
+        },
+        "proposalReceipt": "132711ebde8420543b36677a96ae78bf5fa236368b8103d83c0f6dc9d43b2dff",
+        "confirmationReceipt": "f6a8eaec171a40cdf98399079e7982fc7a6aabf869bbb6529050f2f33ec1d21b",
+        "source": "Atlas"
+      },
+      "hash": "76b3cc6e291d133ac9828467803968f43f5d7299b1bea8cef973766d334f3ccf"
+    }
+  ],
+  "errors": []
+}

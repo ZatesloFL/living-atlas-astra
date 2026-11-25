@@ -4,8 +4,11 @@ import {AtlasRecords} from './atlas-records.js';
 import {personId} from './permissions.js';
 import {assuranceExplanation} from './lens-state.js';
 import {esc} from './block-renderer.js';
+import {DIMENSIONS} from './scores.js';
+import {lensBasis} from './lens-proposals.js';
 
 export function intentWords(value){
+ if(value.kind==='lens')return 'Set your Lens to '+Object.entries(value.changes).map(([key,p])=>`${DIMENSIONS.find(([k])=>k===key)[1]}: amount ${p.amount}, graphicness ${p.graphicness}`).join('; ')+'. Only these dimensions change. Hard locks and account assurance stay in force.';
  const areas=value.areas?.map(a=>AREA_LABELS[a]).join(', ');
  if(value.kind==='grant')return `Grant Atlas ${value.scope} scope for ${areas}, ${value.durationMs===null?'standing, with no expiry':'leased for '+value.durationMs/60000+' minutes'}. Look reads the named areas; suggest proposes; edit may apply only what you confirm. Hard limits and door terms still apply.`;
  if(value.kind==='envelope')return `${areas}: ${value.posture}. ${value.posture==='Quiet'?'Atlas speaks when you ask and acts in the open when asked.':value.posture==='Conversational'?'Atlas may propose, explain and ask; it acts on your yes.':`Your specification — may act unasked: “${value.unasked}”; always ask about: “${value.alwaysAsk}”; watch for: ${value.watch.map(s=>'“'+s+'”').join('; ')}.`}`;
@@ -30,14 +33,19 @@ export class AtlasUI {
  async ask(words){return this.run(async()=>{
   this.sync();if(this.pending)throw new Error('Confirm or decline the open proposal first.');this.records.holder(this.lens());
   const holder=this.holder;this.controller?.abort();this.controller=new AbortController();this.messages.push({who:'you',text:words});
-  const result=await this.brain.request({job:'guide',agentId:'atlas',schema:ATLAS_INTENT_SCHEMA,context:{action:'personal-intent',question:words,place:{key:this.api.room?.()??'studio'},blocks:[]},signal:this.controller.signal,isCurrent:()=>personId(this.lens())===holder&&this.ui.mode==='ask-atlas'});
+  const result=await this.brain.request({job:'guide',agentId:'atlas',schema:ATLAS_INTENT_SCHEMA,context:{action:'personal-intent',question:words,lensLimits:structuredClone(this.lens().limits),place:{key:this.api.room?.()??'studio'},blocks:[]},signal:this.controller.signal,isCurrent:()=>personId(this.lens())===holder&&this.ui.mode==='ask-atlas'});
   if(result.proposal.kind==='clarify')this.messages.push({who:'atlas',text:result.proposal.text});
   else this.pending=await this.records.propose(this.lens(),result.proposal,words);
   this.render();
  });}
  async confirm(){return this.run(async()=>{const pending=this.pending;if(!pending)return;this.sync();if(this.pending!==pending)throw new Error('The profile changed. Ask again in this profile.');
-  const result=await this.records.confirm(this.lens(),pending.id);this.pending=null;
-  this.messages.push({who:'atlas',text:'Confirmed and recorded. '+intentWords(result.value)+' Receipt '+result.receipt});this.api.changed?.();this.render();
+  const holder=this.holder,result=await this.records.confirm(this.lens(),pending.id,async(value,refs)=>{
+   if(value.kind!=='lens')return null;
+   if(personId(this.lens())!==holder||lensBasis(this.lens())!==pending.basis)throw new Error('The profile or Lens changed. Ask again.');
+   if(!this.api.applyLens)throw new Error('Lens changes are unavailable on this surface.');
+   return this.api.applyLens(value.changes,{holder,basis:pending.basis,...refs});
+  });this.pending=null;
+  this.messages.push({who:'atlas',text:'Confirmed and recorded. '+intentWords(result.value)+' Receipt '+result.receipt+(result.result?.persisted===false?' Browser storage is blocked; the Lens change is kept only for this session.':'')+(result.result?.stagedForStarter?' These positions are staged for your starter. Finish arrival to save them to the profile.':'')});await this.api.changed?.();this.render();
  });}
  audit(){this.sync();const state=this.records.state(this.lens()),root=this.ui.content;this.ui.open('atlas-audit','Your grant and initiative records','Atlas · inspector');
   root.innerHTML=`<p>These are this profile’s local records. Hard limits, legal floors, other owners’ terms and confirmation remain binding.</p><button id="atlas-back">Ask Atlas</button><h3>Grants</h3>${state.grants.map(g=>`<section class="atlas-grant"><h4>${g.active?'Active':g.revokedAt?'Revoked':'Expired'} · ${esc(g.scope)}</h4><p>${g.areas.map(a=>AREA_LABELS[a]).join(', ')} · ${g.expires?'Expires '+esc(g.expires):'Standing · no expiry'}</p><code>${esc(g.id)}</code>${g.active?`<details><summary>Narrow by hand</summary><form data-atlas-narrow="${esc(g.id)}">${g.areas.map(a=>`<label><input type="checkbox" name="area" value="${a}" checked>${AREA_LABELS[a]}</label>`).join('')}<label>Scope<select name="scope">${ATLAS_SCOPES.slice(0,ATLAS_SCOPES.indexOf(g.scope)+1).map(s=>`<option ${s===g.scope?'selected':''}>${s}</option>`).join('')}</select></label><button>Narrow grant · record receipt</button></form></details><button data-atlas-revoke="${esc(g.id)}">Revoke grant</button>`:''}</section>`).join('')||'<p>No grants on file.</p>'}<h3>Initiative by area</h3>${Object.entries(AREA_LABELS).map(([area,label])=>{const e=state.envelopes[area];return `<section><h4>${label} · ${e?.posture??'Not set'}</h4>${e?`<p>User’s specification: ${esc(e.specification)}</p><p>${esc(intentWords(e))}</p><code>${esc(e.receipt)}</code>`:'<p>Atlas is not attending this area. You may still ask directly.</p>'}</section>`;}).join('')}<p>Proactive specifications are recorded as your words. This local round has no background monitoring service; travel checks happen in an open trip. Ask Atlas to change an initiative setting.</p><p id="atlas-message" role="status"></p><details><summary>Your ${state.receipts.length} Atlas receipts</summary>${[...state.receipts].reverse().map(r=>`<article><strong>${esc(r.action.replaceAll('_',' '))}</strong><p>${esc(r.time)} · ${esc(r.actor)}</p><code>${esc(r.hash)}</code><pre>${esc(JSON.stringify(r.diff,null,2))}</pre></article>`).join('')}</details>`;

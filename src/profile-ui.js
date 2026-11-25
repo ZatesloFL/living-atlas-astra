@@ -18,7 +18,7 @@ export class ProfileUI {
     lens.addEventListener('pointerdown',e=>{held=false;start={x:e.clientX,y:e.clientY};timer=setTimeout(()=>{held=true;suppressReleaseClick=true;this.wheel();},500);});
     lens.addEventListener('pointermove',e=>{if(start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>14)clearTimeout(timer);});
     for(const name of ['pointerup','pointercancel','lostpointercapture'])lens.addEventListener(name,()=>{clearTimeout(timer);start=null;});
-    lens.addEventListener('contextmenu',e=>e.preventDefault());lens.onclick=e=>{if(held){e.preventDefault();held=false;return;}this.ui.lens();};
+    lens.addEventListener('contextmenu',e=>e.preventDefault());lens.onclick=e=>{if(held){e.preventDefault();held=false;return;}if(this.api.askAtlas)this.api.askAtlas();else this.ui.lens();};
     this.refresh();
   }
   async run(fn){try{await fn();this.refresh();if(this.store.storageWarning)this.ui.toast(this.store.storageWarning);}catch(e){this.ui.toast(e.message);}}

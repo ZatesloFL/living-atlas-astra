@@ -28,7 +28,7 @@ export class UI {
   constructor(api){
     this.api=api;this.mode=null;this.sheet=$('sheet');this.content=$('sheet-content');this.lastFocus=null;this.showOthers=false;this.softApproved=new Set();contentStore.subscribe(id=>{if(this.mode==='info'&&this.infoId===id)this.info(id,true);});
     $('sheet-close').onclick=()=>this.close();$('veil').onclick=()=>this.close();
-    $('lens-button').onclick=()=>this.lens();$('atlas-button').onclick=()=>this.atlas();$('location').onclick=()=>this.api.discover('board');
+    $('lens-button').onclick=()=>this.api.askAtlas?this.api.askAtlas():this.lens();$('atlas-button').onclick=()=>this.atlas();$('location').onclick=()=>this.api.discover('board');
     $('build-button').onclick=()=>this.api.openBuild();
     $('perf-toggle').onclick=()=>{$('performance').hidden=!$('performance').hidden;};
     $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else this.toast('Fullscreen is unavailable in this browser.');}catch{this.toast('Fullscreen was not granted. You can keep exploring.');}};
@@ -52,7 +52,7 @@ export class UI {
   lens(keepScroll=false){
     if(this.api.state().lens.preview){this.api.openBuild();return;}
     const scroll=keepScroll?this.content.scrollTop:0,l=this.api.state().lens;
-    if(!keepScroll)this.open('lens','The world, through your eyes','Your lens');
+    if(!keepScroll)this.open('lens','Inspector · your twelve dials','Your lens');
     const access=accessSettings(l),simulated=assuranceExplanation(l);
     const results=EDGES.map(e=>visibleEdge(e,l)),hidden=results.filter(r=>r.state==='hidden').length,doors=results.filter(r=>r.type==='door').length;
     this.content.innerHTML=`
