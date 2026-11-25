@@ -1,0 +1,10 @@
+const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');const arrival=require('./arrival-setup.cjs');const assert=require('node:assert/strict');const fs=require('node:fs/promises');
+(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader']});const p=await b.newPage({viewport:{width:900,height:650}});try{
+ await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8012/')+'?safe&test&ai=local');await p.locator('[name=age]').fill('30');await arrival(p,{preset:'Teen'});
+ await p.evaluate(()=>__atlas.go('boycott'));await p.locator('#travel-arrival').selectOption('inside');for(let n=0;n<8&&await p.locator('[data-preview]').count();n++){await p.locator('[data-preview]').first().click();await p.locator('[data-confirm]').click();}await p.locator('#travel-go').click();await p.waitForFunction(()=>!__atlas.travel.active);
+ const actual=await p.evaluate(()=>{const actor=__atlas.state().activeProfile;return Object.values(__atlas.access.data.ledgers).flat().filter(e=>e.actor===actor&&e.action==='access_used').map(e=>({hash:e.hash,time:e.time}));});
+ await p.locator('#profile-chip').click();await p.locator('#profile-crossings').click();assert.equal(await p.locator('.crossing-receipt').count(),actual.length);
+ const rendered=await p.locator('.crossing-receipt').allTextContents();for(const e of actual){assert(rendered.some(s=>s.includes(e.hash)));assert.equal(await p.locator(`.crossing-receipt time[datetime="${e.time}"]`).count()>0,true);}
+ await p.locator('#verify-crossings').click();await p.waitForFunction(()=>document.querySelector('#crossing-verification').textContent.startsWith('Verified'));const verification=await p.locator('#crossing-verification').innerText();
+ await fs.writeFile('lane/evidence/crossing-history-2026-11-25.json',JSON.stringify({actual,rendered,verification},null,2)+'\n');console.log('PASS profile Manage opens actual timestamped holder crossings and verifies chains');
+ }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

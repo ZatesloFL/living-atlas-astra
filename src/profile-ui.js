@@ -1,3 +1,4 @@
+import {openCrossingHistory} from './crossing-history.js';
 import {ArrivalFlow} from './arrival-ui.js';
 import {PRESETS} from './data.js';
 import {GROUPS} from './profiles.js';
@@ -39,7 +40,7 @@ export class ProfileUI {
       <label>Profile name<input id="profile-name" maxlength="40" value="${esc(current?.name??'My profile')}" autocomplete="off"></label></div>
       <button id="profile-save-as" class="primary">Save current view as a new profile</button>
       ${current&&!current.seed?'<div class="form-columns"><button id="profile-rename" class="secondary">Rename this profile</button><button id="profile-delete" class="secondary">Delete this profile</button></div>':''}
-      <div id="delete-confirm"></div><button id="profile-history" class="secondary">Profile receipts · ${this.store.entries.filter(e=>e.action==='profile_switched').length} switches</button><button id="open-test" class="secondary">Developer test panel</button>
+      <div id="delete-confirm"></div><button id="profile-crossings" class="secondary">Your crossing receipts</button><button id="profile-history" class="secondary">Profile receipts · ${this.store.entries.filter(e=>e.action==='profile_switched').length} switches</button><button id="open-test" class="secondary">Developer test panel</button>
       ${this.store.active()?.dialsMigrated?'<p class="reason">Your saved scalar limits now apply to both amount and graphicness. Adjust either dial in Lens whenever you want.</p>':''}${this.store.storageWarning?`<p class="reason">${esc(this.store.storageWarning)}</p>`:''}`;
     this.ui.content.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>this.run(()=>this.choose(b.dataset.profile)));
     $('profile-arrival')?.addEventListener('click',()=>this.run(()=>this.setup(current)));
@@ -47,7 +48,7 @@ export class ProfileUI {
     $('profile-save-as').onclick=()=>this.run(async()=>{await this.store.saveAs($('profile-name').value);await this.api.apply();this.switcher();this.ui.toast('Profile saved.');});
     if($('profile-rename'))$('profile-rename').onclick=()=>this.run(async()=>{await this.store.rename(current.id,$('profile-name').value);await this.api.apply();this.switcher();});
     if($('profile-delete'))$('profile-delete').onclick=()=>{$('delete-confirm').innerHTML='<p class="reason">Delete this saved profile? Its existing receipts remain in history.</p><button id="delete-yes" class="secondary">Delete profile</button><button id="delete-no" class="secondary">Keep profile</button>';$('delete-no').onclick=()=>$('delete-confirm').replaceChildren();$('delete-yes').onclick=()=>this.run(async()=>{await this.store.remove(current.id);await this.api.apply();if(this.store.completed)this.switcher();else this.setup();});};
-    $('profile-history').onclick=()=>this.history();$('open-test').onclick=()=>this.testPanel();this.refresh();
+    $('profile-crossings').onclick=()=>this.run(()=>openCrossingHistory(this.ui,this.api.state().access,()=>this.api.state().lens));$('profile-history').onclick=()=>this.history();$('open-test').onclick=()=>this.testPanel();this.refresh();
   }
   wheel(){
     if(!this.store.completed)return;

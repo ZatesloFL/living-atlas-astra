@@ -1,0 +1,27 @@
+{
+  "actual": [
+    {
+      "hash": "778fc9a316d32760e231ce000ac823532f29e573806943d84d80687744b899c6",
+      "time": "2026-11-25T18:45:10.686Z"
+    },
+    {
+      "hash": "9c85d6f3dee7eeb9cadaddc949a78ab232424ab2f6a4d69607081735fa386cae",
+      "time": "2026-11-25T18:45:18.113Z"
+    },
+    {
+      "hash": "0ff190522e0f11db14ace4c43fd423acf5f97b27ae1f66a7fb5353977fa1078a",
+      "time": "2026-11-25T18:45:06.531Z"
+    },
+    {
+      "hash": "43fbb5b02701e9d3b840e75b146560a0f68f3aee38b677e9340b382051ad0308",
+      "time": "2026-11-25T18:45:18.113Z"
+    }
+  ],
+  "rendered": [
+    "The 1956 bus boycott2026-11-25 18:45:18.113 UTCEnter crossing · fast travelPlace: tallahassee/1956 · Grant: public9c85d6f3dee7eeb9cadaddc949a78ab232424ab2f6a4d69607081735fa386caeReceipt contents{\n  \"id\": 4,\n  \"prevHash\": \"d98eae6c349385500759a185295ec725546b4ebe7ef340f7ed8014cb65596acf\",\n  \"actor\": \"84b206ee-1a08-411f-ae33-1ee5b1f46203\",\n  \"action\": \"access_used\",\n  \"time\": \"2026-11-25T18:45:18.113Z\",\n  \"diff\": {\n    \"scope\": \"enter\",\n    \"grant\": \"public\",\n    \"approvedBy\": \"room author\",\n    \"name\": \"My space\",\n    \"agent\": false,\n    \"via\": \"fast travel\",\n    \"arrival\": \"inside\"\n  },\n  \"hash\": \"9c85d6f3dee7eeb9cadaddc949a78ab232424ab2f6a4d69607081735fa386cae\"\n}",
+    "Welcome to Tallahassee2026-11-25 18:45:18.113 UTCEnter crossing · fast travelPlace: tallahassee · Grant: public43fbb5b02701e9d3b840e75b146560a0f68f3aee38b677e9340b382051ad0308Receipt contents{\n  \"id\": 1,\n  \"prevHash\": \"0000000000000000000000000000000000000000000000000000000000000000\",\n  \"actor\": \"84b206ee-1a08-411f-ae33-1ee5b1f46203\",\n  \"action\": \"access_used\",\n  \"time\": \"2026-11-25T18:45:18.113Z\",\n  \"diff\": {\n    \"scope\": \"enter\",\n    \"grant\": \"public\",\n    \"approvedBy\": \"room author\",\n    \"name\": \"My space\",\n    \"agent\": false,\n    \"via\": \"fast travel\",\n    \"arrival\": \"inside\"\n  },\n  \"hash\": \"43fbb5b02701e9d3b840e75b146560a0f68f3aee38b677e9340b382051ad0308\"\n}",
+    "Town Square2026-11-25 18:45:10.686 UTCLook crossing · fast travelPlace: square · Grant: public778fc9a316d32760e231ce000ac823532f29e573806943d84d80687744b899c6Receipt contents{\n  \"id\": 3,\n  \"prevHash\": \"afb7c219ea1c3a4da9951c77192853e146d9f82ffb464beb79ff7324f73bda96\",\n  \"actor\": \"84b206ee-1a08-411f-ae33-1ee5b1f46203\",\n  \"action\": \"access_used\",\n  \"time\": \"2026-11-25T18:45:10.686Z\",\n  \"diff\": {\n    \"scope\": \"look\",\n    \"grant\": \"public\",\n    \"approvedBy\": \"room author\",\n    \"name\": \"My space\",\n    \"agent\": false,\n    \"via\": \"fast travel\",\n    \"arrival\": \"door\"\n  },\n  \"hash\": \"778fc9a316d32760e231ce000ac823532f29e573806943d84d80687744b899c6\"\n}",
+    "My space’s space2026-11-25 18:45:06.531 UTCEnter crossingPlace: home/84b206ee-1a08-411f-ae33-1ee5b1f46203 · Grant: owner0ff190522e0f11db14ace4c43fd423acf5f97b27ae1f66a7fb5353977fa1078aReceipt contents{\n  \"id\": 2,\n  \"prevHash\": \"220b96b0b9500233c76c12b810ef9d7c4e123b878a6f402617ee96e386e9cf2a\",\n  \"actor\": \"84b206ee-1a08-411f-ae33-1ee5b1f46203\",\n  \"action\": \"access_used\",\n  \"time\": \"2026-11-25T18:45:06.531Z\",\n  \"diff\": {\n    \"scope\": \"enter\",\n    \"visit\": false,\n    \"grant\": \"owner\",\n    \"approvedBy\": \"84b206ee-1a08-411f-ae33-1ee5b1f46203\",\n    \"name\": \"My space\",\n    \"agent\": false\n  },\n  \"hash\": \"0ff190522e0f11db14ace4c43fd423acf5f97b27ae1f66a7fb5353977fa1078a\"\n}"
+  ],
+  "verification": "Verified 4 complete Place receipt chains. Only your 4 crossings are displayed."
+}
