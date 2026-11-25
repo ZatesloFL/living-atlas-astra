@@ -1,3 +1,4 @@
+import {unsetDials} from './lens-state.js';
 import {addInteriors} from './interior-data.js';
 import {addCommunityRooms} from './community-data.js';
 import {addExhibits} from './exhibit-data.js';
@@ -89,5 +90,5 @@ export const PRESETS = {
   Everything:{limits:scores(Object.fromEntries(DIMENSIONS.map(([k])=>[k,pair(3,3)]))),hard:Object.fromEntries(DIMENSIONS.map(([k])=>[k,pair(null,null)]))},
 };
 export function createLens() {
-  return {viewAs:'me',identity:{display:'real',backing:'none'},age:25,isAgent:false,preset:'Adult',limits:structuredClone(PRESETS.Adult.limits),hard:structuredClone(PRESETS.Adult.hard),show:{real:true,pseudonym:true,anonymous:true,agent:true}};
+  return {viewAs:'me',identity:{display:'real',backing:'none'},age:25,isAgent:false,preset:null,limits:unsetDials(),hard:unsetDials(),show:{real:true,pseudonym:true,anonymous:true,agent:true}};
 }

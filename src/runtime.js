@@ -137,7 +137,7 @@ function loop(time){
 function staticControls(){
   const position=new THREE.Vector3(0,1.88,SPAWN_Z);const fallback={position,smoothYaw:0,reduced:reducedQuery.matches,resetInput(){},update(){},apply(){camera.position.copy(position);camera.rotation.set(.065,0,0,'YXZ');},teleport(x,z,yaw=0){position.set(x,1.88,z);this.smoothYaw=yaw;camera.position.copy(position);camera.rotation.set(.065,yaw,0,'YXZ');}};fallback.apply();return fallback;
 }
-async function readingAge(age){if(!profiles.completed){await profiles.setup({name:'My reading visit',age,preset:age<13?'Kids':'Teen',depth:'Standard',form:'page',display:'anonymous'});lens=currentLens();}return lens;}
+async function readingAge(age){if(!profiles.completed){await profiles.setup({name:'My reading visit',age,depth:'Standard',form:'page',display:'anonymous'});lens=currentLens();}return lens;}
 function focusRoom(id,approved=false){
   const r=ROOMS[id];if(!r?.layout||roomEntry(id,lens,EDGES).state==='hidden')return;
   if(r.layout.interior){const landing=spatialArrival(id,'door');stopMedia();if(kind!==landing.scene)rebuild(landing.scene);controls.teleport(...landing.position,landing.facing);place=null;selectedRoom=id;updateContext();return;}

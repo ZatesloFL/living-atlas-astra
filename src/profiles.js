@@ -3,11 +3,12 @@ import {asPair,asHard,validPair} from './scores.js';
 import {discoveryDefaults,discoveryState} from './discovery-state.js';
 import {PRESETS,DIMENSIONS} from './data.js';
 import {appendEntry,verifyChain} from './ledger.js';
+import {unsetDials,personalPair} from './lens-state.js';
 export const STORAGE_KEY='living-atlas.profiles.v4';
 export const GROUPS=[['family','Family','made'],['writing-circle','Writing circle','made'],['tallahassee-resident','Verified Tallahassee resident','credential'],['neighborhood','My neighborhood','credential']];
 const clone=value=>structuredClone(value);
 export function makeProfile(name,extra={}){
-  return {id:crypto.randomUUID(),name,identity:{display:'pseudonym',backing:'none'},age:18,preset:'Teen',limits:clone(PRESETS.Teen.limits),hard:clone(PRESETS.Teen.hard),show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],layerConsents:{},layerMode:'Core only',layerTypes:['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'],itemStyles:{},discovery:discoveryDefaults(),standingPreferences:standingPreferences(),groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
+  return {id:crypto.randomUUID(),name,identity:{display:'pseudonym',backing:'none'},age:18,preset:null,limits:unsetDials(),hard:unsetDials(),show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],layerConsents:{},layerMode:'Core only',layerTypes:['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'],itemStyles:{},discovery:discoveryDefaults(),standingPreferences:standingPreferences(),groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
 }
 export function seedProfiles(){
   const base=(id,name,preset,extra={})=>makeProfile(name,{id,seed:true,isTest:true,preset,limits:clone(PRESETS[preset].limits),hard:clone(PRESETS[preset].hard),...extra});
@@ -17,8 +18,8 @@ function sanitize(p){
   if(!p||typeof p.id!=='string'||typeof p.name!=='string'||!p.name.trim()||!Number.isFinite(p.age))return null;
   const out=makeProfile(p.name.trim().slice(0,40));out.id=p.id.slice(0,100);out.age=Math.max(0,Math.min(120,Math.floor(p.age)));out.seed=seedIds.has(out.id);if(out.id==='seed-child')out.name='Under-13 rejection fixture';
   out.identity={display:['anonymous','pseudonym','real'].includes(p.identity?.display)?p.identity.display:'anonymous',backing:p.identity?.backing==='verified'?'verified':'none'};
-  out.preset=[...Object.keys(PRESETS),'Custom'].includes(p.preset)?p.preset:'Teen';
-  for(const [k] of DIMENSIONS){const l=asPair(p.limits?.[k]),h=asHard(p.hard?.[k]);out.limits[k]=validPair(l)?l:clone(PRESETS.Teen.limits[k]);out.hard[k]=validPair(h,{nullable:true})?h:clone(PRESETS.Teen.hard[k]);}
+  out.preset=[...Object.keys(PRESETS),'Custom'].includes(p.preset)?p.preset:null;
+  for(const [k] of DIMENSIONS){const l=personalPair(p.limits?.[k]),h=personalPair(p.hard?.[k]);out.limits[k]=validPair(l,{nullable:true})?l:unsetDials()[k];out.hard[k]=validPair(h,{nullable:true})?h:unsetDials()[k];}
   if(p.homePlaceId==='home/'+p.id){out.homePlaceId=p.homePlaceId;out.arrivalId=p.arrivalId;}
   out.dialsMigrated=p.dialsMigrated||Object.values(p.limits??{}).some(v=>typeof v==='number');
   for(const k of ['real','pseudonym','anonymous','agent'])out.show[k]=p.show?.[k]!==false;
@@ -46,7 +47,7 @@ export class ProfileStore {
     this.ready=verifyChain(this.entries).then(result=>{this.chain=result;return result;}).catch(()=>{this.chain={valid:false,count:this.entries.length};return this.chain;});
   }
   active(){return this.profiles.find(p=>p.id===this.activeId);}
-  current(){const base=this.active()??makeProfile('Visitor',{age:0,preset:'Kids',limits:clone(PRESETS.Kids.limits),hard:clone(PRESETS.Kids.hard)});return {...clone(base),...clone(this.override??{}),identity:{...base.identity,...this.override?.identity},profileId:base.id,profileName:base.name,viewAs:(this.override?.isAgent??base.isAgent)?'agent':'profile',testMode:this.testActive()};}
+  current(){const base=this.active()??makeProfile('Profile not set up',{age:0});return {...clone(base),...clone(this.override??{}),identity:{...base.identity,...this.override?.identity},profileId:base.id,profileName:base.name,viewAs:(this.override?.isAgent??base.isAgent)?'agent':'profile',testMode:this.testActive()};}
   testActive(){const p=this.active();return !!this.override||!!p?.isTest||p?.identity.backing==='verified'||p?.playAs==='owner'||!!p?.groups.length;}
   persist(){
     try{const storage=this.storage();if(!storage)throw new Error('Storage unavailable');storage.setItem(STORAGE_KEY,JSON.stringify({version:1,completed:this.completed,profiles:this.profiles,activeId:this.activeId,regularId:this.regularId,entries:this.entries}));this.storageWarning='';return true;}
@@ -66,7 +67,7 @@ export class ProfileStore {
       for(const [key,value] of Object.entries({preset,limits,hard,depth,form}))if(value!==undefined)existing[key]=clone(value);
       this.override=null;this.persist();return existing;
     }
-    const base=PRESETS[preset]??PRESETS.Teen;const p=makeProfile(name?.trim().slice(0,40)||'My visit',{...(id?{id}:{}),age,preset,limits:clone(limits??base.limits),hard:clone(hard??base.hard),depth,form,identity:{display,backing:'none'},...(homePlaceId?{homePlaceId,arrivalId}:{} )});
+    const base=PRESETS[preset];const p=makeProfile(name?.trim().slice(0,40)||'My visit',{...(id?{id}:{}),age,preset:preset??null,limits:clone(limits??base?.limits??unsetDials()),hard:clone(hard??base?.hard??unsetDials()),depth,form,identity:{display,backing:'none'},...(homePlaceId?{homePlaceId,arrivalId}:{} )});
     await this.record('profile_created',{profile:p.id,name:p.name});await this.record('profile_switched',{from:this.activeId,to:p.id});
     this.profiles.push(p);this.activeId=this.regularId=p.id;this.completed=true;this.override=null;this.persist();return p;
   });}

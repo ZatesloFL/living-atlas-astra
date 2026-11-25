@@ -1,0 +1,33 @@
+{
+  "firstLine": "Your account is not yet age-verified. Adult-range doors stay closed until it is.",
+  "arrivalPreset": "",
+  "selectedPresetCount": 0,
+  "reloadedUnset": true,
+  "limits": {
+    "violence": {
+      "amount": null,
+      "graphicness": null
+    },
+    "sexual": {
+      "amount": null,
+      "graphicness": null
+    },
+    "language": {
+      "amount": null,
+      "graphicness": null
+    },
+    "disturbing": {
+      "amount": null,
+      "graphicness": null
+    },
+    "viewpoint": {
+      "amount": null,
+      "graphicness": null
+    },
+    "sensory": {
+      "amount": null,
+      "graphicness": null
+    }
+  },
+  "errors": []
+}
