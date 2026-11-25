@@ -1,0 +1,126 @@
+{
+  "status": {
+    "mode": "3d",
+    "renderMode": "unshadowed",
+    "shadows": false,
+    "safe": true,
+    "scene": "hall:boycott",
+    "room": "boycott",
+    "fps": 12,
+    "drawCalls": 10,
+    "dpr": 0.85,
+    "triangles": 1964,
+    "position": {
+      "x": 0,
+      "z": 8.4
+    },
+    "reducedMotion": false
+  },
+  "items": [
+    {
+      "id": "staff:boycott:docent-silver",
+      "geometry": "BoxGeometry",
+      "position": [
+        1.4700000286102295,
+        0.3100000023841858,
+        3.200000047683716
+      ],
+      "scale": [
+        0.17000000178813934,
+        0.6200000047683716,
+        0.20000000298023224
+      ]
+    },
+    {
+      "id": "staff:boycott:docent-silver",
+      "geometry": "BoxGeometry",
+      "position": [
+        1.2899999618530273,
+        1.0199999809265137,
+        3.200000047683716
+      ],
+      "scale": [
+        0.11999999731779099,
+        0.5799999833106995,
+        0.15000000596046448
+      ]
+    },
+    {
+      "id": "staff:boycott:docent-silver",
+      "geometry": "BoxGeometry",
+      "position": [
+        1.7300000190734863,
+        0.3100000023841858,
+        3.200000047683716
+      ],
+      "scale": [
+        0.17000000178813934,
+        0.6200000047683716,
+        0.20000000298023224
+      ]
+    },
+    {
+      "id": "staff:boycott:docent-silver",
+      "geometry": "BoxGeometry",
+      "position": [
+        1.909999966621399,
+        1.0199999809265137,
+        3.200000047683716
+      ],
+      "scale": [
+        0.11999999731779099,
+        0.5799999833106995,
+        0.15000000596046448
+      ]
+    },
+    {
+      "id": "staff:boycott:docent-silver",
+      "geometry": "CylinderGeometry",
+      "position": [
+        1.600000023841858,
+        1.0199999809265137,
+        3.200000047683716
+      ],
+      "scale": [
+        0.25,
+        0.699999988079071,
+        0.1899999976158142
+      ]
+    },
+    {
+      "id": "staff:boycott:docent-silver",
+      "geometry": "IcosahedronGeometry",
+      "position": [
+        1.600000023841858,
+        1.5800000429153442,
+        3.200000047683716
+      ],
+      "scale": [
+        0.1899999976158142,
+        0.2199999988079071,
+        0.1899999976158142
+      ]
+    },
+    {
+      "id": "staff:boycott:docent-silver",
+      "geometry": "OctahedronGeometry",
+      "position": [
+        1.600000023841858,
+        1.9800000190734863,
+        3.200000047683716
+      ],
+      "scale": [
+        0.10000000149011612,
+        0.12999999523162842,
+        0.10000000149011612
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "text": "◇ MaraAgent · verified person operates it · operator Nic · simulation",
+      "hidden": false,
+      "display": "block"
+    }
+  ]
+}
