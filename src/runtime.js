@@ -186,15 +186,15 @@ const audienceBadge=document.createElement('aside');audienceBadge.id='audience-h
 function experienceChanged(next){if(next.preview){ui.toast('Exit Preview as to save changes.');return;}profiles.preferences(next);lens=currentLens();rebuild();profileUI.refresh();}
 function applyPreview(config){travel?.cancel();place=null;waypoint=null;previewState=config;lens=currentLens();if(config.split){if(previewRatio===null)previewRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}else if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
 function exitPreview(){previewState=null;place=null;lens=currentLens();if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
-function showBuildStage({roomKey,draft,selectedId,camera:mode,preview,lens:ownerLens}){
- const sceneKey=JSON.stringify([roomKey,draft.pieces,preview?.assessment?.receipt?.id,preview?.split,preview?.diff]);
+function showBuildStage({roomKey,draft,selectedId,camera:mode,preview,lens:ownerLens,mapping}){
+ const sceneKey=JSON.stringify([roomKey,draft.pieces,preview?.assessment?.receipt?.id,preview?.split,preview?.diff,mapping?.sourceId]);
  if(sceneKey!==stageCache?.key){
   if(!builderStage.active){travel?.cancel();transition=null;controls.resetInput();stopMedia();}
   const room=builder.roomFor(roomKey,ownerLens,draft),scene=room.layout.interior?.scene??room.layout.scene;
   const layout=room.layout.interior?{...room.layout.interior,slot:[0,0],facing:0,scale:1}:room.layout;
   const left=preview?.left??ownerLens;
   const next=withBuilderRoom(roomKey,room,()=>new World(scene,left,reducedQuery.matches,
-    preview?.diff?preview.right:null,{roomKey,editing:!preview,allowed:preview?new Set(preview.assessment?.checks?.shown??[]):null}));
+    preview?.diff?preview.right:null,{roomKey,editing:!preview,mapping,allowed:preview?new Set(preview.assessment?.checks?.shown??[]):null}));
   stageComparison?.dispose();stageComparison=null;
   if(preview?.split){
    const allowed=new Set(builder.inspect(roomKey,room,preview.right).shown);
@@ -273,6 +273,6 @@ if(profiles.completed&&lens.form==='page')openPage(context.room);
 const initialRoom=diag.params.get('room');if(initialRoom&&ROOMS[initialRoom]&&profiles.completed&&initialRoom!==context.room)readRoom(initialRoom,false);
 const invite=diag.params.get('invite');if(invite){const g=access.data.grants.find(g=>g.id===invite&&g.kind==='invite'&&g.to.person===lens.profileId&&!g.revokedAt&&(!g.expires||Date.parse(g.expires)>Date.now()));const id=g&&Object.keys(ROOMS).find(id=>ROOMS[id].id===g.room);if(id)startTravel(id);else ui.toast('This local invite is missing, expired, or addressed to another profile.');}
 if(new URLSearchParams(location.search).has('test')){
-  window.__atlas={staff,staffUI,discovery,community:communityUI,travel,access,build:buildUI,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
+  window.__atlas={staff,staffUI,discovery,community:communityUI,travel,access,build:buildUI,buildScene:()=>builderStage.world?.scene,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
 }
 }

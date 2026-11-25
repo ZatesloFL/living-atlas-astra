@@ -190,19 +190,33 @@ export class Builder {
 
   placeSource(roomKey,lens,reference,position=null) {
     return this.edit(roomKey,lens,(draft,room)=>{
-      const occupied=[...draft.pieces.map(piece=>piece.transform.position),
-        ...(sourcedRoom(room,lens).sourcePlacements??[]).map(piece=>[piece.position[0],0,piece.position[1]])];
-      let local=position;
-      if(!local){
-        for(let index=0;index<21;index++){
-          const x=((index%3)-1)*2.9,z=-Math.floor(index/3)*2.8-1.5;
-          if(occupied.every(([px,,pz])=>Math.hypot(px-x,pz-z)>1.7)){local=[x,0,z];break;}
-        }
-      }
-      if(!local)throw new Error('Move a piece to make room on the source shelves.');
-      const placed=makeSourcePiece(room,lens,reference,{id:id(),position:local});
+      const placed=this.prospectiveSourcePiece(room,lens,draft.pieces,reference,position);
       if(!draft.pieces.some(piece=>piece.kind===placed.kind&&piece.ref?.thingId===placed.ref.thingId))draft.pieces.push(placed);
     });
+  }
+
+  previewSource(roomKey,lens,reference,position) {
+    const draft=this.open(roomKey,lens),room=ROOMS[roomKey];
+    const existing=makeSourcePiece(room,lens,reference,{id:id(),position:position??[0,0,0]});
+    if(draft.pieces.some(piece=>piece.kind===existing.kind&&piece.ref?.thingId===existing.ref.thingId)){
+      throw new Error('That source already has a place in this draft. Move it from the inspector.');
+    }
+    const piece=this.prospectiveSourcePiece(room,lens,draft.pieces,reference,position);
+    return {draft:{...draft,pieces:[...draft.pieces,piece]},piece};
+  }
+
+  prospectiveSourcePiece(room,lens,pieces,reference,position) {
+    const occupied=[...pieces.map(piece=>piece.transform.position),
+      ...(sourcedRoom(room,lens).sourcePlacements??[]).map(piece=>[piece.position[0],0,piece.position[1]])];
+    let local=position;
+    if(!local){
+      for(let index=0;index<21;index++){
+        const x=((index%3)-1)*2.9,z=-Math.floor(index/3)*2.8-1.5;
+        if(occupied.every(([px,,pz])=>Math.hypot(px-x,pz-z)>1.7)){local=[x,0,z];break;}
+      }
+    }
+    if(!local)throw new Error('Move a piece to make room on the source shelves.');
+    return makeSourcePiece(room,lens,reference,{id:id(),position:local});
   }
 
   update(roomKey,lens,pieceId,patch) {

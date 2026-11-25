@@ -89,7 +89,10 @@ export class World {
       const own=editing||visible(id,this.lens),other=this.diffLens&&visible(id,this.diffLens),rights=permission(original,this.lens),ghost=!own&&other&&rights.visibility==='public';
       if(!own&&!ghost)continue;
       const viewLens=ghost?this.diffLens:this.lens;
-      const r=sourcedRoom(editing?original:viewRoom(original,viewLens),viewLens),style=itemStyle(r,viewLens);
+      let r=sourcedRoom(editing?original:viewRoom(original,viewLens),viewLens);
+      if(editing&&build.mapping)r={...r,blocks:[...r.blocks,...build.mapping.blocks],
+        sourcePlacements:[...r.sourcePlacements??[],...build.mapping.placements]};
+      const style=itemStyle(r,viewLens);
       if(!this.hall&&r.layout.interior&&rights.canLook&&!ghost){drawFrontage(this,r,id);this.renderedRooms.push({id,frontage:true,version:r.version?.id,style});continue;}
       const layout=this.hall?exhibitSpace(r):r.layout;
       this.placement={scale:1,facing:0,...layout,style,ghost};if(rights.canLook){if(this.hall)Object.assign(this.placement,exhibitSpace(r,style.scale));else this.placement.scale*=style.scale;}

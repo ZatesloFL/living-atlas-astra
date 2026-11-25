@@ -3,6 +3,7 @@ import {videoReference} from './source-media.js';
 import {AXES, DIMENSIONS, validPair} from './scores.js';
 import {uploadAccept, uploadLimitLabel} from './upload-client.js';
 import {PHOTO_DESCRIPTION_LIMIT, PHOTO_SCORE_MODEL, uploadScoreBasis, validPhotoObservation, validPhotoRecordId} from './upload-scores.js';
+import {SourceConversationUI, confirmedSourceScores} from './source-conversation-ui.js';
 
 const proposalKey = 'living-atlas.upload-proposals.v1';
 const modeLabels = {live: 'Live reference', indexed: 'Fed by the source', snapshot: 'Snapshot'};
@@ -99,23 +100,50 @@ export class SourcesUI {
   createDialog() {
     styleSheet();
     const dialog = document.createElement('dialog');
-    dialog.className = 'sources-ui';
+    dialog.className = 'sources-ui sources-dialog';
     dialog.setAttribute('aria-labelledby', 'sources-dialog-title');
     dialog.innerHTML = `<header class="sources-header">
       <div><h2 id="sources-dialog-title">Connected sources</h2><p data-current-place></p></div>
       <button type="button" data-command="close" aria-label="Close connected sources">Close</button>
-    </header><p class="source-feedback" role="status" aria-live="polite" data-feedback></p>
+    </header><nav class="source-nav" aria-label="Connected sources views">
+      <button type="button" data-sources-tab="conversation">Ask the Atlas</button>
+      <button type="button" data-sources-tab="inspector">Source inspector</button>
+    </nav><p class="source-feedback" role="status" aria-live="polite" data-feedback></p>
+    <input type="file" data-source-attachment accept="${uploadAccept}" hidden>
     <div class="sources-content"></div>`;
     this.dialog = dialog;
     this.content = dialog.querySelector('.sources-content');
     this.feedback = dialog.querySelector('[data-feedback]');
+    this.fileInput = dialog.querySelector('[data-source-attachment]');
+    this.fileInput.addEventListener('change', () => {
+      const [file] = this.fileInput.files;
+      this.fileInput.value = '';
+      if (file && this.tab==='conversation' && this.uploadAvailable) {
+        void this.runChat(() => this.conversation.attach(file), 'Uploading…');
+      }
+    });
     dialog.addEventListener('click', event => {
+      const tab = event.target.closest('button[data-sources-tab]');
+      if (tab && !this.busy && tab.dataset.sourcesTab !== this.tab) {
+        this.tab = tab.dataset.sourcesTab;
+        this.clearReview();
+        this.editor = null;
+        this.render();
+        return;
+      }
+      if (event.target.closest('[data-source-attach]')) {
+        if (!this.busy && this.uploadAvailable) this.fileInput.click();
+        return;
+      }
       const button = event.target.closest('button[data-command]');
       if (button && dialog.contains(button)) void this.handleCommand(button);
     });
     dialog.addEventListener('submit', event => {
       event.preventDefault();
-      void this.handleForm(event.target);
+      if (event.target.matches('[data-source-chat]')) {
+        const message = new FormData(event.target).get('message');
+        if (typeof message === 'string' && message.trim()) void this.runChat(() => this.conversation.ask(message));
+      } else void this.handleForm(event.target);
     });
     dialog.addEventListener('toggle', event => {
       const sourceId = event.target.dataset?.sourceDetail;
@@ -127,9 +155,11 @@ export class SourcesUI {
       if (this.busy) event.preventDefault();
     });
     dialog.addEventListener('close', () => {
+      if (dialog.open) return;
       this.editor = null;
       this.pendingFile = null;
       this.clearReview();
+      this.endConversation();
     });
     document.body.append(dialog);
     return dialog;
@@ -140,8 +170,13 @@ export class SourcesUI {
     if (!context) return false;
     if (this.busy) return true;
     const dialog = this.dialog ?? this.createDialog();
+    if (dialog.open && this.context?.placeId === context.placeId && this.context?.actorId === context.actorId) return true;
+    this.endConversation();
     if (context.actorId !== this.context?.actorId) this.hosted = null;
     this.context = context;
+    this.tab = 'conversation';
+    this.conversation = new SourceConversationUI(this);
+    this.conversation.begin(context.room,context.lens);
     this.editor = null;
     this.pendingFile = null;
     this.clearReview();
@@ -154,6 +189,12 @@ export class SourcesUI {
       return '';
     }, 'Checking hosted storage…');
     return true;
+  }
+
+  endConversation() {
+    const previous = this.conversation;
+    this.conversation = null;
+    void previous?.end().catch(() => { /* The session cannot authorize further actions. */ });
   }
 
   status(message, error = false) {
@@ -175,8 +216,18 @@ export class SourcesUI {
       this.busy = false;
       this.content.inert = false;
       this.content.removeAttribute('aria-busy');
-      this.render();
+      if (this.dialog.open) this.render();
     }
+  }
+
+  async runChat(action, progress = 'The Atlas is working…') {
+    const conversation = this.conversation;
+    await this.run(async () => {
+      try { await action(); }
+      catch (error) { conversation.respond(error?.message ?? 'The source action could not be completed.'); }
+      return '';
+    },progress);
+    if (this.dialog.open) this.content.querySelector('[data-source-chat] input[name="message"]')?.focus();
   }
 
   emit(type, details = {}) {
@@ -189,6 +240,20 @@ export class SourcesUI {
 
   get uploadAvailable() {
     return !!this.uploads && this.uploads.available?.() !== false;
+  }
+
+  get hostedItems() {
+    return (this.hosted?.items ?? []).filter(item => item.placeId === this.context.placeId);
+  }
+
+  hostedItem(id) {
+    return this.hostedItems.find(item => item.id === id);
+  }
+
+  storageUsageLabel() {
+    const {usedBytes,allotmentBytes,reservedBytes} = this.hosted?.usage ?? {};
+    if (!Number.isSafeInteger(usedBytes) || !Number.isSafeInteger(allotmentBytes) || allotmentBytes <= 0) return 'Hosted storage usage unavailable';
+    return `${formatSourceBytes(usedBytes)} of ${formatSourceBytes(allotmentBytes)} used${reservedBytes > 0 ? ` · ${formatSourceBytes(reservedBytes)} reserved` : ''}`;
   }
 
   async refreshUploads() {
@@ -238,14 +303,52 @@ export class SourcesUI {
     return basis === 'text' && (proposal.basis ?? 'text') === 'text' ? proposal : null;
   }
 
+  async publishUpload(itemId, scores, {assessmentReceiptId} = {}) {
+    const pending = this.hostedItem(itemId);
+    const proposal = pending?.state === 'uploaded' && this.proposalFor(pending);
+    if (!proposal) throw new Error('Request a score proposal before confirming.');
+    if (assessmentReceiptId && proposal.proposalReceiptId !== assessmentReceiptId) throw new Error('The review changed. Request a fresh proposal before publishing.');
+    if (!pairsValid(scores)) throw new Error('Choose amount and graphicness for every dimension.');
+    let item;
+    try {
+      const result = proposal.basis !== 'text'
+        ? await this.uploads.publish(itemId, scores, {proposalReceiptId:proposal.proposalReceiptId})
+        : await this.uploads.publish(itemId, scores);
+      item = this.updateHostedItem(result);
+    } catch (error) {
+      if (proposal.basis !== 'text' && ['PHOTO_ASSESSMENT_REQUIRED','PHOTO_ASSESSMENT_MISMATCH','AUDIO_ASSESSMENT_REQUIRED','AUDIO_ASSESSMENT_MISMATCH'].includes(error?.code)) {
+        this.saveProposal(itemId, null);
+        throw new Error('Request a fresh proposal before publishing. Your upload is still unpublished.');
+      }
+      throw error;
+    }
+    this.saveProposal(item.id,null);
+    await this.emit('upload-published',{item});
+    // Publishing has committed. Project the returned record even if a usage reload fails.
+    await this.emit('uploads-listed',{items:this.hosted.items});
+    return item;
+  }
+
   render() {
     const scroll = this.content.scrollTop;
+    const conversation = this.tab === 'conversation';
+    for (const button of this.dialog.querySelectorAll('[data-sources-tab]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.sourcesTab === this.tab));
+    }
+    this.dialog.classList.toggle('sources-conversation-view',conversation);
+    if (conversation) {
+      this.content.innerHTML = this.conversation.render();
+      const log = this.content.querySelector('[data-source-chat-log]');
+      log.scrollTop = log.scrollHeight;
+      return;
+    }
     if (this.editor) {
       this.content.innerHTML = this.renderEditor();
     } else if (this.review) {
       this.content.innerHTML = this.renderReview();
     } else {
-      const views = this.sources.list(this.context.placeId, this.actor).map(source => this.sources.view(source.id, this.actor)).filter(Boolean);
+      const views = this.sources.list(this.context.placeId, this.actor)
+        .map(source => this.sources.view(source.id, {...this.actor,includeExcluded:true})).filter(Boolean);
       this.content.innerHTML = `${this.renderSources(views)}${this.renderUploads()}${this.renderOperator()}`;
     }
     this.content.scrollTop = scroll;
@@ -292,11 +395,18 @@ export class SourcesUI {
         ${source.writeEnabled ? '<p class="source-caption">Scoped mock write-back is active. Edits write a Receipt.</p>' : ''}
       ` : ''}
       ${items.length ? `<ul class="source-items">${items.map(item => this.renderItem(source, item, items)).join('')}</ul>` : '<p class="source-caption">No source items are available.</p>'}
+      ${source.owner === this.context.actorId ? command('disconnect-source', 'Disconnect source', {sourceId:id}) : ''}
     </details>`;
   }
 
   renderItem(source, item, items) {
     const folder = items.find(candidate => candidate.id === item.folderId);
+    const owner = source.owner === this.context.actorId;
+    const reference = {sourceId:source.id,itemId:item.id};
+    if (item.excluded) return `<li><strong>${esc(item.title)}</strong>
+      <small>Excluded from this Place</small>
+      ${owner ? command('include-item', 'Include in this Place', reference) : ''}
+    </li>`;
     const permittedEdits = ['rename','move','comment'].filter(op => source.writeOperations?.includes(op));
     return `<li><strong>${esc(item.title)}</strong>
       <small>${esc(folder?.title ?? item.kind ?? '')} · ${esc(rightsLabel(item.rights))}</small>
@@ -305,6 +415,7 @@ export class SourcesUI {
       ${item.editorURL ? command('open-editor', 'Open in Google Docs · simulation', {sourceId: source.id, itemId: item.id}) : ''}
       ${source.simulated && source.syncMode !== 'snapshot' && item.kind !== 'folder' ?
         command('availability', item.available === false ? 'Restore simulated reference' : 'Simulate unavailable reference', {sourceId:source.id,itemId:item.id}) : ''}
+      ${owner ? command('exclude-item', 'Exclude from this Place', reference) : ''}
       ${source.kind === 'drive' && permittedEdits.length && item.available !== false && item.kind !== 'folder' && item.editorURL ? `
         <details class="source-details"><summary>Write back to this mock file</summary>
           <form data-form="edit" data-source-id="${esc(source.id)}" data-item-id="${esc(item.id)}">
@@ -372,12 +483,15 @@ export class SourcesUI {
     const readable = ['uploaded','published'].includes(item.state);
     const deletable = ['reserved','uploaded','published','deleting'].includes(item.state);
     const deleteLabel = item.state === 'reserved' ? 'Cancel pending upload' : item.state === 'deleting' ? 'Retry deletion' : 'Delete hosted copy';
-    return `<li>
+    return `<li data-upload-id="${esc(item.id)}">
       <strong>${esc(item.filename)}</strong>
       <small>${esc(states[item.state] ?? 'Upload state unavailable')}${date && item.state!=='deleted' ? ' · uploaded copy, as of ' + date : ''}</small>
       ${item.state !== 'deleted' ? `<p>${formatSourceBytes((item.originalBytes ?? 0) + (item.previewBytes ?? 0))} including preview</p>` : ''}
       ${readable ? command('review-upload', 'Open copy for review', {itemId:item.id}) : ''}
       ${item.state==='published' && item.contentType.startsWith('image/') ? command('place-photo','Place in this room',{itemId:item.id}) : ''}
+      ${item.declarationReceiptId && pairsValid(item.scores) ? `<details class="source-details" data-confirmed-declaration><summary>Confirmed declaration</summary>
+        ${confirmedSourceScores(item.scores)}<p>Declaration Receipt <code>${esc(item.declarationReceiptId)}</code></p>
+      </details>` : ''}
       ${item.state === 'uploaded' ? (proposal ? `
         <form data-form="publish" data-item-id="${esc(item.id)}">
           <fieldset class="source-standing"><legend>Confirm declaration</legend>
@@ -481,6 +595,19 @@ export class SourcesUI {
         await this.emit('sources-changed', {sourceId});
         return 'Source sync checked.';
       }
+      if (['exclude-item','include-item','disconnect-source'].includes(action)) {
+        const source = this.sources.list(this.context.placeId,this.actor).find(item=>item.id===sourceId);
+        if (source?.owner !== this.context.actorId) throw new Error('Choose a source you own in this Place.');
+        if (action === 'disconnect-source') {
+          await this.sources.remove(sourceId,this.actor);
+          this.openSources.delete(sourceId);
+        } else {
+          await this.sources.setItemExcluded(sourceId,itemId,action==='exclude-item',this.actor);
+        }
+        await this.emit('sources-changed',{sourceId});
+        if (action === 'disconnect-source') return 'Source disconnected. A Receipt records the change.';
+        return action === 'exclude-item' ? 'Item excluded from this Place.' : 'Item included in this Place.';
+      }
       if (action === 'availability') {
         const item = this.sources.view(sourceId,this.actor)?.items.find(candidate=>candidate.id===itemId);
         if (!item) throw new Error('The simulated item is unavailable.');
@@ -578,28 +705,9 @@ export class SourcesUI {
         return 'Review both dials for each dimension, then confirm your declaration.';
       }
       if (action === 'publish') {
-        const pending = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.state === 'uploaded');
-        const proposal = pending && this.proposalFor(pending);
-        if (!pending || pending.placeId !== this.context.placeId || !proposal) throw new Error('Request a score proposal before confirming.');
         const scores = Object.fromEntries(DIMENSIONS.map(([key]) =>
           [key,Object.fromEntries(AXES.map(axis=>[axis,Number(values.get(key+'.'+axis))]))]));
-        if (!pairsValid(scores)) throw new Error('Choose amount and graphicness for every dimension.');
-        let item;
-        try {
-          const result = proposal.basis !== 'text'
-            ? await this.uploads.publish(itemId, scores, {proposalReceiptId: proposal.proposalReceiptId})
-            : await this.uploads.publish(itemId, scores);
-          item = this.updateHostedItem(result);
-        } catch (error) {
-          if (proposal.basis !== 'text' && ['PHOTO_ASSESSMENT_REQUIRED','PHOTO_ASSESSMENT_MISMATCH','AUDIO_ASSESSMENT_REQUIRED','AUDIO_ASSESSMENT_MISMATCH'].includes(error?.code)) {
-            this.saveProposal(itemId, null);
-            throw new Error('Request a fresh proposal before publishing. Your upload is still unpublished.');
-          }
-          throw error;
-        }
-        this.saveProposal(item.id, null);
-        await this.emit('upload-published', {item});
-        await this.refreshUploads();
+        await this.publishUpload(itemId,scores);
         return 'Declaration confirmed. The uploaded copy is published to this Place.';
       }
       return '';

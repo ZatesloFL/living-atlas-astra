@@ -79,6 +79,7 @@ async function mappedScene(page, placeId) {
     await connectedSources.click();
     const dialog = page.getByRole('dialog', {name: 'Connected sources'});
     assert.equal(await dialog.locator('[data-current-place]').innerText(), 'Drive room');
+    await dialog.getByRole('button', {name:'Source inspector',exact:true}).click();
     for (const [command, label] of [['add-gallery', 'Mock gallery'], ['add-drive', 'Mock Drive']]) {
       await dialog.locator('[data-command=' + command + ']').click();
       const source = dialog.locator('[data-source-detail]').filter({hasText: label});

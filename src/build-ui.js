@@ -102,22 +102,65 @@ export class BuildUI {
     this.sources = new SourcesUI({
       uploads: uploadClient,
       proposeScores: input => proposeUploadScores(ai,input),
-      onChange: async ({type,items,room,lens,reference}) => {
-        if(type==='source-placed'){
-          const roomKey=this.draft?.roomKey;
-          if(ROOMS[roomKey]?.id!==room.id||!this.builder)throw new Error('Open this Place in Build to place the source.');
-          const next=await this.builder.placeSource(roomKey,lens,reference);
-          this.applyDraft(next);
-          this.panel='outline';
-          this.renderStage();
-          this.render();
-        }
-        else if (type==='uploads-listed') recordUploadInventory(items,lens);
-        else if (type==='sources-changed' && this.api.sourceChanged) this.api.sourceChanged(room.id);
-        else contentStore.emit(room.id);
-      }
+      onChange:event=>this.sourceEvent(event)
     });
     this.mount();
+  }
+
+  async sourceEvent({type,items,room,lens,reference,position,plan,previewReceiptId}) {
+    if(type==='uploads-listed'){recordUploadInventory(items,lens);return;}
+    if(type==='sources-changed'){
+      if(this.api.sourceChanged)this.api.sourceChanged(room.id);
+      else contentStore.emit(room.id);
+      return;
+    }
+    if(type==='upload-published'||type==='upload-deleted'){contentStore.emit(room.id);return;}
+    if(type==='source-preview-clear'){
+      if(this.sourcePreview){this.sourcePreview=null;this.renderStage();}
+      return;
+    }
+    const roomKey=this.draft?.roomKey;
+    if(ROOMS[roomKey]?.id!==room.id||!this.builder)throw new Error('Open this Place in Build to change this draft.');
+    if(type==='source-preview'){
+      const preview=this.builder.previewSource(roomKey,lens,reference,position);
+      this.sourcePreview={draft:preview.draft,selectedId:preview.piece.id};
+      this.renderStage();
+      return {piece:preview.piece};
+    }
+    if(type==='source-mapping-preview'){
+      this.sourcePreview={draft:this.draft,mapping:plan};
+      this.renderStage();
+      return;
+    }
+    if(type==='source-placed'){
+      const next=await this.builder.placeSource(roomKey,lens,reference,position);
+      this.sourcePreview=null;
+      this.applyDraft(next);
+      this.panel='outline';
+      this.renderStage();
+      this.render();
+      return {draft:next};
+    }
+    if(type==='source-publish-preview'){
+      const draft=this.builder.open(roomKey,lens);
+      if(!draft.dirty)throw new Error('The draft has no changes to publish.');
+      const budget=this.builder.budget(roomKey,lens);
+      if(!budget.valid)throw new Error('The draft exceeds its room budget. Review the Inspector.');
+      const assessment=await this.builder.preview(roomKey,lens,this.selectedLens());
+      return {...assessment,budget};
+    }
+    if(type==='source-publish-confirmed'){
+      if(this.builder.open(roomKey,lens).preview?.id!==previewReceiptId){
+        throw new Error('The draft changed. Ask for a fresh publication proposal.');
+      }
+      const result=await this.builder.publish(roomKey,lens);
+      this.sourcePreview=null;
+      this.applyDraft(result.draft);
+      this.panel='outline';
+      this.renderStage();
+      this.render();
+      return result;
+    }
   }
 
   mount() {
@@ -218,6 +261,7 @@ export class BuildUI {
       this.panel = 'ask';
       this.selectedId = null;
       this.previewState = null;
+      this.sourcePreview = null;
       this.proposal = draft.proposals?.findLast(proposal=>proposal.status==='pending')??null;
       this.left = this.profiles.profiles.some(profile=>profile.id==='seed-visitor')?'seed-visitor':this.profiles.activeId;
       this.track = [];
@@ -260,8 +304,9 @@ export class BuildUI {
   renderStage() {
     if (!this.draft) return;
     this.api.stage?.({
-      roomKey: this.draft.roomKey, draft: this.draft, selectedId: this.selectedId,
-      camera: this.camera, preview: this.previewState, lens: this.lens
+      roomKey: this.draft.roomKey, draft: this.sourcePreview?.draft??this.draft,
+      selectedId: this.sourcePreview?.selectedId??this.selectedId,
+      camera: this.camera, preview: this.previewState, lens: this.lens, mapping:this.sourcePreview?.mapping
     });
     this.updateMode();
   }
@@ -737,10 +782,12 @@ export class BuildUI {
     const legacy=this.legacyPreview;
     const staged=!!this.draft;
     if (this.busy) return;
+    if(this.sources.dialog?.open)this.sources.dialog.close();
     this.active=false;
     this.draft=null;
     this.legacyPreview=false;
     this.previewState=null;
+    this.sourcePreview=null;
     this.placementKind=null;
     this.left=null;
     this.split=this.diff=false;
