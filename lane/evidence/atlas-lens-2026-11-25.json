@@ -1,5 +1,5 @@
 {
-  "proposal": "Proposal · not applied\n\nSet your Lens to Violence: amount 0, graphicness 0; Disturbing themes: amount 1, graphicness 1. Only these dimensions change. Hard locks and account assurance stay in force.\n\nProposal receipt: 132711ebde8420543b36677a96ae78bf5fa236368b8103d83c0f6dc9d43b2dff\n\nYes, confirm this proposalNo, leave it unchanged",
+  "proposal": "Proposal · not applied\n\nSet your Lens to Violence: amount 0, graphicness 0; Disturbing themes: amount 1, graphicness 1. Only these dimensions change. Hard locks and account assurance stay in force.\n\nProposal receipt: 304e1447deefe97b8904deedcd81828446adb6eb8285a836359039083bae6ccf\n\nYes, confirm this proposalNo, leave it unchanged",
   "before": {
     "violence": {
       "amount": null,
@@ -56,10 +56,10 @@
   "receipts": [
     {
       "id": 3,
-      "prevHash": "0e084888f62e8654f84cd326ec3ab149196d6dcb59a0cfa8d9c02e387077e541",
-      "actor": "8d460adc-c754-4143-b0e3-949dc7d5817f",
+      "prevHash": "afdaedd02313e2e1c26ab2114d5b541b59b6176f05302b8a5cc0275f22816f36",
+      "actor": "8bb01f6f-65ea-4af3-930a-99a4b03a7bba",
       "action": "lens_changed",
-      "time": "2026-11-25T18:57:30.108Z",
+      "time": "2026-11-25T19:27:10.582Z",
       "diff": {
         "before": {
           "violence": {
@@ -113,11 +113,11 @@
             "graphicness": null
           }
         },
-        "proposalReceipt": "132711ebde8420543b36677a96ae78bf5fa236368b8103d83c0f6dc9d43b2dff",
-        "confirmationReceipt": "f6a8eaec171a40cdf98399079e7982fc7a6aabf869bbb6529050f2f33ec1d21b",
+        "proposalReceipt": "304e1447deefe97b8904deedcd81828446adb6eb8285a836359039083bae6ccf",
+        "confirmationReceipt": "10d3c2c1a9fed3a56624b5d1d1f90a34ce80f55b276e712ddee0f1ca043509b6",
         "source": "Atlas"
       },
-      "hash": "76b3cc6e291d133ac9828467803968f43f5d7299b1bea8cef973766d334f3ccf"
+      "hash": "840a3b5c45ce08a1069014f103c19bbeeab3660701121c3d3984b54afe0d522a"
     }
   ],
   "errors": []

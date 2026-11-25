@@ -1,0 +1,18 @@
+{
+  "syntheticOnly": true,
+  "description": "Fresh authored catalog plus persisted Builder receipts; recover called with visitor, then owner.",
+  "publicationReceipt": "builder:984fde1dd3b61a8946fa08aa1ea96b41eb6185b88c1ac4fef53296b523cae40b",
+  "endorsementReceipt": "builder:bcf1f3df1e68d4067c443e582c863f3bcd0d984eb8d792dc1189797518bc9aee",
+  "beforeReload": {
+    "publishedAt": 1795634775511,
+    "vouches": 1
+  },
+  "visitorRecovery": {
+    "publishedAt": null,
+    "vouches": null
+  },
+  "ownerRecovery": {
+    "publishedAt": 1795634775511,
+    "vouches": 1
+  }
+}

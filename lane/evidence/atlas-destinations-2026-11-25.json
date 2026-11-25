@@ -1,0 +1,78 @@
+{
+  "proposal": "Proposal · not applied\n\nRoute: Town Square → Welcome to Tallahassee → The 1956 bus boycott. Town Square. Within your Lens; no additional door term to agree to. 1 Things are readable at these limits; 0 need an individual preview; 0 are withheld by content checks. Welcome to Tallahassee. Within your Lens; no additional door term to agree to. 1 Things are readable at these limits; 0 need an individual preview; 0 are withheld by content checks. The 1956 bus boycott. You’re seeing the Documentary version. 2 others exist. Declared minimum age: 13. 21 Things are readable at these limits; 0 need an individual preview; 0 are withheld by content checks. This is a trip proposal. Any agreeing door will stop for your choice; ordinary doors need no review clicks.\n\nProposal receipt: 716fa9f20649a8b6cfcc0418bcad0cde997108c9d82aaf8c1030bbf8208e78ba\n\nYes, confirm this proposalNo, leave it unchanged",
+  "failure": "Atlas · I couldn’t find a Place for “flibbertigibbet observatory”. I searched Discovery for “flibbertigibbet observatory”, through your current Lens and door terms. Nothing has been crossed.",
+  "refusals": [
+    {
+      "address": "tlh/no-such-place",
+      "text": "No accessible room at that address. I tried “tlh/no-such-place” as an exact room address and checked your current Lens, access and route. Nothing has been crossed.",
+      "rect": {
+        "x": 458.34375,
+        "y": 272.296875,
+        "width": 398.65625,
+        "height": 77.5625,
+        "top": 272.296875,
+        "right": 857,
+        "bottom": 349.859375,
+        "left": 458.34375
+      },
+      "height": 650,
+      "focused": true,
+      "opacity": "1"
+    },
+    {
+      "address": "tlh/after-dark",
+      "text": "No accessible room at that address. I tried “tlh/after-dark” as an exact room address and checked your current Lens, access and route. Nothing has been crossed.",
+      "rect": {
+        "x": 458.34375,
+        "y": 272.296875,
+        "width": 398.65625,
+        "height": 77.5625,
+        "top": 272.296875,
+        "right": 857,
+        "bottom": 349.859375,
+        "left": 458.34375
+      },
+      "height": 650,
+      "focused": true,
+      "opacity": "1"
+    }
+  ],
+  "searches": [
+    {
+      "id": 4,
+      "prevHash": "296fe0db20c0d944851bab1d143dd5fd4ea1485828d5c841b1fcdbbe1392335b",
+      "actor": "atlas",
+      "action": "atlas_searched",
+      "time": "2026-11-25T19:25:19.008Z",
+      "diff": {
+        "holder": "799f1587-fbab-4599-89bd-00c591d2a7f0",
+        "requested": "the bus boycott",
+        "query": "bus boycott",
+        "exact": false,
+        "rule": "Curator’s order",
+        "places": [
+          "boycott"
+        ]
+      },
+      "hash": "1444e58b2dc8a69fecfdca993a61fd107559bd289dd849cc099b35069f57c114"
+    },
+    {
+      "id": 8,
+      "prevHash": "3103aa28d57817bad0ec2c5ea5186a456b39314684cdda0aaa5f5ebb27abc510",
+      "actor": "atlas",
+      "action": "atlas_searched",
+      "time": "2026-11-25T19:25:24.969Z",
+      "diff": {
+        "holder": "799f1587-fbab-4599-89bd-00c591d2a7f0",
+        "requested": "flibbertigibbet observatory",
+        "query": "flibbertigibbet observatory",
+        "exact": false,
+        "rule": "Curator’s order",
+        "places": []
+      },
+      "hash": "4b59ac5cbe5d5a995bd7207506a04ce1075b523440003fcc58165bf57a9e6d8b"
+    }
+  ],
+  "exactAddressLanded": "studio",
+  "errors": []
+}
