@@ -2,6 +2,7 @@ import {connectedSources} from './connected-sources.js';
 import {videoReference} from './source-media.js';
 import {AXES, DIMENSIONS, validPair} from './scores.js';
 import {uploadAccept, uploadLimitLabel} from './upload-client.js';
+import {PHOTO_DESCRIPTION_LIMIT, PHOTO_SCORE_MODEL, uploadScoreBasis, validPhotoObservation, validPhotoRecordId} from './upload-scores.js';
 
 const proposalKey = 'living-atlas.upload-proposals.v1';
 const modeLabels = {live: 'Live reference', indexed: 'Fed by the source', snapshot: 'Snapshot'};
@@ -10,6 +11,9 @@ const states = {reserved: 'Upload pending', uploaded: 'Unpublished', published: 
 const escapes = {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'};
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => escapes[character]);
 const pairsValid = scores => scores && DIMENSIONS.every(([key]) => validPair(scores[key]));
+const hasPhotoReview = proposal => proposal?.basis === 'image' && proposal.model === PHOTO_SCORE_MODEL &&
+  validPhotoRecordId(proposal.proposalReceiptId) && validPhotoObservation(proposal.observation) &&
+  typeof proposal.descriptionDisagrees === 'boolean';
 
 export function formatSourceBytes(bytes) {
   if (!Number.isSafeInteger(bytes) || bytes < 0) return 'Unavailable';
@@ -202,9 +206,12 @@ export class SourcesUI {
   saveProposal(id, proposal) {
     if (proposal) this.proposals[id] = {
       actorId: this.context.actorId,
+      basis: proposal.basis,
       scores: structuredClone(proposal.scores),
       model: typeof proposal.model === 'string' ? proposal.model : null,
       provenance: typeof proposal.provenance === 'string' ? proposal.provenance.slice(0, 300) : 'Simulated AI proposal.',
+      ...(hasPhotoReview(proposal) ? {proposalReceiptId: proposal.proposalReceiptId, observation: proposal.observation,
+        descriptionDisagrees: proposal.descriptionDisagrees} : {}),
     };
     else delete this.proposals[id];
     try { this.storage?.setItem(proposalKey, JSON.stringify(this.proposals)); } catch { /* This tab retains the pending declaration. */ }
@@ -214,12 +221,18 @@ export class SourcesUI {
     if (!this.proposeScores) throw new Error('The AI proposal is unavailable. Your upload is still unpublished.');
     const proposal = await this.proposeScores({file, item, description, room: this.context.room, lens: this.context.lens});
     if (!pairsValid(proposal?.scores)) throw new Error('The AI proposal did not return both dials for every dimension. Your upload is still unpublished.');
+    if (uploadScoreBasis(item.contentType) === 'image' && !hasPhotoReview(proposal)) {
+      throw new Error('A live photo proposal and its Receipt are required. Your upload is still unpublished.');
+    }
     this.saveProposal(item.id, proposal);
   }
 
   proposalFor(item) {
     const proposal = this.proposals[item.id];
-    return proposal?.actorId === this.context.actorId && pairsValid(proposal.scores) ? proposal : null;
+    if (proposal?.actorId !== this.context.actorId || !pairsValid(proposal.scores)) return null;
+    const basis = uploadScoreBasis(item.contentType);
+    if (basis === 'image') return hasPhotoReview(proposal) ? proposal : null;
+    return basis === 'text' && (proposal.basis ?? 'text') === 'text' ? proposal : null;
   }
 
   render() {
@@ -339,8 +352,8 @@ export class SourcesUI {
       ${command('refresh-uploads', 'Refresh storage usage')}
       <form data-form="upload" class="source-upload-form">
         <label>Choose a photo, text or audio file<input type="file" name="file" accept="${uploadAccept}" required></label>
-        <label>Photo description or audio transcript <span>(optional)</span><textarea name="description" maxlength="1500" rows="3"></textarea></label>
-        <p class="source-caption">${uploadLimitLabel} per file. The AI uses your description for photos and audio. It does not inspect pixels or listen to audio.</p>
+        <label>Photo description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="3"></textarea></label>
+        <p class="source-caption">${uploadLimitLabel} per file. Photo scoring sends the uploaded image and any description to the AI. Text scoring uses a local sample. Audio can be uploaded and stays unpublished while audio scoring is unavailable.</p>
         <button type="submit">Upload and request scores</button>
       </form>
       ${this.pendingFile ? command('retry-upload', 'Retry upload: ' + this.pendingFile.file.name) : ''}
@@ -350,6 +363,7 @@ export class SourcesUI {
 
   renderUpload(item) {
     const proposal = this.proposalFor(item);
+    const basis = uploadScoreBasis(item.contentType);
     const date = createdDate(item.uploadedAt);
     const readable = ['uploaded','published'].includes(item.state);
     const deletable = ['reserved','uploaded','published','deleting'].includes(item.state);
@@ -363,14 +377,18 @@ export class SourcesUI {
         <form data-form="publish" data-item-id="${esc(item.id)}">
           <fieldset class="source-standing"><legend>Confirm declaration</legend>
             <p class="source-caption">${esc(proposal.provenance)} Review the file and check both dials for each dimension.</p>
+            ${basis === 'image' ? `
+              <p><strong>AI image observation</strong> ${esc(proposal.observation)}</p>
+              ${proposal.descriptionDisagrees ? '<p class="source-error"><strong>Image and description disagree.</strong></p>' : ''}
+            ` : ''}
             ${scoreInputs(proposal.scores)}
           </fieldset>
           <button type="submit">Confirm declaration and publish</button>
-        </form>` : `
+        </form>` : basis ? `
         <form data-form="score" data-item-id="${esc(item.id)}">
-          ${item.contentType === 'text/plain' ? '' : '<label>Photo description or audio transcript<textarea name="description" maxlength="1500" rows="2"></textarea></label>'}
+          ${basis === 'image' ? `<label>Photo description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="2"></textarea></label>` : ''}
           <button type="submit">Request score proposal</button>
-        </form>`) : ''}
+        </form>` : '<p class="source-caption">Audio scoring is unavailable. This upload remains unpublished.</p>') : ''}
       ${deletable ? `<details class="source-details"><summary>${deleteLabel}</summary>
         <p>Deletes the stored file and preview. The Thing’s record retains a Receipt of the deletion.</p>
         ${command('delete-upload', item.state === 'reserved' ? 'Cancel upload and release reservation' : 'Delete file and preview', {itemId:item.id})}
@@ -399,7 +417,10 @@ export class SourcesUI {
     const upload = await this.uploads.upload({file: pending.file, id: pending.id, placeId: this.context.placeId});
     const item = this.updateHostedItem(upload);
     this.pendingFile = null;
-    if (item.state === 'uploaded') await this.score(item, pending.file, pending.description);
+    if (item.state !== 'uploaded') return 'Upload received.';
+    const basis = uploadScoreBasis(item.contentType);
+    if (!basis) return 'Audio uploaded. It remains unpublished while audio scoring is unavailable.';
+    await this.score(item, basis === 'text' ? pending.file : undefined, pending.description);
     return 'Upload received. Review the proposed dials and confirm the declaration.';
   }
 
@@ -537,18 +558,33 @@ export class SourcesUI {
       if (action === 'score') {
         const item = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.state === 'uploaded');
         if (!item || item.placeId !== this.context.placeId) throw new Error('This upload is unavailable.');
-        const bytes = await this.uploads.media(item.id, 'original');
+        const basis = uploadScoreBasis(item.contentType);
+        if (!basis) throw new Error('Audio scoring is unavailable. This upload remains unpublished.');
+        const bytes = basis === 'text' ? await this.uploads.media(item.id, 'original') : undefined;
         await this.score(item, bytes, values.get('description')?.trim() ?? '');
         await this.refreshUploads();
         return 'Review both dials for each dimension, then confirm your declaration.';
       }
       if (action === 'publish') {
         const pending = this.hosted?.items?.find(candidate => candidate.id === itemId && candidate.state === 'uploaded');
-        if (!pending || pending.placeId !== this.context.placeId || !this.proposalFor(pending)) throw new Error('Request a score proposal before confirming.');
+        const proposal = pending && this.proposalFor(pending);
+        if (!pending || pending.placeId !== this.context.placeId || !proposal) throw new Error('Request a score proposal before confirming.');
         const scores = Object.fromEntries(DIMENSIONS.map(([key]) =>
           [key,Object.fromEntries(AXES.map(axis=>[axis,Number(values.get(key+'.'+axis))]))]));
         if (!pairsValid(scores)) throw new Error('Choose amount and graphicness for every dimension.');
-        const item = this.updateHostedItem(await this.uploads.publish(itemId,scores));
+        let item;
+        try {
+          const result = proposal.basis === 'image'
+            ? await this.uploads.publish(itemId, scores, {proposalReceiptId: proposal.proposalReceiptId})
+            : await this.uploads.publish(itemId, scores);
+          item = this.updateHostedItem(result);
+        } catch (error) {
+          if (proposal.basis === 'image' && ['PHOTO_ASSESSMENT_REQUIRED', 'PHOTO_ASSESSMENT_MISMATCH'].includes(error?.code)) {
+            this.saveProposal(itemId, null);
+            throw new Error('Request a fresh photo proposal before publishing. Your upload is still unpublished.');
+          }
+          throw error;
+        }
         this.saveProposal(item.id, null);
         await this.emit('upload-published', {item});
         await this.refreshUploads();

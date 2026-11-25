@@ -39,13 +39,13 @@ export function cost(counts,route){
  let total=0n;['input','output','cache_read','cache_write'].forEach((k,i)=>{total+=BigInt(counts[k+'_tokens']??0)*BigInt(rates[i]);});
  return Number((total+999999n)/1000000n);
 }
-export function envelope(route,prompt,syntheticPromptHash=null){
+export function envelope(route,prompt,syntheticPromptHash=null,mediaInput=0){
  const b=route.billing_contract;
  if(!b||b.api!==(route.provider==='anthropic'?'anthropic-messages':'openai-responses')||!Number.isFinite(b.input_tokens_per_byte)||b.input_tokens_per_byte<1||b.input_tokens_per_byte>16||!Number.isSafeInteger(b.overhead_tokens)||b.overhead_tokens<0||!/^https:\/\//.test(b.evidence_url??'')||b.output_includes_reasoning!==true)fail('LIVE_UNAVAILABLE',503);
  // Only fixed synthetic benchmark prompts may use documented exact bounds.
  // Visitor questions are never hashed or persisted.
  const fixed=syntheticPromptHash?b.synthetic_input_bounds?.[syntheticPromptHash]:null;
- const input=fixed!==null&&fixed!==undefined&&Number.isSafeInteger(fixed)&&fixed>0?fixed:Math.ceil(bytes(prompt).length*b.input_tokens_per_byte)+b.overhead_tokens;
+ const input=(fixed!==null&&fixed!==undefined&&Number.isSafeInteger(fixed)&&fixed>0?fixed:Math.ceil(bytes(prompt).length*b.input_tokens_per_byte)+b.overhead_tokens)+mediaInput;
  if(input>route.input_token_cap)fail('CONTEXT_TOO_LARGE',413);
  const rate=Math.max(...['input','cache_read','cache_write'].map(k=>Number(route[k+'_microusd_per_million'])));
  const reserved=cost({input_tokens:input,output_tokens:route.output_token_cap},{...route,input_microusd_per_million:rate});

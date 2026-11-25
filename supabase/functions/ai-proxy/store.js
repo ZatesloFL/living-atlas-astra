@@ -1,10 +1,17 @@
 import {ORIGIN,GUIDE_SCHEMA,MODEL_SCHEMA,BUILDER_SCHEMA,fail,id,iso,token,digest,envelope,cost,receipt} from './core.js';
+import {PHOTO_AGENT,PHOTO_SCHEMA,PHOTO_SCOPE,PHOTO_PURPOSE,PHOTO_ROUTE,PHOTO_MODEL,PHOTO_INPUT_BOUND,MAX_PHOTO_BYTES} from './photo.js';
 const DAY=86400000,MIN=60000;
 const live=(r,now)=>r&&!r.revoked_at&&+new Date(r.expires_at)>now;
 const day=n=>Math.floor(n/DAY)*DAY;
 const month=n=>{const d=new Date(n);return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1);};
 const monthEnd=n=>{const d=new Date(n);return Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,1);};
 const num=n=>Number(n);
+async function ownedPhoto(tx,ownerId,uploadId){
+ const [photo]=await tx`SELECT id,owner_id,content_sha256,content_type,original_bytes FROM atlas_sources.uploads
+  WHERE id=${uploadId}::uuid AND owner_id=${ownerId} AND state='uploaded'
+    AND content_type IN ('image/jpeg','image/png','image/webp') FOR SHARE`;
+ return photo;
+}
 // Every writer takes the singleton config row first. At this prototype's limits
 // this gives a simple cross-instance total order, including operator rollback.
 // Transactions end before any provider I/O. Postgres row locks are not JS locks.
@@ -36,7 +43,9 @@ export class Store {
   if(num(q.calls_used)>=b.calls||num(q.reserved_microusd)+num(q.spent_microusd)+amount>b.money)fail('RATE_LIMITED',429,Math.max(1,Math.min(86400,Math.ceil((b.end-Date.now())/1000))));
   await tx`UPDATE atlas_ai.quota_windows SET calls_used=calls_used+1,reserved_microusd=reserved_microusd+${amount} WHERE bucket=${b.key} AND window_start=${iso(b.start)}`;
  }
- async bootstrap(holderToken){
+ async bootstrap(holderToken,purpose){
+  const photo=purpose===PHOTO_PURPOSE;
+  if(photo&&!holderToken)fail('UNAUTHORIZED',401);
   const holderHash=holderToken?await digest(holderToken):null;
   const ht=token(),st=token(),hh=await digest(ht),sh=await digest(st);
   return this.locked(async(tx,c,now)=>{
@@ -44,14 +53,23 @@ export class Store {
    let h;if(holderHash)[h]=await tx`SELECT * FROM atlas_ai.holder_leases WHERE token_sha256=${holderHash}`;
    // An invalid renewal never silently mints a replacement quota holder.
    if(holderHash&&!live(h,now))fail('UNAUTHORIZED',401);
+   if(photo){
+    const [{exists}]=await tx`SELECT EXISTS(SELECT 1 FROM atlas_sources.uploads
+     WHERE owner_id=${h.id} AND state='uploaded' AND content_type IN ('image/jpeg','image/png','image/webp'))`;
+    if(!exists)fail('PHOTO_UNAVAILABLE',404);
+   }
    if(!h){await this.bucket(tx,{key:'new-holders',start:day(now),end:day(now)+DAY,calls:Math.min(c.new_holders_per_day,100),money:0},0);
     [h]=await tx`INSERT INTO atlas_ai.holder_leases(id,token_sha256,created_at,expires_at) VALUES(${id()},${hh},${iso(now)},${iso(now+30*DAY)}) RETURNING *`;
    }
    const [{n}]=await tx`SELECT count(*)::int AS n FROM atlas_ai.session_leases WHERE holder_id=${h.id} AND revoked_at IS NULL AND expires_at>${iso(now)}`;
    if(n>=2)fail('RATE_LIMITED',429,1800);
-   let [g]=await tx`SELECT * FROM atlas_ai.grants WHERE holder_id=${h.id} AND scope='look' AND agent_ids=ARRAY['docent-silver']::text[] AND schema_ids=ARRAY[${GUIDE_SCHEMA}]::text[] AND revoked_at IS NULL AND expires_at>${iso(now)} ORDER BY created_at DESC LIMIT 1`;
-   if(!g){[g]=await tx`INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at) VALUES(${id()},${h.id},'look',ARRAY['guide'],ARRAY['docent-silver'],ARRAY['boycott'],ARRAY[${GUIDE_SCHEMA}],40,10000000,${iso(now)},${iso(Math.min(now+DAY,+new Date(h.expires_at)))}) RETURNING *`;
-    await this.grantReceipt(tx,g,'issued',now,'approved-public-docent-policy');
+   const scope=photo?'suggest':'look',job=photo?'background':'guide',agent=photo?PHOTO_AGENT:'docent-silver',
+    place=photo?PHOTO_SCOPE:'boycott',schema=photo?PHOTO_SCHEMA:GUIDE_SCHEMA;
+   let [g]=await tx`SELECT * FROM atlas_ai.grants WHERE holder_id=${h.id} AND scope=${scope}
+    AND jobs=ARRAY[${job}]::text[] AND agent_ids=ARRAY[${agent}]::text[] AND place_ids=ARRAY[${place}]::text[]
+    AND schema_ids=ARRAY[${schema}]::text[] AND revoked_at IS NULL AND expires_at>${iso(now)} ORDER BY created_at DESC LIMIT 1`;
+   if(!g){[g]=await tx`INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at) VALUES(${id()},${h.id},${scope},ARRAY[${job}]::text[],ARRAY[${agent}]::text[],ARRAY[${place}]::text[],ARRAY[${schema}]::text[],40,10000000,${iso(now)},${iso(Math.min(now+DAY,+new Date(h.expires_at)))}) RETURNING *`;
+    await this.grantReceipt(tx,g,'issued',now,photo?'owner-upload-photo-policy':'approved-public-docent-policy');
    }
    const end=Math.min(now+30*MIN,+new Date(g.expires_at),+new Date(h.expires_at));
    await tx`INSERT INTO atlas_ai.session_leases(id,holder_id,grant_id,token_sha256,created_at,expires_at) VALUES(${id()},${h.id},${g.id},${sh},${iso(now)},${iso(end)})`;
@@ -81,23 +99,35 @@ export class Store {
   return this.locked(async(tx,c,now)=>{
    this.ready(c,now);await this.cleanup(tx,now);
    const {s,h,g}=await this.auth(tx,hash,now);
-   const publicCall=spec.job==='guide';
-   if(!g.jobs.includes(spec.job)||!g.agent_ids.includes(spec.agentId)||!g.place_ids.includes(spec.context.placeId)||!g.schema_ids.includes(spec.schemaId)||g.scope!==(publicCall?'look':'suggest'))fail('OUT_OF_SCOPE',403);
-   if(publicCall?(spec.agentId!=='docent-silver'||spec.schemaId!==GUIDE_SCHEMA):(spec.job!=='builder'||spec.agentId!=='gus-benchmark'||spec.schemaId!==BUILDER_SCHEMA))fail('OUT_OF_SCOPE',403);
+   const guide=spec.job==='guide',photo=spec.job==='background',publicCall=guide||photo;
+   if(!g.jobs.includes(spec.job)||!g.agent_ids.includes(spec.agentId)||!g.place_ids.includes(photo?PHOTO_SCOPE:spec.context.placeId)||!g.schema_ids.includes(spec.schemaId)||g.scope!==(guide?'look':'suggest'))fail('OUT_OF_SCOPE',403);
+   if(guide?(spec.agentId!=='docent-silver'||spec.schemaId!==GUIDE_SCHEMA):photo?(spec.agentId!==PHOTO_AGENT||spec.schemaId!==PHOTO_SCHEMA):(spec.job!=='builder'||spec.agentId!=='gus-benchmark'||spec.schemaId!==BUILDER_SCHEMA))fail('OUT_OF_SCOPE',403);
+   let upload;
+   if(photo){
+    upload=await ownedPhoto(tx,h.id,spec.context.uploadId);
+    if(!upload)fail('PHOTO_UNAVAILABLE',404);
+    if(num(upload.original_bytes)>MAX_PHOTO_BYTES)fail('PHOTO_TOO_LARGE',413);
+    const [cached]=await tx`SELECT * FROM atlas_sources.get_photo_proposal(${h.id},${upload.id}::uuid)`;
+    if(cached)return {cached};
+    const [pending]=await tx`SELECT id,state FROM atlas_ai.call_leases WHERE route_key=${PHOTO_ROUTE}
+     AND accounting->'photo'->>'uploadId'=${upload.id} AND state IN ('reserved','dispatched') LIMIT 1`;
+    if(pending)return {duplicate:true,id:pending.id,state:pending.state};
+   }
    const key=await digest(s.id+':'+spec.requestId);
    const [prior]=await tx`SELECT id,state FROM atlas_ai.call_leases WHERE request_key=${key}`;
    if(prior)return {duplicate:true,id:prior.id,state:prior.state};
-   const routeKey=publicCall?'guide':spec.context.candidate==='challenger'?'builder_challenger':'builder';
+   const routeKey=guide?'guide':photo?PHOTO_ROUTE:spec.context.candidate==='challenger'?'builder_challenger':'builder';
    const [row]=await tx`SELECT to_jsonb(r) AS config FROM atlas_ai.routing_config r WHERE route_key=${routeKey} FOR UPDATE`;
    const route=row?.config;
    if(!route||!route.enabled||!route.model_id||!route.model_verified_at||+new Date(route.expires_at)<=now)fail('AI_OFF',503);
+   if(photo&&(route.provider!=='anthropic'||route.model_id!==PHOTO_MODEL))fail('AI_OFF',503);
    const syntheticHash=publicCall?null:Array.from(await digest(prompt),n=>n.toString(16).padStart(2,'0')).join('');
-   const {input,reserved}=envelope(route,prompt,syntheticHash);
+   const {input,reserved}=envelope(route,prompt,syntheticHash,photo?PHOTO_INPUT_BOUND:0);
    const [{rolling,active,total,global_active}]=await tx`SELECT
     count(*) FILTER(WHERE session_id=${s.id} AND created_at>${iso(now-MIN)})::int AS rolling,
     count(*) FILTER(WHERE session_id=${s.id} AND state IN ('reserved','dispatched') AND expires_at>${iso(now)})::int AS active,
     count(*) FILTER(WHERE session_id=${s.id})::int AS total,
-    count(*) FILTER(WHERE ${publicCall}=(accounting->>'job'='guide') AND state IN ('reserved','dispatched') AND expires_at>${iso(now)})::int AS global_active
+    count(*) FILTER(WHERE ${publicCall}=(accounting->>'job' IN ('guide','background')) AND state IN ('reserved','dispatched') AND expires_at>${iso(now)})::int AS global_active
     FROM atlas_ai.call_leases`;
    if(active>=1||global_active>=(publicCall?4:1)||publicCall&&(rolling>=4||total>=10))fail('RATE_LIMITED',429,60);
    const buckets=[{key:'all-jobs',start:day(now),end:day(now)+DAY,calls:2147483647,money:Math.min(num(c.all_jobs_day_microusd),10000000)},
@@ -105,27 +135,42 @@ export class Store {
     {key:'grant:'+g.id,start:+new Date(g.created_at),end:+new Date(g.expires_at),calls:g.max_calls,money:num(g.max_microusd)}];
    if(publicCall)buckets.push({key:'holder:'+h.id,start:day(now),end:day(now)+DAY,calls:20,money:250000},{key:'public',start:day(now),end:day(now)+DAY,calls:Math.min(c.public_day_calls,100),money:Math.min(num(c.public_day_microusd),1000000)});
    for(const b of buckets.sort((a,b)=>a.key.localeCompare(b.key)))await this.bucket(tx,b,reserved);
-   const accounting={job:spec.job,model:route.provider+'/'+route.model_id,agent:spec.agentId,route,inputBound:input,configRevision:String(c.revision)};
+   const accounting={job:spec.job,model:route.provider+'/'+route.model_id,agent:spec.agentId,route,inputBound:input,configRevision:String(c.revision),
+    ...(photo?{photo:{uploadId:upload.id,contentSha256:upload.content_sha256}}:{})};
    const [a]=await tx`INSERT INTO atlas_ai.call_leases(id,request_key,session_id,grant_id,route_key,accounting,quota_reservations,state,reserved_microusd,created_at,expires_at) VALUES(${id()},${key},${s.id},${g.id},${routeKey},${tx.json(accounting)},${tx.json(buckets.map(b=>({key:b.key,start:iso(b.start)})))},'reserved',${reserved},${iso(now)},${iso(now+60000)}) RETURNING *`;
-   return a;
+   return photo?{...a,upload}:a;
   });
  }
  async dispatch(attemptId){return this.locked(async(tx,c,now)=>{
   const [a]=await tx`SELECT * FROM atlas_ai.call_leases WHERE id=${attemptId} FOR UPDATE`;
   if(!a||a.state!=='reserved')return false;
-  let valid=false;
+  let valid=false,photo;
   try{this.ready(c,now);const [s]=await tx`SELECT * FROM atlas_ai.session_leases WHERE id=${a.session_id}`;
-   await this.auth(tx,s.token_sha256,now);
+   const {h}=await this.auth(tx,s.token_sha256,now);
    const [r]=await tx`SELECT *, to_jsonb(r)=${tx.json(a.accounting.route)}::jsonb AS unchanged FROM atlas_ai.routing_config r WHERE route_key=${a.route_key}`;
    valid=live(a,now)&&r?.enabled&&r.unchanged&&String(c.revision)===a.accounting.configRevision;
+   if(valid&&a.accounting.photo){
+    photo=await ownedPhoto(tx,h.id,a.accounting.photo.uploadId);
+    valid=photo?.content_sha256===a.accounting.photo.contentSha256;
+   }
   }catch{valid=false;}
   if(!valid){await this.settleTx(tx,a,{notDispatched:true,accepted:false,failureClass:'dispatch_recheck_failed'},now);return false;}
+  // A verified Storage read contributes to the same Place/source byte meter.
+  if(photo)await tx`SELECT atlas_sources.record_egress(${photo.owner_id},${photo.id}::uuid,'original',${photo.original_bytes})`;
   await tx`UPDATE atlas_ai.call_leases SET state='dispatched' WHERE id=${a.id}`;return true;
  });}
  async settle(attemptId,result){return this.locked(async(tx,c,now)=>{
   const [a]=await tx`SELECT * FROM atlas_ai.call_leases WHERE id=${attemptId} FOR UPDATE`;
   if(!a)fail('LIVE_UNAVAILABLE',503);
-  if(result.accepted){try{this.ready(c,now);const [s]=await tx`SELECT * FROM atlas_ai.session_leases WHERE id=${a.session_id}`;await this.auth(tx,s.token_sha256,now);}catch{result={...result,accepted:false,failureClass:'result_recheck_failed'};}}
+  if(result.accepted){try{
+   this.ready(c,now);const [s]=await tx`SELECT * FROM atlas_ai.session_leases WHERE id=${a.session_id}`;
+   const {h}=await this.auth(tx,s.token_sha256,now);
+   if(a.accounting.photo){
+    const photo=await ownedPhoto(tx,h.id,a.accounting.photo.uploadId);
+    if(photo?.content_sha256!==a.accounting.photo.contentSha256||!result.photoProposal)fail('PHOTO_UNAVAILABLE',404);
+    result={...result,photoOwner:h.id};
+   }
+  }catch{result={...result,accepted:false,failureClass:'result_recheck_failed'};}}
   return this.settleTx(tx,a,result,now);
  });}
  async settleTx(tx,a,result,now){
@@ -140,6 +185,8 @@ export class Store {
   }
   const r=receipt(a,result.usage,result.accepted===true&&!exceeded,amount,neverSent?'not-dispatched':known?'measured':'reserved',now,exceeded?'accounting_bound_exceeded':result.failureClass);
   await tx`INSERT INTO atlas_ai.call_receipts ${tx(r)}`;
+  if(r.validation_passed&&a.accounting.photo)await tx`SELECT atlas_sources.save_photo_proposal(
+   ${result.photoOwner},${a.accounting.photo.uploadId}::uuid,${a.id}::uuid,${tx.json(result.photoProposal)})`;
   await tx`UPDATE atlas_ai.call_leases SET state=${known||neverSent?'completed':'uncertain'},settled_microusd=${amount},expires_at=${iso(now+DAY)} WHERE id=${a.id}`;
   return r;
  }

@@ -54,7 +54,7 @@ test('A simulated Drive attaches to the registered Drive shell and the hosted de
   assert.match(articleHTML(id, owner), /owner deleted/i);
 });
 
-test('Upload declaration suggestions stay within the shared simulated AI boundary', async () => {
+test('Text upload suggestions stay local and photos require live scoring', async () => {
   const model = createAI({transport:{eligible:()=>true,request:()=>assert.fail('Upload content reached the live guide')}});
   const suggestion = await proposeUploadScores(model, {
     file:new Blob(['A fictional story about war and graphic violence.'], {type:'text/plain'}),
@@ -62,9 +62,7 @@ test('Upload declaration suggestions stay within the shared simulated AI boundar
   });
   assert.equal(suggestion.scores.violence.graphicness, 3);
   assert.match(suggestion.provenance, /Simulated/);
-  const unread = await proposeUploadScores(model, {
-    file:new Blob([new Uint8Array([1,2,3])], {type:'image/jpeg'}),
-    item:{contentType:'image/jpeg'}, room:{id:'example'}
-  });
-  assert.match(unread.provenance, /not inspected/);
+  await assert.rejects(proposeUploadScores(model, {
+    item:{id:crypto.randomUUID(),contentType:'image/jpeg'}, room:{id:'example'}
+  }), /live photo scoring is unavailable/i);
 });

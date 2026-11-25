@@ -11,6 +11,7 @@ const databaseFaults = new Map([
   ['ALLOTMENT_EXCEEDED', 409], ['UPLOAD_NOT_FOUND', 404], ['UPLOAD_CONFLICT', 409],
   ['UPLOAD_STATE_CONFLICT', 409], ['UPLOAD_OBJECTS_INCOMPLETE', 503], ['UPLOAD_OBJECTS_REMAIN', 503],
   ['UPLOAD_INVALID', 400], ['SCORES_INVALID', 400],
+  ['PHOTO_ASSESSMENT_REQUIRED', 409], ['PHOTO_ASSESSMENT_MISMATCH', 409], ['AUDIO_ASSESSMENT_UNAVAILABLE', 409],
 ]);
 
 export class SourceFault extends Error {
@@ -64,7 +65,7 @@ export async function readBytes(body, limit, length) {
   return result;
 }
 
-async function requestJSON(request, keys) {
+async function requestJSON(request, keys, optional = []) {
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') ?? '')) {
     fail('BAD_REQUEST');
   }
@@ -75,7 +76,8 @@ async function requestJSON(request, keys) {
   } catch {
     fail('BAD_REQUEST');
   }
-  if (!exact(body, keys)) fail('BAD_REQUEST');
+  const provided = optional.filter(key => body != null && Object.hasOwn(body, key));
+  if (!exact(body, [...keys, ...provided])) fail('BAD_REQUEST');
   if (keys.includes('id') && (typeof body.id !== 'string' || !idPattern.test(body.id))) fail('BAD_REQUEST');
   return body;
 }
@@ -133,6 +135,7 @@ function item(row) {
     previewBytes: Number(row.preview_bytes),
     state: row.state,
     scores: row.scores ?? null,
+    proposalProvenance: row.proposal_provenance ?? null,
     snapshotReceiptId: row.snapshot_receipt_id ?? null,
     declarationReceiptId: row.declaration_receipt_id ?? null,
     deleteReceiptId: row.delete_receipt_id ?? null,
@@ -151,6 +154,26 @@ async function storeObject(storage, path, bytes, type, digest) {
   if (!prior || prior.length !== bytes.length || await sha256(prior) !== digest) {
     fail('UPLOAD_OBJECTS_INCOMPLETE', 503);
   }
+}
+
+async function publishUpload(store, owner, id, scores, proposalReceiptId) {
+  const row = await store.find(owner, id);
+  if (!row) fail('UPLOAD_NOT_FOUND', 404);
+  if (row.state === 'published') {
+    const provenance = row.proposal_provenance ?? null;
+    if (proposalReceiptId && proposalReceiptId !== provenance?.receiptId) fail('UPLOAD_CONFLICT', 409);
+    return store.publish(owner, id, scores, provenance);
+  }
+  if (row.state !== 'uploaded') fail('UPLOAD_STATE_CONFLICT', 409);
+  if (row.content_type.startsWith('audio/')) fail('AUDIO_ASSESSMENT_UNAVAILABLE', 409);
+  if (!row.content_type.startsWith('image/')) {
+    if (proposalReceiptId) fail('BAD_REQUEST');
+    return store.publish(owner, id, scores, null);
+  }
+  if (!proposalReceiptId) fail('PHOTO_ASSESSMENT_REQUIRED', 409);
+  const provenance = await store.photoProvenance(owner, id, proposalReceiptId);
+  if (!provenance) fail('PHOTO_ASSESSMENT_MISMATCH', 409);
+  return store.publish(owner, id, scores, provenance);
 }
 
 export function createHandler({ store, storage, origin = ORIGIN }) {
@@ -224,9 +247,12 @@ export function createHandler({ store, storage, origin = ORIGIN }) {
       }
 
       if (path === '/publish') {
-        const { id, scores } = await requestJSON(request, ['id', 'scores']);
+        const { id, scores, proposalReceiptId } = await requestJSON(request, ['id', 'scores'], ['proposalReceiptId']);
+        if (proposalReceiptId !== undefined && (typeof proposalReceiptId !== 'string' || !idPattern.test(proposalReceiptId))) {
+          fail('BAD_REQUEST');
+        }
         if (!validScores(scores)) fail('SCORES_INVALID');
-        return json(await withUsage(await withUpload(id, () => store.publish(owner, id, scores))));
+        return json(await withUsage(await withUpload(id, () => publishUpload(store, owner, id, scores, proposalReceiptId))));
       }
 
       if (path === '/delete') {

@@ -173,3 +173,139 @@ test('stored copy, declaration, serving, and deletion cover real quota and remai
   } finally { connection.release(); }
   assert.equal((await sql`SELECT * FROM atlas_sources.upload_receipts WHERE upload_id = ${id}`).length, 3);
 });
+
+const photoMigration = await readFile(new URL('../supabase/migrations/20261125051804_atlas_photo_proposals.sql', import.meta.url), 'utf8');
+const photoRollback = await readFile(new URL('../supabase/migrations/rollback/20261125051804_atlas_photo_proposals.rollback.sql', import.meta.url), 'utf8');
+const aiMigration = await readFile(new URL('../supabase/migrations/20261113120000_atlas_ai.sql', import.meta.url), 'utf8');
+const aiFailureMigration = await readFile(new URL('../supabase/migrations/20261113204500_ai_failure_class.sql', import.meta.url), 'utf8');
+const photoScores = Object.fromEntries(dimensions.map(key => [key, pair(1, 2)]));
+const editedPhotoScores = { ...photoScores, sensory: pair(0, 1) };
+const photoAssessment = {
+  kind: 'upload-scores', basis: 'image', scores: photoScores,
+  observation: 'A paper model sits on an empty shelf.', descriptionDisagrees: false
+};
+const publish = (owner, uploadId, scores = photoScores, provenance = null) => sql`
+  SELECT * FROM atlas_sources.publish_upload(${owner}, ${uploadId}, ${sql.json(scores)}, ${provenance && sql.json(provenance)})`;
+const getPhoto = (owner, uploadId) => sql`SELECT * FROM atlas_sources.get_photo_proposal(${owner}, ${uploadId})`;
+const savePhoto = (owner, uploadId, receiptId, proposal = photoAssessment) => sql`
+  SELECT * FROM atlas_sources.save_photo_proposal(${owner}, ${uploadId}, ${receiptId}, ${sql.json(proposal)})`;
+const photoProvenance = async (owner, uploadId, receiptId) => (await sql`
+  SELECT atlas_sources.photo_provenance(${owner}, ${uploadId}, ${receiptId}) AS proof`)[0].proof;
+
+async function runMigration(statement) {
+  const connection = await sql.reserve();
+  try { await connection.unsafe(statement); }
+  catch (error) { await connection.unsafe('ROLLBACK'); throw error; }
+  finally { connection.release(); }
+}
+
+async function stagedFile(owner, type = 'image/png') {
+  const { id } = await reserve({ owner, type });
+  await asFixtureStorage(id, 'original', 8, type);
+  return (await sql`SELECT * FROM atlas_sources.finish_upload(${owner}, ${id})`)[0];
+}
+
+// Stand-ins for steps performed by ai-proxy before invoking save_photo_proposal.
+// No prompts, input media or account credentials are involved in this fixture.
+async function photoReceipt({ owner, uploadId, sha256 = originalHash, accepted = true }) {
+  const grant = randomUUID(), session = randomUUID(), receipt = randomUUID();
+  const model = 'anthropic/fixture-vision';
+  await sql.begin(async tx => {
+    await tx`INSERT INTO atlas_ai.holder_leases (id, token_sha256, created_at, expires_at)
+      VALUES (${owner}, sha256(${owner}::text::bytea), now(), now() + interval '24 hours')
+      ON CONFLICT (id) DO NOTHING`;
+    await tx`INSERT INTO atlas_ai.grants
+      (id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at)
+      VALUES (${grant}, ${owner}, 'suggest', ARRAY['background'], ARRAY['upload-declaration-helper'],
+        ARRAY['owned-upload'], ARRAY['atlas-upload-photo-scores-v1'], 4, 10000, now(), now() + interval '12 hours')`;
+    await tx`INSERT INTO atlas_ai.session_leases (id, holder_id, grant_id, token_sha256, created_at, expires_at)
+      VALUES (${session}, ${owner}, ${grant}, sha256(${session}::text::bytea), now(), now() + interval '20 minutes')`;
+    const accounting = {
+      route: { provider: 'anthropic' }, model, agent: 'upload-declaration-helper', job: 'background',
+      photo: { uploadId, contentSha256: sha256 }
+    };
+    await tx`INSERT INTO atlas_ai.call_leases
+      (id,request_key,session_id,grant_id,route_key,accounting,quota_reservations,state,reserved_microusd,created_at,expires_at)
+      VALUES (${receipt}, sha256(${receipt}::text::bytea), ${session}, ${grant}, 'background',
+        ${tx.json(accounting)}, '[]', 'dispatched', 100, now(), now() + interval '1 minute')`;
+    await tx`INSERT INTO atlas_ai.call_receipts
+      (id,time,job,agent,model,cost_microusd,cost_basis,validation_passed,result,failure_class)
+      VALUES (${receipt}, now(), 'background', 'upload-declaration-helper', ${model}, 10, 'measured',
+        ${accepted}, ${accepted ? 'accepted' : 'rejected'}, ${accepted ? null : 'provider_content_invalid'})`;
+  });
+  return receipt;
+}
+
+test('photo migration and unused rollback preserve existing Receipts, allotments, and AI route data', async () => {
+  await runMigration(aiMigration);
+  await runMigration(aiFailureMigration);
+  const owner = randomUUID();
+  const legacy = await stagedFile(owner, 'audio/wav');
+  const [beforePublish] = await publish(owner, legacy.id);
+  const routes = () => sql`SELECT * FROM atlas_ai.routing_config ORDER BY route_key`;
+  const priorRoutes = await routes();
+  await runMigration(photoMigration);
+  assert.deepEqual(await routes(), priorRoutes);
+  assert.equal((await publish(owner, legacy.id))[0].declaration_receipt_id, beforePublish.declaration_receipt_id);
+  await runMigration(photoRollback);
+  assert.equal((await sql`SELECT to_regclass('atlas_sources.photo_proposals') AS rel`)[0].rel, null);
+  assert.equal((await publish(owner, legacy.id))[0].declaration_receipt_id, beforePublish.declaration_receipt_id);
+  await runMigration(photoMigration);
+});
+
+test('only an accepted background Receipt for the same owned bytes can authorize a photo declaration', async () => {
+  const owner = randomUUID(), foreign = randomUUID();
+  const { id } = await stagedFile(owner);
+  const unrelated = await stagedFile(owner);
+  const audio = await stagedFile(owner, 'audio/wav');
+  const text = await stagedFile(owner, 'text/plain');
+  assert.equal((await publish(owner, text.id))[0].state, 'published');
+  await assert.rejects(publish(owner, id), failure('PHOTO_ASSESSMENT_REQUIRED'));
+  await assert.rejects(publish(owner, audio.id), failure('AUDIO_ASSESSMENT_UNAVAILABLE'));
+  await assert.rejects(savePhoto(owner, id, randomUUID()), failure('PHOTO_ASSESSMENT_MISMATCH'));
+  await assert.rejects(savePhoto(owner, id, randomUUID(), 'invalid'), failure('PHOTO_ASSESSMENT_MISMATCH'));
+  const rejected = await photoReceipt({ owner, uploadId: id, accepted: false });
+  const wrongHash = await photoReceipt({ owner, uploadId: id, sha256: previewHash });
+  const wrongOwner = await photoReceipt({ owner: foreign, uploadId: id });
+  for (const receipt of [rejected, wrongHash, wrongOwner]) {
+    await assert.rejects(savePhoto(owner, id, receipt), failure('PHOTO_ASSESSMENT_MISMATCH'));
+  }
+
+  const accepted = await photoReceipt({ owner, uploadId: id });
+  await assert.rejects(savePhoto(owner, unrelated.id, accepted), failure('PHOTO_ASSESSMENT_MISMATCH'));
+  const oversized = { ...photoAssessment, observation: 'x'.repeat(381) };
+  await assert.rejects(savePhoto(owner, id, accepted, oversized), failure('PHOTO_ASSESSMENT_MISMATCH'));
+  const [stored] = await savePhoto(owner, id, accepted);
+  assert.equal(stored.receipt_id, accepted);
+  assert.deepEqual(stored.proposal, photoAssessment);
+  assert.deepEqual(Array.from(await getPhoto(owner, id)), [stored]);
+  assert.equal((await getPhoto(foreign, id)).length, 0);
+  for (const role of ['anon', 'authenticated']) {
+    await assert.rejects(byRole(role, tx => tx`SELECT * FROM atlas_sources.photo_proposals`), error => error.code === '42501');
+  }
+
+  const anotherCall = await photoReceipt({ owner, uploadId: id });
+  assert.equal((await savePhoto(owner, id, anotherCall, { ...photoAssessment, observation: 'A second description.' }))[0].receipt_id, accepted);
+  assert.equal(await photoProvenance(owner, id, anotherCall), null);
+
+  await sql`DELETE FROM atlas_ai.call_leases WHERE id = ${accepted}`;
+  const proof = await photoProvenance(owner, id, accepted);
+  assert.deepEqual(proof, {
+    provider: 'anthropic', model: 'anthropic/fixture-vision', receiptId: accepted, route: 'background', basis: 'image'
+  });
+  assert.equal(await photoProvenance(foreign, id, accepted), null);
+  assert.equal(await photoProvenance(owner, unrelated.id, accepted), null);
+  await assert.rejects(publish(owner, unrelated.id, photoScores, proof), failure('PHOTO_ASSESSMENT_MISMATCH'));
+  await assert.rejects(publish(owner, id, photoScores, { ...proof, model: 'claimed-model' }), failure('PHOTO_ASSESSMENT_MISMATCH'));
+  const [declared] = await publish(owner, id, editedPhotoScores, proof);
+  assert.deepEqual(declared.scores, editedPhotoScores);
+  assert.deepEqual(declared.proposal_provenance, proof);
+  assert.equal((await publish(owner, id, editedPhotoScores, proof))[0].declaration_receipt_id, declared.declaration_receipt_id);
+
+  await sql`SELECT * FROM atlas_sources.begin_delete(${owner}, ${id})`;
+  assert.equal(await photoProvenance(owner, id, accepted), null);
+  assert.equal((await getPhoto(owner, id)).length, 0);
+  assert.equal((await sql`SELECT * FROM atlas_sources.photo_proposals WHERE upload_id = ${id}`).length, 1);
+  await assert.rejects(runMigration(photoRollback), /preserve the proof chain/);
+  assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts WHERE id = ${accepted}`).length, 1);
+});

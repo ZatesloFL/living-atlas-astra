@@ -37,6 +37,9 @@ const messages = {
   UPLOAD_CONFLICT: 'A saved upload already uses this request. Refresh storage usage.',
   UPLOAD_STATE_CONFLICT: 'The state of this upload changed. Refresh storage usage and try again.',
   VIDEO_REFERENCE_REQUIRED: 'Add a YouTube or Vimeo reference for video.',
+  PHOTO_ASSESSMENT_REQUIRED: 'Request a live image assessment before confirming this photo.',
+  PHOTO_ASSESSMENT_MISMATCH: 'The assessment Receipt does not match this photo. Request its live assessment again.',
+  AUDIO_ASSESSMENT_UNAVAILABLE: 'Audio transcription is unavailable. This audio copy stays unpublished.',
 };
 
 export function directUploadType(file) {
@@ -121,8 +124,8 @@ export class UploadClient {
     });
   }
 
-  publish(id, scores, options) {
-    return this.request('publish', {id, scores}, options);
+  publish(id, scores, {proposalReceiptId,...options} = {}) {
+    return this.request('publish', {id, scores, ...(proposalReceiptId?{proposalReceiptId}:{})}, options);
   }
 
   remove(id, options) {

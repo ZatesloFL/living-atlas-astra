@@ -50,12 +50,14 @@ export function normalizeUsage(provider,u){
  const {reasoning_tokens,...billable}=r;
  return Object.values(billable).every(count)&&(reasoning_tokens===null||(count(reasoning_tokens)&&reasoning_tokens<=r.output_tokens))?r:null;
 }
-export async function generate({fetchImpl=fetch,getSecret},route,prompt){
+export async function generate({fetchImpl=fetch,getSecret},route,prompt,image=null){
  const provider=route.provider,key=getSecret(provider==='anthropic'?'ANTHROPIC_API_KEY':'OPENAI_API_KEY');
  const rejected=(failureClass,usage=null)=>({usage,value:null,failureClass});
  if(!key)return rejected('provider_key_missing');
  const anthropic=provider==='anthropic';
- const body=anthropic?{model:route.model_id,max_tokens:route.output_token_cap,messages:[{role:'user',content:prompt}]}:{model:route.model_id,max_output_tokens:route.output_token_cap,input:[{role:'user',content:prompt}],store:false};
+ if(image&&!anthropic)return rejected('provider_request_failed');
+ const content=image?[image,{type:'text',text:prompt}]:prompt;
+ const body=anthropic?{model:route.model_id,max_tokens:route.output_token_cap,messages:[{role:'user',content}],...(image?{thinking:{type:'disabled'}}:{})}:{model:route.model_id,max_output_tokens:route.output_token_cap,input:[{role:'user',content:prompt}],store:false};
  let response;
  try{response=await fetchImpl(anthropic?'https://api.anthropic.com/v1/messages':'https://api.openai.com/v1/responses',{method:'POST',headers:{'content-type':'application/json',...(anthropic?{'x-api-key':key,'anthropic-version':ANTHROPIC_VERSION}:{Authorization:'Bearer '+key})},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(18000)});}catch{return rejected('provider_request_failed');}
  if(!response.ok){await response.body?.cancel().catch(()=>{});return rejected('provider_request_failed');}
@@ -85,10 +87,10 @@ export async function generate({fetchImpl=fetch,getSecret},route,prompt){
    if(!Array.isArray(chunks)||chunks.some(c=>!c||!['text','output_text'].includes(c.type)||typeof c.text!=='string'))return rejected('provider_content_invalid',usage);
   }
   let text=chunks.map(c=>c.text).join('');
-  // A guide may wrap its otherwise valid JSON in one Markdown code fence.
+  // A guide or photo proposal may wrap otherwise valid JSON in one Markdown code fence.
   // Unwrap only that entire document, never extract JSON from surrounding prose.
   // The same strict schema, scope and verbatim-evidence validator still runs.
-  if(route.route_key==='guide'){
+  if(route.route_key==='guide'||image){
    text=text.trim();
    const fenced=/^```(?:json)?\r?\n([\s\S]*?)\r?\n```$/i.exec(text);
    if(fenced)text=fenced[1];
