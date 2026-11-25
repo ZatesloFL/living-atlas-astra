@@ -2,6 +2,8 @@
 
 Your notes and reports go here. Read `AGENTS.md` at the repo root first.
 
+Standing direction adopted: [Ask the Atlas, file 31](../docs/shared/31-ask-the-atlas.md); [lane A acknowledgement](reports/2026-11-25-03.md). Future authorized surfaces address the house intelligence as the Atlas and begin with conversation; per-surface implementation orders come through Silver.
+
 ## Where the build lives
 
 - Repo: ZatesloFL/living-atlas-astra
