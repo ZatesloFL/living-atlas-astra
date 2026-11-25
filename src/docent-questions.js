@@ -1,3 +1,4 @@
+import {PLACE_OVERVIEW_ID} from './place-evidence.js';
 export const QUESTION_LIMIT=600;
 export const DONT_KNOW="I don't know from the blocks available in this view.";
 export const PRESET_QUESTIONS={overview:'What is this Place?',sources:'What needs verification?',rules:'What can this helper do?'};
@@ -28,7 +29,10 @@ export function typedQuestionBlockIds(context){
  // for the unchanged server prompt, schema, question and accounting overhead.
  let remaining=Math.max(800,3000-new TextEncoder().encode(context.question).length);
  const ids=[];
- for(const {block} of rankedQuestionBlocks(context)){
+ // The current Place's own words are always available, even when an overview
+ // question has no keyword in an exhibit body. Other selection stays exact.
+ const overview=context.blocks.find(block=>block.id===PLACE_OVERVIEW_ID);
+ for(const {block} of [...(overview?[{block:overview}]:[]),...rankedQuestionBlocks(context).filter(({block})=>block!==overview)]){
   const size=new TextEncoder().encode(JSON.stringify({body:block.body,sources:block.sources??[]})).length+100;
   if(size>remaining)continue;ids.push(block.id);remaining-=size;if(ids.length===3)break;
  }
