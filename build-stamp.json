@@ -1,0 +1,4 @@
+---
+layout: none
+---
+{"commit": {{ site.github.build_revision | jsonify }}}

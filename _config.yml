@@ -1,0 +1,10 @@
+exclude:
+  - AGENTS.md
+  - README.md
+  - docs
+  - lane
+  - node_modules
+  - scripts
+  - supabase
+  - tests
+  - work

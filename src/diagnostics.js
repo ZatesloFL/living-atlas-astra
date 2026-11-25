@@ -1,8 +1,26 @@
+const revisionPattern = /^[a-f0-9]{40}$/;
+const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+export async function loadBuildStamp(fetchStamp = globalThis.fetch) {
+  try {
+    const response = await fetchStamp.call(globalThis, new URL('../build-stamp.json', import.meta.url), {
+      cache: 'no-cache',
+      mode: 'same-origin'
+    });
+    if (!response.ok) return null;
+    const { commit } = await response.json();
+    return typeof commit === 'string' && revisionPattern.test(commit) ? commit : null;
+  } catch {
+    return null;
+  }
+}
+
 export class Diagnostics {
   constructor(){
-    this.build='2026-11-13-e';this.events=[];this.errors=[];this.current='bootstrap';this.mode='starting';this.contextFailed=false;
+    this.build=localHosts.has(location.hostname)||location.protocol==='file:'?'local (unstamped)':'unavailable';this.events=[];this.errors=[];this.current='bootstrap';this.mode='starting';this.contextFailed=false;
     this.params=new URLSearchParams(location.search);this.safe=this.params.has('safe');this.inject=new Set(this.params.has('test')?(this.params.get('fail')??'').split(','):[]);
     this.ensurePanel();
+    void loadBuildStamp().then(commit=>{if(commit){this.build=commit;this.refresh();}});
   }
   ensurePanel(){
     const host=document.body||document.documentElement;
@@ -33,7 +51,8 @@ export class Diagnostics {
     const render=this.renderState?.();this.toggle.hidden=!(this.safe||this.params.has('test')||this.errors.length||render&&render.level>1);this.toggle.textContent=render?`L${render.level} · Diagnostics`:'Diagnostics';
     this.panel.querySelector('.diagnostic-render').textContent=render?`Level ${render.level}: ${render.label}. Shadows ${render.shadows?'on':'off'}. DPR ${render.dpr.toFixed(2)}. ${render.firstFramePassed?'Frame validated.':'Awaiting frame validation.'} ${render.reason}`:'No 3D renderer active.';
     this.panel.querySelector('[data-quality]').hidden=!this.onFullQuality;
-    this.panel.querySelector('.diagnostic-summary').textContent=`${this.mode} · ${this.safe?'safe mode · ':''}last stage: ${this.current}`;
+    const build=revisionPattern.test(this.build)?this.build.slice(0,12):this.build;
+    this.panel.querySelector('.diagnostic-summary').textContent=`${this.mode} · ${this.safe?'safe mode · ':''}last stage: ${this.current} · build ${build}`;
     this.panel.querySelector('.diagnostic-errors').textContent=this.errors.length?this.errors.map(e=>`STEP: ${e.step}\n${e.name}: ${e.message}\n${e.stack}\nRECOVERY: ${e.recovery}`).join('\n\n'):JSON.stringify(this.payload(),null,2);
   }
   async copy(){
