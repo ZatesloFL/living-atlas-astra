@@ -55,5 +55,6 @@ export function envelope(route,prompt,syntheticPromptHash=null,mediaInput=0){
 export function receipt(attempt,usage,accepted,amount,basis,time,failure){
  const r={id:attempt.id,time:iso(time),job:attempt.accounting.job,model:attempt.accounting.model,agent:attempt.accounting.agent};
  for(const k of ['input','output','cache_read','cache_write','reasoning'])r[k+'_tokens']=usage?.[k+'_tokens']??null;
+ if(attempt.accounting.transcription)r.audio_duration_ms=usage?.audio_duration_ms??null;
  return {...r,cost_microusd:amount,cost_basis:basis,validation_passed:accepted,result:accepted?'accepted':'rejected',failure_class:accepted?null:failureClass(failure)};
 }

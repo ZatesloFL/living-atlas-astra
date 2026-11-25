@@ -11,7 +11,8 @@ const databaseFaults = new Map([
   ['ALLOTMENT_EXCEEDED', 409], ['UPLOAD_NOT_FOUND', 404], ['UPLOAD_CONFLICT', 409],
   ['UPLOAD_STATE_CONFLICT', 409], ['UPLOAD_OBJECTS_INCOMPLETE', 503], ['UPLOAD_OBJECTS_REMAIN', 503],
   ['UPLOAD_INVALID', 400], ['SCORES_INVALID', 400],
-  ['PHOTO_ASSESSMENT_REQUIRED', 409], ['PHOTO_ASSESSMENT_MISMATCH', 409], ['AUDIO_ASSESSMENT_UNAVAILABLE', 409],
+  ['PHOTO_ASSESSMENT_REQUIRED', 409], ['PHOTO_ASSESSMENT_MISMATCH', 409],
+  ['AUDIO_ASSESSMENT_REQUIRED', 409], ['AUDIO_ASSESSMENT_MISMATCH', 409], ['AUDIO_ASSESSMENT_UNAVAILABLE', 409],
 ]);
 
 export class SourceFault extends Error {
@@ -165,14 +166,16 @@ async function publishUpload(store, owner, id, scores, proposalReceiptId) {
     return store.publish(owner, id, scores, provenance);
   }
   if (row.state !== 'uploaded') fail('UPLOAD_STATE_CONFLICT', 409);
-  if (row.content_type.startsWith('audio/')) fail('AUDIO_ASSESSMENT_UNAVAILABLE', 409);
-  if (!row.content_type.startsWith('image/')) {
+  const audio = row.content_type.startsWith('audio/');
+  if (!audio && !row.content_type.startsWith('image/')) {
     if (proposalReceiptId) fail('BAD_REQUEST');
     return store.publish(owner, id, scores, null);
   }
-  if (!proposalReceiptId) fail('PHOTO_ASSESSMENT_REQUIRED', 409);
-  const provenance = await store.photoProvenance(owner, id, proposalReceiptId);
-  if (!provenance) fail('PHOTO_ASSESSMENT_MISMATCH', 409);
+  if (!proposalReceiptId) fail(audio ? 'AUDIO_ASSESSMENT_REQUIRED' : 'PHOTO_ASSESSMENT_REQUIRED', 409);
+  const provenance = await (audio
+    ? store.audioProvenance(owner, id, proposalReceiptId)
+    : store.photoProvenance(owner, id, proposalReceiptId));
+  if (!provenance) fail(audio ? 'AUDIO_ASSESSMENT_MISMATCH' : 'PHOTO_ASSESSMENT_MISMATCH', 409);
   return store.publish(owner, id, scores, provenance);
 }
 

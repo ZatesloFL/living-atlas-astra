@@ -60,6 +60,11 @@ export class SourceStore {
     return provenance;
   }
 
+  async audioProvenance(owner, id, receiptId) {
+    const [{ provenance }] = await this.sql`SELECT atlas_sources.audio_provenance(${owner}, ${id}::uuid, ${receiptId}::uuid) AS provenance`;
+    return provenance;
+  }
+
   async publish(owner, id, scores, provenance = null) {
     const details = provenance === null ? null : this.sql.json(provenance);
     const [row] = await this.sql`SELECT * FROM atlas_sources.publish_upload(${owner}, ${id}::uuid, ${this.sql.json(scores)}, ${details}::jsonb)`;

@@ -1,4 +1,5 @@
 import {bytes, exact, fail, rejectProposal} from './core.js';
+import {loadStoredOriginal,uploadIdPattern as uuid} from './stored-original.js';
 
 export const PHOTO_SCHEMA = 'atlas-upload-photo-scores-v1';
 export const PHOTO_AGENT = 'upload-declaration-helper';
@@ -13,7 +14,6 @@ export const PHOTO_INPUT_BOUND = 4784 + 128;
 const types = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const dimensions = ['violence','sexual','language','disturbing','viewpoint','sensory'];
 const jpegFrames = new Set([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf]);
-const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 
 export function checkPhotoContext(context) {
   exact(context, ['uploadId','description']);
@@ -27,7 +27,9 @@ export function photoPrompt(description) {
   return instructions + '\nOwner description for comparison only: ' + JSON.stringify(description);
 }
 
-export function validatePhotoProposal(value, description) {
+export const validatePhotoProposal=(value,description)=>validateUploadProposal(value,description,'image');
+
+export function validateUploadProposal(value, description, basis) {
   try {
     exact(value, ['scores','observation','descriptionDisagrees']);
     exact(value.scores, dimensions);
@@ -41,7 +43,7 @@ export function validatePhotoProposal(value, description) {
   } catch {
     rejectProposal('proposal_schema_invalid');
   }
-  return {kind:'upload-scores',basis:'image',scores:value.scores,
+  return {kind:'upload-scores',basis,scores:value.scores,
     observation:value.observation.trim(),descriptionDisagrees:value.descriptionDisagrees};
 }
 
@@ -86,42 +88,11 @@ function imageDimensions(image, type) {
   return [];
 }
 
-export async function loadStoredPhoto(photo,{getSecret,fetchImpl=fetch}) {
+export async function loadStoredPhoto(photo,dependencies) {
   const length = Number(photo.original_bytes);
   if (!uuid.test(photo.id) || !types.has(photo.content_type) ||
       !Number.isSafeInteger(length) || length<1 || length>MAX_PHOTO_BYTES) fail('PHOTO_TOO_LARGE',413);
-  const role=getSecret('SUPABASE_SERVICE_ROLE_KEY'), url=getSecret('SUPABASE_URL');
-  if (!role || !url) fail('PHOTO_UNAVAILABLE',503);
-  const path=new URL('/storage/v1/object/authenticated/atlas-user-uploads/'+photo.id+'/original',url);
-  let response;
-  try {
-    response=await fetchImpl(path,{headers:{Authorization:'Bearer '+role,apikey:role},
-      redirect:'error',signal:AbortSignal.timeout(12000)});
-  } catch {
-    fail('PHOTO_UNAVAILABLE',503);
-  }
-  if (!response.ok || !response.body ||
-      (response.headers.has('content-length') && Number(response.headers.get('content-length'))!==length)) {
-    await response.body?.cancel().catch(()=>{});
-    fail('PHOTO_UNAVAILABLE',503);
-  }
-  const image=new Uint8Array(length),reader=response.body.getReader();
-  let offset=0;
-  try {
-    for (;;) {
-      const {value,done}=await reader.read();
-      if (done) break;
-      if (offset+value.length>length) fail('PHOTO_UNAVAILABLE',503);
-      image.set(value,offset);
-      offset+=value.length;
-    }
-  } catch {
-    fail('PHOTO_UNAVAILABLE',503);
-  } finally {
-    await reader.cancel().catch(()=>{});
-  }
-  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',image)),n=>n.toString(16).padStart(2,'0')).join('');
-  if (offset!==length || hash!==photo.content_sha256) fail('PHOTO_UNAVAILABLE',503);
+  const image=await loadStoredOriginal(photo,dependencies,'PHOTO_UNAVAILABLE');
   const [width,height]=imageDimensions(image,photo.content_type);
   if (!width || !height || width>8000 || height>8000) fail('PHOTO_DIMENSIONS_UNSUPPORTED',422);
   // Keep chunk size divisible by three when concatenating base64 segments.

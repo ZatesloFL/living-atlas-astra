@@ -1,5 +1,7 @@
 import {ORIGIN,GUIDE_SCHEMA,MODEL_SCHEMA,BUILDER_SCHEMA,fail,id,iso,token,digest,envelope,cost,receipt} from './core.js';
 import {PHOTO_AGENT,PHOTO_SCHEMA,PHOTO_SCOPE,PHOTO_PURPOSE,PHOTO_ROUTE,PHOTO_MODEL,PHOTO_INPUT_BOUND,MAX_PHOTO_BYTES} from './photo.js';
+import {UPLOAD_REVIEW_PURPOSE,REVIEW_SCHEMAS,AUDIO_TRANSCRIPT_SCHEMA,AUDIO_SCORES_SCHEMA,AUDIO_TYPE,
+ TRANSCRIPTION_ROUTE,TRANSCRIPTION_PRICE,MAX_AUDIO_BYTES,validTranscriptionRoute,transcriptionCost,audioPrompt} from './audio.js';
 const DAY=86400000,MIN=60000;
 const live=(r,now)=>r&&!r.revoked_at&&+new Date(r.expires_at)>now;
 const day=n=>Math.floor(n/DAY)*DAY;
@@ -11,6 +13,24 @@ async function ownedPhoto(tx,ownerId,uploadId){
   WHERE id=${uploadId}::uuid AND owner_id=${ownerId} AND state='uploaded'
     AND content_type IN ('image/jpeg','image/png','image/webp') FOR SHARE`;
  return photo;
+}
+async function ownedAudio(tx,ownerId,uploadId){
+ const [audio]=await tx`SELECT id,owner_id,content_sha256,content_type,original_bytes FROM atlas_sources.uploads
+  WHERE id=${uploadId}::uuid AND owner_id=${ownerId} AND state='uploaded' AND content_type LIKE 'audio/%' FOR SHARE`;
+ return audio;
+}
+async function retirePhotoSession(tx,ownerId,now){
+ // Upgrade one idle legacy photo session if necessary. Leave Docent sessions,
+ // active paid calls, and the underlying grant available to existing clients.
+ const [retired]=await tx`UPDATE atlas_ai.session_leases SET revoked_at=${iso(now)} WHERE id=(
+  SELECT s.id FROM atlas_ai.session_leases s JOIN atlas_ai.grants g ON g.id=s.grant_id
+  WHERE s.holder_id=${ownerId} AND s.revoked_at IS NULL AND s.expires_at>${iso(now)}
+   AND g.scope='suggest' AND g.jobs=ARRAY['background']::text[]
+   AND g.agent_ids=ARRAY[${PHOTO_AGENT}]::text[] AND g.place_ids=ARRAY[${PHOTO_SCOPE}]::text[]
+   AND g.schema_ids=ARRAY[${PHOTO_SCHEMA}]::text[]
+   AND NOT EXISTS(SELECT 1 FROM atlas_ai.call_leases a WHERE a.session_id=s.id AND a.state IN ('reserved','dispatched'))
+  ORDER BY s.created_at,s.id LIMIT 1) RETURNING id`;
+ return !!retired;
 }
 // Every writer takes the singleton config row first. At this prototype's limits
 // this gives a simple cross-instance total order, including operator rollback.
@@ -44,8 +64,8 @@ export class Store {
   await tx`UPDATE atlas_ai.quota_windows SET calls_used=calls_used+1,reserved_microusd=reserved_microusd+${amount} WHERE bucket=${b.key} AND window_start=${iso(b.start)}`;
  }
  async bootstrap(holderToken,purpose){
-  const photo=purpose===PHOTO_PURPOSE;
-  if(photo&&!holderToken)fail('UNAUTHORIZED',401);
+  const photo=purpose===PHOTO_PURPOSE,review=purpose===UPLOAD_REVIEW_PURPOSE,uploads=photo||review;
+  if(uploads&&!holderToken)fail('UNAUTHORIZED',401);
   const holderHash=holderToken?await digest(holderToken):null;
   const ht=token(),st=token(),hh=await digest(ht),sh=await digest(st);
   return this.locked(async(tx,c,now)=>{
@@ -53,23 +73,24 @@ export class Store {
    let h;if(holderHash)[h]=await tx`SELECT * FROM atlas_ai.holder_leases WHERE token_sha256=${holderHash}`;
    // An invalid renewal never silently mints a replacement quota holder.
    if(holderHash&&!live(h,now))fail('UNAUTHORIZED',401);
-   if(photo){
+   if(uploads){
     const [{exists}]=await tx`SELECT EXISTS(SELECT 1 FROM atlas_sources.uploads
-     WHERE owner_id=${h.id} AND state='uploaded' AND content_type IN ('image/jpeg','image/png','image/webp'))`;
-    if(!exists)fail('PHOTO_UNAVAILABLE',404);
+     WHERE owner_id=${h.id} AND state='uploaded' AND
+      (content_type IN ('image/jpeg','image/png','image/webp') OR (${review} AND content_type LIKE 'audio/%')))`;
+    if(!exists)fail(review?'UPLOAD_UNAVAILABLE':'PHOTO_UNAVAILABLE',404);
    }
    if(!h){await this.bucket(tx,{key:'new-holders',start:day(now),end:day(now)+DAY,calls:Math.min(c.new_holders_per_day,100),money:0},0);
     [h]=await tx`INSERT INTO atlas_ai.holder_leases(id,token_sha256,created_at,expires_at) VALUES(${id()},${hh},${iso(now)},${iso(now+30*DAY)}) RETURNING *`;
    }
    const [{n}]=await tx`SELECT count(*)::int AS n FROM atlas_ai.session_leases WHERE holder_id=${h.id} AND revoked_at IS NULL AND expires_at>${iso(now)}`;
-   if(n>=2)fail('RATE_LIMITED',429,1800);
-   const scope=photo?'suggest':'look',job=photo?'background':'guide',agent=photo?PHOTO_AGENT:'docent-silver',
-    place=photo?PHOTO_SCOPE:'boycott',schema=photo?PHOTO_SCHEMA:GUIDE_SCHEMA;
+   if(n>=2&&(!review||!await retirePhotoSession(tx,h.id,now)))fail('RATE_LIMITED',429,1800);
+   const scope=uploads?'suggest':'look',job=uploads?'background':'guide',agent=uploads?PHOTO_AGENT:'docent-silver',
+    place=uploads?PHOTO_SCOPE:'boycott',schemas=review?REVIEW_SCHEMAS:[photo?PHOTO_SCHEMA:GUIDE_SCHEMA];
    let [g]=await tx`SELECT * FROM atlas_ai.grants WHERE holder_id=${h.id} AND scope=${scope}
     AND jobs=ARRAY[${job}]::text[] AND agent_ids=ARRAY[${agent}]::text[] AND place_ids=ARRAY[${place}]::text[]
-    AND schema_ids=ARRAY[${schema}]::text[] AND revoked_at IS NULL AND expires_at>${iso(now)} ORDER BY created_at DESC LIMIT 1`;
-   if(!g){[g]=await tx`INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at) VALUES(${id()},${h.id},${scope},ARRAY[${job}]::text[],ARRAY[${agent}]::text[],ARRAY[${place}]::text[],ARRAY[${schema}]::text[],40,10000000,${iso(now)},${iso(Math.min(now+DAY,+new Date(h.expires_at)))}) RETURNING *`;
-    await this.grantReceipt(tx,g,'issued',now,photo?'owner-upload-photo-policy':'approved-public-docent-policy');
+    AND schema_ids=ARRAY(SELECT jsonb_array_elements_text(${tx.json(schemas)}::jsonb)) AND revoked_at IS NULL AND expires_at>${iso(now)} ORDER BY created_at DESC LIMIT 1`;
+   if(!g){[g]=await tx`INSERT INTO atlas_ai.grants(id,holder_id,scope,jobs,agent_ids,place_ids,schema_ids,max_calls,max_microusd,created_at,expires_at) VALUES(${id()},${h.id},${scope},ARRAY[${job}]::text[],ARRAY[${agent}]::text[],ARRAY[${place}]::text[],ARRAY(SELECT jsonb_array_elements_text(${tx.json(schemas)}::jsonb)),40,10000000,${iso(now)},${iso(Math.min(now+DAY,+new Date(h.expires_at)))}) RETURNING *`;
+    await this.grantReceipt(tx,g,'issued',now,review?'owner-upload-review-policy':photo?'owner-upload-photo-policy':'approved-public-docent-policy');
    }
    const end=Math.min(now+30*MIN,+new Date(g.expires_at),+new Date(h.expires_at));
    await tx`INSERT INTO atlas_ai.session_leases(id,holder_id,grant_id,token_sha256,created_at,expires_at) VALUES(${id()},${h.id},${g.id},${sh},${iso(now)},${iso(end)})`;
@@ -99,10 +120,15 @@ export class Store {
   return this.locked(async(tx,c,now)=>{
    this.ready(c,now);await this.cleanup(tx,now);
    const {s,h,g}=await this.auth(tx,hash,now);
-   const guide=spec.job==='guide',photo=spec.job==='background',publicCall=guide||photo;
-   if(!g.jobs.includes(spec.job)||!g.agent_ids.includes(spec.agentId)||!g.place_ids.includes(photo?PHOTO_SCOPE:spec.context.placeId)||!g.schema_ids.includes(spec.schemaId)||g.scope!==(guide?'look':'suggest'))fail('OUT_OF_SCOPE',403);
-   if(guide?(spec.agentId!=='docent-silver'||spec.schemaId!==GUIDE_SCHEMA):photo?(spec.agentId!==PHOTO_AGENT||spec.schemaId!==PHOTO_SCHEMA):(spec.job!=='builder'||spec.agentId!=='gus-benchmark'||spec.schemaId!==BUILDER_SCHEMA))fail('OUT_OF_SCOPE',403);
-   let upload;
+   const guide=spec.job==='guide',uploads=spec.job==='background',
+    photo=uploads&&spec.schemaId===PHOTO_SCHEMA,transcription=uploads&&spec.schemaId===AUDIO_TRANSCRIPT_SCHEMA,
+    audio=uploads&&spec.schemaId===AUDIO_SCORES_SCHEMA,publicCall=guide||uploads;
+   if(!g.jobs.includes(spec.job)||!g.agent_ids.includes(spec.agentId)||!g.place_ids.includes(uploads?PHOTO_SCOPE:spec.context.placeId)||!g.schema_ids.includes(spec.schemaId)||g.scope!==(guide?'look':'suggest'))fail('OUT_OF_SCOPE',403);
+   if(guide?(spec.agentId!=='docent-silver'||spec.schemaId!==GUIDE_SCHEMA):uploads?
+    (spec.agentId!==PHOTO_AGENT||!REVIEW_SCHEMAS.includes(spec.schemaId)):
+    (spec.job!=='builder'||spec.agentId!=='gus-benchmark'||spec.schemaId!==BUILDER_SCHEMA))fail('OUT_OF_SCOPE',403);
+   if((audio||transcription)&&JSON.stringify(g.schema_ids)!==JSON.stringify(REVIEW_SCHEMAS))fail('OUT_OF_SCOPE',403);
+   let upload,transcript,promptForAssessment;
    if(photo){
     upload=await ownedPhoto(tx,h.id,spec.context.uploadId);
     if(!upload)fail('PHOTO_UNAVAILABLE',404);
@@ -113,16 +139,41 @@ export class Store {
      AND accounting->'photo'->>'uploadId'=${upload.id} AND state IN ('reserved','dispatched') LIMIT 1`;
     if(pending)return {duplicate:true,id:pending.id,state:pending.state};
    }
+   if(audio||transcription){
+    upload=await ownedAudio(tx,h.id,spec.context.uploadId);
+    if(!upload)fail('AUDIO_UNAVAILABLE',404);
+    if(upload.content_type!==AUDIO_TYPE||num(upload.original_bytes)>MAX_AUDIO_BYTES)fail('AUDIO_FORMAT_UNSUPPORTED',422);
+    const [cached]=await tx`SELECT * FROM atlas_sources.get_audio_proposal(${h.id},${upload.id}::uuid)`;
+    if(cached)return transcription?{cachedTranscription:{receipt_id:cached.transcription_receipt_id,
+     provider:cached.transcription_provider,model:cached.transcription_model}}:{cached};
+    [transcript]=await tx`SELECT * FROM atlas_sources.get_audio_transcript(${h.id},${upload.id}::uuid)`;
+    if(transcription&&transcript)return {cachedTranscription:transcript};
+    if(audio&&!transcript)fail('TRANSCRIPT_UNAVAILABLE',409);
+    if(transcription){
+     const [{exists}]=await tx`SELECT EXISTS(SELECT 1 FROM atlas_sources.audio_transcripts
+      WHERE owner_id=${h.id} AND upload_id=${upload.id}::uuid AND content_sha256=${upload.content_sha256})`;
+     if(exists)fail('TRANSCRIPT_UNAVAILABLE',409);
+    }else promptForAssessment=audioPrompt(transcript.transcript,spec.context.description);
+    const stage=transcription?'transcription':'audio';
+    const [pending]=await tx`SELECT id,state FROM atlas_ai.call_leases
+     WHERE accounting->${stage}::text->>'uploadId'=${upload.id}
+      AND (state IN ('reserved','dispatched','uncertain') OR state='completed' AND settled_microusd>0) LIMIT 1`;
+    if(pending)return {duplicate:true,id:pending.id,state:pending.state};
+   }
    const key=await digest(s.id+':'+spec.requestId);
    const [prior]=await tx`SELECT id,state FROM atlas_ai.call_leases WHERE request_key=${key}`;
    if(prior)return {duplicate:true,id:prior.id,state:prior.state};
-   const routeKey=guide?'guide':photo?PHOTO_ROUTE:spec.context.candidate==='challenger'?'builder_challenger':'builder';
-   const [row]=await tx`SELECT to_jsonb(r) AS config FROM atlas_ai.routing_config r WHERE route_key=${routeKey} FOR UPDATE`;
+   const routeKey=guide?'guide':transcription?TRANSCRIPTION_ROUTE:uploads?PHOTO_ROUTE:spec.context.candidate==='challenger'?'builder_challenger':'builder';
+   const [row]=transcription?await tx`SELECT to_jsonb(r) AS config FROM atlas_ai.transcription_config r WHERE id=true FOR UPDATE`:
+    await tx`SELECT to_jsonb(r) AS config FROM atlas_ai.routing_config r WHERE route_key=${routeKey} FOR UPDATE`;
    const route=row?.config;
-   if(!route||!route.enabled||!route.model_id||!route.model_verified_at||+new Date(route.expires_at)<=now)fail('AI_OFF',503);
-   if(photo&&(route.provider!=='anthropic'||route.model_id!==PHOTO_MODEL))fail('AI_OFF',503);
+   if(transcription?!validTranscriptionRoute(route,now):
+    (!route||!route.enabled||!route.model_id||!route.model_verified_at||+new Date(route.expires_at)<=now))fail('AI_OFF',503);
+   if((photo||audio)&&(route.provider!=='anthropic'||route.model_id!==PHOTO_MODEL))fail('AI_OFF',503);
    const syntheticHash=publicCall?null:Array.from(await digest(prompt),n=>n.toString(16).padStart(2,'0')).join('');
-   const {input,reserved}=envelope(route,prompt,syntheticHash,photo?PHOTO_INPUT_BOUND:0);
+   // Reserve up to a full billed minute for the bounded <=30-second PCM job.
+   const {input,reserved}=transcription?{input:null,reserved:TRANSCRIPTION_PRICE}:
+    envelope(route,promptForAssessment??prompt,syntheticHash,photo?PHOTO_INPUT_BOUND:0);
    const [{rolling,active,total,global_active}]=await tx`SELECT
     count(*) FILTER(WHERE session_id=${s.id} AND created_at>${iso(now-MIN)})::int AS rolling,
     count(*) FILTER(WHERE session_id=${s.id} AND state IN ('reserved','dispatched') AND expires_at>${iso(now)})::int AS active,
@@ -136,27 +187,43 @@ export class Store {
    if(publicCall)buckets.push({key:'holder:'+h.id,start:day(now),end:day(now)+DAY,calls:20,money:250000},{key:'public',start:day(now),end:day(now)+DAY,calls:Math.min(c.public_day_calls,100),money:Math.min(num(c.public_day_microusd),1000000)});
    for(const b of buckets.sort((a,b)=>a.key.localeCompare(b.key)))await this.bucket(tx,b,reserved);
    const accounting={job:spec.job,model:route.provider+'/'+route.model_id,agent:spec.agentId,route,inputBound:input,configRevision:String(c.revision),
-    ...(photo?{photo:{uploadId:upload.id,contentSha256:upload.content_sha256}}:{})};
+    ...(photo?{photo:{uploadId:upload.id,contentSha256:upload.content_sha256}}:{}),
+    ...(transcription?{transcription:{uploadId:upload.id,contentSha256:upload.content_sha256}}:{}),
+    ...(audio?{audio:{uploadId:upload.id,contentSha256:upload.content_sha256,transcriptionReceiptId:transcript.receipt_id}}:{})};
    const [a]=await tx`INSERT INTO atlas_ai.call_leases(id,request_key,session_id,grant_id,route_key,accounting,quota_reservations,state,reserved_microusd,created_at,expires_at) VALUES(${id()},${key},${s.id},${g.id},${routeKey},${tx.json(accounting)},${tx.json(buckets.map(b=>({key:b.key,start:iso(b.start)})))},'reserved',${reserved},${iso(now)},${iso(now+60000)}) RETURNING *`;
-   return photo?{...a,upload}:a;
+   return photo||transcription?{...a,upload}:audio?{...a,prompt:promptForAssessment}:a;
   });
  }
- async dispatch(attemptId){return this.locked(async(tx,c,now)=>{
+ async dispatch(attemptId,verifiedDurationMs=null){return this.locked(async(tx,c,now)=>{
   const [a]=await tx`SELECT * FROM atlas_ai.call_leases WHERE id=${attemptId} FOR UPDATE`;
   if(!a||a.state!=='reserved')return false;
-  let valid=false,photo;
+  const transcription=a.accounting.transcription,audio=a.accounting.audio;
+  let valid=false,storedOriginal;
   try{this.ready(c,now);const [s]=await tx`SELECT * FROM atlas_ai.session_leases WHERE id=${a.session_id}`;
    const {h}=await this.auth(tx,s.token_sha256,now);
-   const [r]=await tx`SELECT *, to_jsonb(r)=${tx.json(a.accounting.route)}::jsonb AS unchanged FROM atlas_ai.routing_config r WHERE route_key=${a.route_key}`;
+   const [r]=transcription?await tx`SELECT enabled,to_jsonb(r)=${tx.json(a.accounting.route)}::jsonb AS unchanged
+     FROM atlas_ai.transcription_config r WHERE id=true`:
+    await tx`SELECT *, to_jsonb(r)=${tx.json(a.accounting.route)}::jsonb AS unchanged FROM atlas_ai.routing_config r WHERE route_key=${a.route_key}`;
    valid=live(a,now)&&r?.enabled&&r.unchanged&&String(c.revision)===a.accounting.configRevision;
    if(valid&&a.accounting.photo){
-    photo=await ownedPhoto(tx,h.id,a.accounting.photo.uploadId);
-    valid=photo?.content_sha256===a.accounting.photo.contentSha256;
+    storedOriginal=await ownedPhoto(tx,h.id,a.accounting.photo.uploadId);
+    valid=storedOriginal?.content_sha256===a.accounting.photo.contentSha256;
+   }else if(valid&&(transcription||audio)){
+    const ref=transcription??audio,original=await ownedAudio(tx,h.id,ref.uploadId);
+    valid=original?.content_sha256===ref.contentSha256;
+    if(valid&&transcription){
+     valid=validTranscriptionRoute(a.accounting.route,now)&&Number.isSafeInteger(verifiedDurationMs)&&
+      verifiedDurationMs>0&&verifiedDurationMs<=Number(a.accounting.route.max_duration_ms);
+     if(valid)storedOriginal=original;
+    }else if(valid){
+     const [current]=await tx`SELECT * FROM atlas_sources.get_audio_transcript(${h.id},${original.id}::uuid)`;
+     valid=current?.receipt_id===audio.transcriptionReceiptId;
+    }
    }
   }catch{valid=false;}
   if(!valid){await this.settleTx(tx,a,{notDispatched:true,accepted:false,failureClass:'dispatch_recheck_failed'},now);return false;}
   // A verified Storage read contributes to the same Place/source byte meter.
-  if(photo)await tx`SELECT atlas_sources.record_egress(${photo.owner_id},${photo.id}::uuid,'original',${photo.original_bytes})`;
+  if(storedOriginal)await tx`SELECT atlas_sources.record_egress(${storedOriginal.owner_id},${storedOriginal.id}::uuid,'original',${storedOriginal.original_bytes})`;
   await tx`UPDATE atlas_ai.call_leases SET state='dispatched' WHERE id=${a.id}`;return true;
  });}
  async settle(attemptId,result){return this.locked(async(tx,c,now)=>{
@@ -169,22 +236,56 @@ export class Store {
     const photo=await ownedPhoto(tx,h.id,a.accounting.photo.uploadId);
     if(photo?.content_sha256!==a.accounting.photo.contentSha256||!result.photoProposal)fail('PHOTO_UNAVAILABLE',404);
     result={...result,photoOwner:h.id};
+   }else if(a.accounting.transcription||a.accounting.audio){
+    const ref=a.accounting.transcription??a.accounting.audio,original=await ownedAudio(tx,h.id,ref.uploadId);
+    if(original?.content_sha256!==ref.contentSha256)fail('AUDIO_UNAVAILABLE',404);
+    if(a.accounting.transcription){
+     if(!result.transcript||a.state!=='dispatched')fail('AUDIO_UNAVAILABLE',404);
+    }else{
+     const [current]=await tx`SELECT * FROM atlas_sources.get_audio_transcript(${h.id},${original.id}::uuid)`;
+     if(!result.audioProposal||current?.receipt_id!==ref.transcriptionReceiptId||a.state!=='dispatched')fail('AUDIO_TRANSCRIPTION_REQUIRED',409);
+    }
+    result={...result,audioOwner:h.id};
    }
   }catch{result={...result,accepted:false,failureClass:'result_recheck_failed'};}}
   return this.settleTx(tx,a,result,now);
  });}
  async settleTx(tx,a,result,now){
   const [prior]=await tx`SELECT * FROM atlas_ai.call_receipts WHERE id=${a.id}`;if(prior)return prior;
+  const transcription=a.accounting.transcription;
   const known=!!result.usage,neverSent=result.notDispatched===true&&a.state==='reserved';
-  const amount=neverSent?0:known?cost(result.usage,a.accounting.route):num(a.reserved_microusd);
-  const exceeded=amount>num(a.reserved_microusd)||known&&(result.usage.input_tokens+result.usage.cache_read_tokens+result.usage.cache_write_tokens>a.accounting.inputBound||result.usage.output_tokens>a.accounting.route.output_token_cap);
+  const measuredCost=()=>transcription?transcriptionCost(result.usage.audio_duration_ms,a.accounting.route):cost(result.usage,a.accounting.route);
+  const amount=neverSent?0:known?measuredCost():num(a.reserved_microusd);
+  const exceeded=amount>num(a.reserved_microusd)||known&&(transcription?
+   result.usage.audio_duration_ms>Number(a.accounting.route.max_duration_ms):
+   (result.usage.input_tokens+result.usage.cache_read_tokens+result.usage.cache_write_tokens>a.accounting.inputBound||
+    result.usage.output_tokens>a.accounting.route.output_token_cap));
   if(exceeded)await tx`UPDATE atlas_ai.runtime_config SET enabled=false,revision=revision+1 WHERE id=true`;
   for(const b of a.quota_reservations){
    const changed=await tx`UPDATE atlas_ai.quota_windows SET reserved_microusd=reserved_microusd-${a.reserved_microusd},spent_microusd=spent_microusd+${amount} WHERE bucket=${b.key} AND window_start=${b.start} RETURNING bucket`;
    if(changed.length!==1)fail('LIVE_UNAVAILABLE',503);
   }
-  const r=receipt(a,result.usage,result.accepted===true&&!exceeded,amount,neverSent?'not-dispatched':known?'measured':'reserved',now,exceeded?'accounting_bound_exceeded':result.failureClass);
-  await tx`INSERT INTO atlas_ai.call_receipts ${tx(r)}`;
+  const basis=neverSent?'not-dispatched':known?'measured':'reserved';
+  let r=receipt(a,result.usage,result.accepted===true&&!exceeded,amount,basis,now,exceeded?'accounting_bound_exceeded':result.failureClass);
+  if(r.validation_passed&&(transcription||a.accounting.audio)){
+   // A source change or the transcript's expiry can still prevent saving it.
+   // The savepoint rolls back the tentative Receipt before recording rejection.
+   try{
+    await tx.savepoint(async save=>{
+     await save`INSERT INTO atlas_ai.call_receipts ${save(r)}`;
+     const audio=a.accounting.audio;
+     const [proof]=transcription?await save`SELECT p.receipt_id FROM atlas_sources.save_audio_transcript(
+      ${result.audioOwner},${transcription.uploadId}::uuid,${a.id}::uuid,${result.transcript}) p`:
+      await save`SELECT p.receipt_id FROM atlas_sources.save_audio_proposal(
+       ${result.audioOwner},${audio.uploadId}::uuid,${a.id}::uuid,${audio.transcriptionReceiptId}::uuid,
+       ${save.json(result.audioProposal)}) p`;
+     if(proof?.receipt_id!==a.id)fail('AUDIO_UNAVAILABLE',409);
+    });
+   }catch{
+    r=receipt(a,result.usage,false,amount,basis,now,'result_recheck_failed');
+    await tx`INSERT INTO atlas_ai.call_receipts ${tx(r)}`;
+   }
+  }else await tx`INSERT INTO atlas_ai.call_receipts ${tx(r)}`;
   if(r.validation_passed&&a.accounting.photo)await tx`SELECT atlas_sources.save_photo_proposal(
    ${result.photoOwner},${a.accounting.photo.uploadId}::uuid,${a.id}::uuid,${tx.json(result.photoProposal)})`;
   await tx`UPDATE atlas_ai.call_leases SET state=${known||neverSent?'completed':'uncertain'},settled_microusd=${amount},expires_at=${iso(now+DAY)} WHERE id=${a.id}`;
@@ -200,5 +301,7 @@ export class Store {
   await tx`DELETE FROM atlas_ai.grants WHERE id IN (SELECT g.id FROM atlas_ai.grants g WHERE g.expires_at<=${iso(now)} AND NOT EXISTS(SELECT 1 FROM atlas_ai.session_leases s WHERE s.grant_id=g.id) AND NOT EXISTS(SELECT 1 FROM atlas_ai.call_leases a WHERE a.grant_id=g.id) LIMIT 100)`;
   await tx`DELETE FROM atlas_ai.holder_leases WHERE id IN (SELECT h.id FROM atlas_ai.holder_leases h WHERE h.expires_at<=${iso(now)} AND NOT EXISTS(SELECT 1 FROM atlas_ai.grants g WHERE g.holder_id=h.id) AND NOT EXISTS(SELECT 1 FROM atlas_ai.session_leases s WHERE s.holder_id=h.id) LIMIT 100)`;
   await tx`DELETE FROM atlas_ai.quota_windows WHERE (bucket,window_start) IN (SELECT bucket,window_start FROM atlas_ai.quota_windows WHERE expires_at<=${iso(now)} AND reserved_microusd=0 LIMIT 100)`;
+  const [{available}]=await tx`SELECT to_regprocedure('atlas_sources.expire_audio_transcripts(integer)') IS NOT NULL AS available`;
+  if(available)await tx`SELECT atlas_sources.expire_audio_transcripts(20)`;
  }
 }

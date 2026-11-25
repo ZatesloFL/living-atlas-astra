@@ -8,11 +8,29 @@ const ownerToken = 'a'.repeat(64), strangerToken = 'b'.repeat(64);
 const id = '11111111-1111-4111-8111-111111111111';
 const proposalReceiptId = '22222222-2222-4222-8222-222222222222';
 const unrelatedReceiptId = '33333333-3333-4333-8333-333333333333';
+const transcriptionReceiptId = '44444444-4444-4444-8444-444444444444';
 const endpoint = 'https://atlas.invalid/functions/v1/atlas-sources';
 const jpeg = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAAGAAYDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAB//EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAVAQEBAAAAAAAAAAAAAAAAAAAGCP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/ABo7So//2Q==', 'base64');
 const scores = Object.fromEntries(['violence', 'sexual', 'language', 'disturbing', 'viewpoint', 'sensory']
   .map(key => [key, { amount: key === 'sensory' ? 1 : 0, graphicness: 0 }]));
 const encoded = text => new TextEncoder().encode(text);
+
+function silentWave() {
+  const audio = Buffer.alloc(46);
+  audio.write('RIFF');
+  audio.writeUInt32LE(38, 4);
+  audio.write('WAVEfmt ', 8);
+  audio.writeUInt32LE(16, 16);
+  audio.writeUInt16LE(1, 20);
+  audio.writeUInt16LE(1, 22);
+  audio.writeUInt32LE(8000, 24);
+  audio.writeUInt32LE(16000, 28);
+  audio.writeUInt16LE(2, 32);
+  audio.writeUInt16LE(16, 34);
+  audio.write('data', 36);
+  audio.writeUInt32LE(2, 40);
+  return audio;
+}
 
 function databaseError(message, code = 'P0001') {
   return Object.assign(new Error(message), { code });
@@ -73,6 +91,13 @@ async function fixture({ allotmentBytes = 1000000000 } = {}) {
       const assessment = assessments.get(receipt);
       if (assessment?.accepted && assessment.owner === owner && assessment.id === id &&
           assessment.hash === row.content_sha256) return assessment.provenance;
+      return null;
+    },
+    audioProvenance(owner, id, receipt) {
+      const row = known(owner, id);
+      const assessment = assessments.get(receipt);
+      if (assessment?.accepted && assessment.transcriptionAccepted && assessment.owner === owner &&
+          assessment.id === id && assessment.hash === row.content_sha256) return assessment.provenance;
       return null;
     },
     publish(owner, id, scores, provenance) {
@@ -248,30 +273,70 @@ test('does not require or synthesize provenance when replaying a legacy photo de
   assert.equal((await changed.json()).code, 'UPLOAD_CONFLICT');
 });
 
-test('keeps new audio unpublished and preserves legacy audio declarations and reads', async () => {
-  const { handler, rows } = await fixture();
-  const audio = Buffer.alloc(46);
-  audio.write('RIFF');
-  audio.writeUInt32LE(38, 4);
-  audio.write('WAVEfmt ', 8);
-  audio.writeUInt32LE(16, 16);
-  audio.writeUInt16LE(1, 20);
-  audio.writeUInt16LE(1, 22);
-  audio.writeUInt32LE(8000, 24);
-  audio.writeUInt32LE(16000, 28);
-  audio.writeUInt16LE(2, 32);
-  audio.writeUInt16LE(16, 34);
-  audio.write('data', 36);
-  audio.writeUInt32LE(2, 40);
+test('publishes staged audio only with server-derived provenance for both accepted steps', async () => {
+  const { handler, rows, assessments } = await fixture();
+  const audio = silentWave();
   const staged = await put(handler, audio, 'audio/wav');
   assert.equal((await staged.json()).item.state, 'uploaded');
-  const blocked = await call(handler, '/publish', { id, scores });
-  assert.equal((await blocked.json()).code, 'AUDIO_ASSESSMENT_UNAVAILABLE');
-  assert.equal(rows.get(id).state, 'uploaded');
+
+  const provenance = {
+    provider: 'anthropic', model: 'anthropic/claude-haiku-5-5', receiptId: proposalReceiptId,
+    basis: 'audio-transcript', route: 'background', transcriptionReceiptId,
+    transcriptionProvider: 'openai', transcriptionModel: 'openai/transcription-fixture',
+    transcriptionRoute: 'audio_transcription',
+  };
+  const publish = (fields, token) => call(handler, '/publish', { id, scores, ...fields }, token);
+  for (const [fields, token, expectedStatus, expectedCode] of [
+    [{}, undefined, 409, 'AUDIO_ASSESSMENT_REQUIRED'],
+    [{ proposalReceiptId: 'invalid' }, undefined, 400, 'BAD_REQUEST'],
+    [{ proposalReceiptId, proposalProvenance: provenance }, undefined, 400, 'BAD_REQUEST'],
+    [{ proposalReceiptId: transcriptionReceiptId }, undefined, 409, 'AUDIO_ASSESSMENT_MISMATCH'],
+    [{ proposalReceiptId }, strangerToken, 404, 'UPLOAD_NOT_FOUND'],
+  ]) {
+    const response = await publish(fields, token);
+    assert.equal(response.status, expectedStatus);
+    assert.equal((await response.json()).code, expectedCode);
+    assert.equal(rows.get(id).state, 'uploaded');
+  }
+
+  const verified = { owner: 'owner', id, hash: await sha256(audio), accepted: true, transcriptionAccepted: true, provenance };
+  for (const invalid of [
+    { owner: 'stranger' }, { id: unrelatedReceiptId }, { hash: 'a'.repeat(64) },
+    { transcriptionAccepted: false }, { accepted: false },
+  ]) {
+    assessments.set(proposalReceiptId, { ...verified, ...invalid });
+    const response = await publish({ proposalReceiptId });
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).code, 'AUDIO_ASSESSMENT_MISMATCH');
+    assert.equal(rows.get(id).state, 'uploaded');
+  }
+
+  assessments.set(proposalReceiptId, verified);
+  const edited = { ...scores, viewpoint: { amount: 2, graphicness: 1 } };
+  const declared = await publish({ proposalReceiptId, scores: edited });
+  assert.equal(declared.status, 200);
+  const { item } = await declared.json();
+  assert.equal(item.state, 'published');
+  assert.deepEqual(item.scores, edited);
+  assert.deepEqual(item.proposalProvenance, provenance);
+  assert.deepEqual((await (await publish({ proposalReceiptId, scores: edited })).json()).item, item);
+  const conflict = await publish({ proposalReceiptId: transcriptionReceiptId, scores: edited });
+  assert.equal((await conflict.json()).code, 'UPLOAD_CONFLICT');
+});
+
+test('preserves legacy audio declarations, reads and retries without adding provenance', async () => {
+  const { handler, rows } = await fixture();
+  const audio = silentWave();
+  await put(handler, audio, 'audio/wav');
 
   Object.assign(rows.get(id), { state: 'published', scores, declaration_receipt_id: 'legacy-audio-receipt' });
   const retry = await call(handler, '/publish', { id, scores });
-  assert.equal((await retry.json()).item.declarationReceiptId, 'legacy-audio-receipt');
+  assert.equal(retry.status, 200);
+  const { item } = await retry.json();
+  assert.equal(item.declarationReceiptId, 'legacy-audio-receipt');
+  assert.equal(item.proposalProvenance, null);
+  const conflict = await call(handler, '/publish', { id, scores, proposalReceiptId });
+  assert.equal((await conflict.json()).code, 'UPLOAD_CONFLICT');
   const media = await call(handler, '/media', { id, variant: 'original' });
   assert.deepEqual(Buffer.from(await media.arrayBuffer()), audio);
 });
