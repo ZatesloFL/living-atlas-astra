@@ -1,6 +1,7 @@
+import { AtlasRecords } from './atlas-records.js';
 import { appendEntry, canonical, verifyChain } from './ledger.js';
+import { personId } from './permissions.js';
 import { scores } from './scores.js';
-import { SOURCE_CONVERSATION_KEY } from './source-conversation.js';
 import { videoReference } from './source-media.js';
 import { mockEditorURL, mockGallery, mockItems, mockSourceSpecs } from './source-mocks.js';
 
@@ -47,37 +48,6 @@ async function contentHash(value) {
 }
 
 export const connectionPlanFingerprint = plan => contentHash(plan);
-
-async function mappingConsent(storage, plan, actorId, proposalReceiptId, confirmationReceiptId) {
-  const validRef = ref => typeof ref === 'string' && /^source-conversation:[a-f0-9]{64}$/.test(ref);
-  if (!validRef(proposalReceiptId) || !validRef(confirmationReceiptId)) return false;
-  let state;
-  try { state = JSON.parse(storage?.getItem(SOURCE_CONVERSATION_KEY) ?? 'null'); }
-  catch { return false; }
-  const receipts = state?.receipts;
-  if (state?.version !== 1 || !Array.isArray(receipts) || !(await verifyChain(receipts)).valid) return false;
-  const byRef = ref => receipts.find(entry => 'source-conversation:' + entry.hash === ref);
-  const proposal = byRef(proposalReceiptId), confirmation = byRef(confirmationReceiptId);
-  if (proposal?.action !== 'source_conversation_proposed' || proposal.actor !== 'atlas' ||
-    confirmation?.action !== 'source_conversation_confirmed' || confirmation.actor !== actorId ||
-    proposal.id >= confirmation.id) return false;
-  const proposed = proposal.diff, confirmed = confirmation.diff;
-  if (proposed?.kind !== 'mapping' || confirmed?.kind !== 'mapping' || proposed.id !== confirmed.id ||
-    confirmed.proposalReceiptId !== proposalReceiptId || proposed.grantId !== confirmed.grantId ||
-    proposed.placeId !== plan.placeId || confirmed.placeId !== plan.placeId ||
-    proposed.ownerId !== actorId || confirmed.ownerId !== actorId) return false;
-  const { sourceId, kind, syncMode, recipe } = plan;
-  if (canonical(proposed.data) !== canonical({ sourceId, kind, syncMode, recipe,
-    planFingerprint: await connectionPlanFingerprint(plan) })) return false;
-  const grant = receipts.find(entry => entry.action === 'source_conversation_granted' &&
-    entry.actor === actorId && entry.diff?.grantId === proposed.grantId && entry.diff.placeId === plan.placeId &&
-    entry.diff.scope === 'suggest' && Array.isArray(entry.diff.actions) && entry.diff.actions.includes('mapping'));
-  return !!grant && grant.id < proposal.id && !receipts.some(entry => entry.id > proposal.id &&
-    entry.diff?.grantId === proposed.grantId && (entry.action === 'source_conversation_revoked' ||
-      entry.diff.id === proposed.id && (entry.action === 'source_conversation_proposed' ||
-        entry.action === 'source_conversation_declined' ||
-        entry.id > confirmation.id && ['source_conversation_confirmed','source_conversation_outcome'].includes(entry.action))));
-}
 
 function activity(record, actorId, now) {
   const grant = record.grants.findLast(item => item.to.person === actorId && !item.revokedAt &&
@@ -385,27 +355,34 @@ export class ConnectedSources {
     return clone(this.connectionPlan(this.state, input, actorId));
   }
 
-  commitConnection(plan, { actorId, proposalReceiptId, confirmationReceiptId } = {}) {
+  commitConnection(plan, { lens, records, proposalReceipt, confirmationReceipt } = {}) {
     return this.transaction(async state => {
-      if (!plan) throw new Error('Confirm the connection proposal before applying it.');
+      if (!plan || !lens || lens.preview || lens.isAgent || !(records instanceof AtlasRecords)) {
+        throw new Error('Confirm the connection in your Place with its Atlas Receipts.');
+      }
+      const actorId = personId(lens);
       const expected = this.connectionPlan(state, plan, actorId);
       if (canonical(plan) !== canonical(expected)) throw new Error('The source preview changed. Review a new proposal.');
-      if (!await mappingConsent(this.storage(), expected, actorId, proposalReceiptId, confirmationReceiptId)) {
-        throw new Error('Confirm this connection proposal with its scoped conversation Receipt.');
-      }
       const { owner, kind, placeId, recipe, sourceId, syncMode } = expected;
+      const payload = await records.verifyExtension(lens, {
+        area: 'sources', action: 'connect-and-map', placeId, proposalReceipt, confirmationReceipt
+      });
+      const confirmedPlan = { sourceId, kind, syncMode, recipe, planFingerprint: await connectionPlanFingerprint(expected) };
+      if (canonical(payload) !== canonical(confirmedPlan)) {
+        throw new Error('The confirmed Atlas act does not match this source preview.');
+      }
       const record = mockRecord({ id: sourceId, placeId, owner, kind });
       record.source.syncMode = syncMode;
       const ledger = this.ledger(state, sourceId);
       if (Object.values(state.ledgers).some(entries => entries.some(entry =>
-        entry.action === 'source_mapping_proposed' && entry.diff.proposalReceiptId === proposalReceiptId))) {
+        entry.action === 'source_mapping_proposed' && entry.diff.proposalReceiptId === proposalReceipt))) {
         throw new Error('That proposal Receipt has already been used.');
       }
       await appendEntry(ledger, actorId, 'source_attached', { sourceId, placeId, kind, simulated: true, syncMode });
       const proposal = { id: crypto.randomUUID(), recipe, status: 'pending', proposer: 'atlas', sourceId };
       await appendEntry(ledger, 'atlas', 'source_mapping_proposed',
-        { sourceId, proposalId: proposal.id, recipe, proposalReceiptId });
-      const receipt = await this.approveRecord(ledger, record, proposal, actorId, { confirmationReceiptId });
+        { sourceId, proposalId: proposal.id, recipe, proposalReceiptId: proposalReceipt });
+      const receipt = await this.approveRecord(ledger, record, proposal, actorId, { confirmationReceiptId: confirmationReceipt });
       state.sources[sourceId] = record;
       return { source: record.source, mapping: record.mapping,
         receipt: { id: 'source:' + receipt.hash, hash: receipt.hash, action: receipt.action, actor: receipt.actor } };

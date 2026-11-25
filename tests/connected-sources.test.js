@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { AtlasRecords } from '../src/atlas-records.js';
+import { registerProjection } from '../src/build-projection.js';
 import { ConnectedSources, SOURCE_CACHE_MS, SOURCE_KEY, connectionPlanFingerprint } from '../src/connected-sources.js';
 import { mockGallery } from '../src/source-mocks.js';
-import { verifyChain } from '../src/ledger.js';
-import { ConversationJournal } from '../src/source-conversation.js';
+import { appendEntry, verifyChain } from '../src/ledger.js';
+import { scores } from '../src/scores.js';
 
 const owner = { actorId: 'test-owner' };
 const other = { actorId: 'test-visitor' };
+const ownerLens = { profileId: owner.actorId, age: 30 };
 
 function fixture({ gallery = structuredClone(mockGallery) } = {}) {
   const memory = new Map();
@@ -138,10 +141,35 @@ test('Hosted video records contain only a normalized reference and cannot consum
   await assert.rejects(service.addVideoReference({ ...input, url: 'https://example.org/video' }, owner));
 });
 
-async function proposeConnection(journal, plan) {
-  const {sourceId,kind,syncMode,recipe} = plan;
-  return journal.propose('mapping', {sourceId,kind,syncMode,recipe,
-    planFingerprint:await connectionPlanFingerprint(plan)}, 'Approve the simulated connection and its mapping');
+async function atlasForPlace(storage, placeId) {
+  registerProjection({
+    projection:{schemaVersion:2,rootPlaceId:placeId,rooms:[{
+      placeId,parentPlaceId:null,pathIds:[],pieces:[],behaviors:[],layout:{kind:'courtyard'}
+    }]},
+    changes:[{op:'create',kind:'Place',ref:{placeId},fields:{
+      title:'Source test Place',visibility:'hidden',content:scores(),blocks:[]
+    }}]
+  },{ownerId:owner.actorId});
+  const records = new AtlasRecords(() => storage);
+  const grant = await records.propose(ownerLens,{kind:'grant',areas:['sources'],scope:'edit',durationMs:null},
+    'Give the Atlas standing edit access for sources.');
+  await records.confirm(ownerLens,grant.id);
+  return records;
+}
+
+async function proposeConnection(records, plan) {
+  const {placeId,sourceId,kind,syncMode,recipe} = plan;
+  return records.proposeExtension(ownerLens,{
+    area:'sources',action:'connect-and-map',placeId,payload:{
+      sourceId,kind,syncMode,recipe,planFingerprint:await connectionPlanFingerprint(plan)
+    }
+  },'Connect this simulated source and apply its mapping.',{requested:true});
+}
+
+function confirmConnection(records, proposal, service, plan) {
+  return records.confirm(ownerLens,proposal.id,(_value,proof)=>service.commitConnection(plan,{
+    lens:ownerLens,records,...proof
+  }));
 }
 
 test('The connection preview is read-only and an exact scoped confirmation attaches and approves atomically', async () => {
@@ -159,21 +187,20 @@ test('The connection preview is read-only and an exact scoped confirmation attac
   assert.equal(service.view(plan.sourceId,owner),null);
   assert.deepEqual(service.receipts(plan.sourceId,owner),[]);
   assert.throws(()=>service.planConnection(input,other),/approving owner/);
-  await assert.rejects(service.commitConnection(plan,owner),/scoped conversation Receipt/);
+  await assert.rejects(service.commitConnection(plan,owner),/Atlas Receipts/);
 
-  const journal = new ConversationJournal(storage);
-  journal.begin({id:placeId,ownerId:owner.actorId},{profileId:owner.actorId});
-  await proposeConnection(journal,plan);
+  const records = await atlasForPlace(storage,placeId);
+  let proposal = await proposeConnection(records,plan);
   assert.equal(service.view(plan.sourceId,owner),null);
   advance(SOURCE_CACHE_MS+1);
   assert.deepEqual(service.planConnection(input,owner),plan);
-  const apply = (choice, approval) => service.commitConnection(choice,{...owner,
-    proposalReceiptId:approval.receiptId,confirmationReceiptId:approval.confirmationReceiptId});
-  await assert.rejects(journal.confirm(approval=>apply({...plan,recipe:'gallery-plinths'},approval)),/preview changed/);
+  await assert.rejects(confirmConnection(records,proposal,service,{...plan,recipe:'gallery-plinths'}),/preview changed/);
+  proposal = await proposeConnection(records,plan);
   const wrongMode = service.planConnection({...input,syncMode:'indexed'},owner);
-  await assert.rejects(journal.confirm(approval=>apply(wrongMode,approval)),/scoped conversation Receipt/);
+  await assert.rejects(confirmConnection(records,proposal,service,wrongMode),/does not match this source preview/);
   assert.equal(memory.get(SOURCE_KEY),before);
-  const result = await journal.confirm(approval=>apply(plan,approval));
+  proposal = await proposeConnection(records,plan);
+  const result = await confirmConnection(records,proposal,service,plan);
   assert.match(result.result.receipt.id,/^source:[a-f0-9]{64}$/);
   assert.equal(result.result.source.syncMode,'live');
   assert.equal(result.result.mapping.status,'approved');
@@ -185,7 +212,9 @@ test('The connection preview is read-only and an exact scoped confirmation attac
   assert.deepEqual(receipts.map(entry=>[entry.action,entry.actor]),[
     ['source_attached',owner.actorId],['source_mapping_proposed','atlas'],['source_mapping_approved',owner.actorId]
   ]);
-  assert.equal(receipts.at(-1).diff.confirmationReceiptId,result.receiptId);
+  const applied = records.read().receipts.find(entry=>entry.hash===result.receipt);
+  assert.equal(receipts.at(-1).diff.confirmationReceiptId,applied.diff.confirmationReceipt);
+  assert.equal(receipts[1].diff.proposalReceiptId,applied.diff.proposalReceipt);
   assert.equal((await verifyChain(receipts)).valid,true);
 });
 
@@ -193,19 +222,15 @@ test('A proposed snapshot captures only after confirmation and exclusion changes
   const {service,storage,gallery,make} = fixture();
   const placeId = 'source-snapshot-proposal';
   const input = {placeId,owner:owner.actorId,kind:'collection-db',syncMode:'snapshot'};
-  const journal = new ConversationJournal(storage);
-  journal.begin({id:placeId,ownerId:owner.actorId},{profileId:owner.actorId});
+  const records = await atlasForPlace(storage,placeId);
   const first = service.planConnection(input,owner);
-  await proposeConnection(journal,first);
-  const apply = (plan, approval) => service.commitConnection(plan,{...owner,
-    proposalReceiptId:approval.receiptId,confirmationReceiptId:approval.confirmationReceiptId});
+  const stale = await proposeConnection(records,first);
   gallery.items[0].title = 'Updated before the owner confirmed';
-  await assert.rejects(journal.confirm(approval=>apply(first,approval)),/preview changed/);
+  await assert.rejects(confirmConnection(records,stale,service,first),/preview changed/);
   assert.equal(service.view(first.sourceId,owner),null);
-  await journal.dismiss();
   const fresh = service.planConnection(input,owner);
-  await proposeConnection(journal,fresh);
-  await journal.confirm(approval=>apply(fresh,approval));
+  const proposal = await proposeConnection(records,fresh);
+  await confirmConnection(records,proposal,service,fresh);
   const initial = service.view(fresh.sourceId,other);
   const id = initial.items[0].id;
   const hash = initial.snapshot.hash;
@@ -229,20 +254,66 @@ test('A competing source change or failed storage write cannot publish a confirm
   const {service,storage,make,memory} = fixture();
   const placeId = 'concurrent-source-approval';
   const input = {placeId,owner:owner.actorId,kind:'drive',syncMode:'live'};
-  const journal = new ConversationJournal(storage), stale=make(), plan=stale.planConnection(input,owner);
-  journal.begin({id:placeId,ownerId:owner.actorId},{profileId:owner.actorId});
-  await proposeConnection(journal,plan);
+  const records = await atlasForPlace(storage,placeId), stale = make(), plan = stale.planConnection(input,owner);
+  const proposal = await proposeConnection(records,plan);
   await attach(service,'collection-db');
-  const apply = (catalog, approval) => catalog.commitConnection(plan,{...owner,
-    proposalReceiptId:approval.receiptId,confirmationReceiptId:approval.confirmationReceiptId});
-  await assert.rejects(journal.confirm(approval=>apply(stale,approval)),/changed in another tab/);
+  await assert.rejects(confirmConnection(records,proposal,stale,plan),/changed in another tab/);
   const lastGood = memory.get(SOURCE_KEY);
   const blocked = new ConnectedSources({storage:{
     getItem:storage.getItem,
     setItem:()=>{throw new Error('Storage full');}
   }});
-  await assert.rejects(journal.confirm(approval=>apply(blocked,approval)),/needed to keep this connection/);
+  const next = await proposeConnection(records,plan);
+  await assert.rejects(confirmConnection(records,next,blocked,plan),/needed to keep this connection/);
   assert.equal(memory.get(SOURCE_KEY),lastGood);
   assert.equal(blocked.view(plan.sourceId,owner),null);
   assert.deepEqual(blocked.receipts(plan.sourceId,owner),[]);
+});
+
+test('Legacy source approvals stay readable and the old journal cannot authorize a new mapping', async () => {
+  const {service,storage,memory,make} = fixture();
+  const gallery = await attach(service,'collection-db');
+  const stored = JSON.parse(memory.get(SOURCE_KEY));
+  const historical = stored.ledgers[gallery.id];
+  const oldProposal = 'source-conversation:' + 'a'.repeat(64);
+  const oldConfirmation = 'source-conversation:' + 'b'.repeat(64);
+  const archived = [];
+  for (const receipt of historical) {
+    const proposal = receipt.action==='source_mapping_proposed';
+    const approved = receipt.action==='source_mapping_approved';
+    await appendEntry(archived,proposal?'atlas':receipt.actor,receipt.action,{
+      ...receipt.diff,
+      ...(proposal?{proposalReceiptId:oldProposal}:{}),
+      ...(approved?{confirmationReceiptId:oldConfirmation}:{})
+    });
+  }
+  stored.ledgers[gallery.id] = archived;
+  stored.sources[gallery.id].mapping.receiptRef = archived.at(-1).hash;
+  memory.set(SOURCE_KEY,JSON.stringify(stored));
+  const current = make();
+  assert.equal(await current.ready,true);
+  assert.equal(current.view(gallery.id,other).mapping.receiptRef,archived.at(-1).hash);
+  assert.deepEqual(current.receipts(gallery.id,owner),archived);
+
+  const pending = current.planConnection({placeId:gallery.placeId,owner:owner.actorId,kind:'drive'},owner);
+  const {placeId,sourceId,kind,syncMode,recipe} = pending;
+  const legacy = [], grantId = 'legacy-grant', id = 'legacy-proposal';
+  await appendEntry(legacy,owner.actorId,'source_conversation_granted',{grantId,placeId,scope:'suggest',actions:['mapping']});
+  const proposed = await appendEntry(legacy,'atlas','source_conversation_proposed',{
+    grantId,placeId,ownerId:owner.actorId,kind:'mapping',id,data:{
+      sourceId,kind,syncMode,recipe,planFingerprint:await connectionPlanFingerprint(pending)
+    }
+  });
+  const proposalReceiptId = 'source-conversation:' + proposed.hash;
+  const confirmed = await appendEntry(legacy,owner.actorId,'source_conversation_confirmed',{
+    grantId,placeId,ownerId:owner.actorId,kind:'mapping',id,proposalReceiptId
+  });
+  const confirmationReceiptId = 'source-conversation:' + confirmed.hash;
+  memory.set('living-atlas.source-conversation.v1',JSON.stringify({version:1,receipts:legacy}));
+  const records = await atlasForPlace(storage,placeId);
+  await assert.rejects(current.commitConnection(pending,{...owner,proposalReceiptId,confirmationReceiptId}),/Atlas Receipts/);
+  await assert.rejects(current.commitConnection(pending,{lens:ownerLens,records,
+    proposalReceipt:proposalReceiptId,confirmationReceipt:confirmationReceiptId}));
+  assert.equal(current.view(sourceId,owner),null);
+  assert.deepEqual(current.receipts(gallery.id,owner),archived);
 });

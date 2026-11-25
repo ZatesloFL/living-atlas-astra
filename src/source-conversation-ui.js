@@ -1,6 +1,7 @@
 import {AXES, DIMENSIONS} from './scores.js';
+import {AREA_LABELS, atlasIntent} from './atlas-intents.js';
 import {connectionPlanFingerprint} from './connected-sources.js';
-import {ConversationJournal} from './source-conversation.js';
+import {SourceConversation, SOURCE_GRANT_COMMAND} from './source-conversation.js';
 import {uploadLimitLabel} from './upload-client.js';
 import {PHOTO_DESCRIPTION_LIMIT, uploadScoreBasis} from './upload-scores.js';
 
@@ -14,6 +15,14 @@ const locationPattern = /\s+(?:on|to|at|near|in|by)\s+(?:the\s+)?(left|right|fro
 const positions = {left:[-2,0,0], right:[2,0,0], front:[0,0,2], back:[0,0,-2], center:[0,0,0], entrance:[0,0,2]};
 const numberWords = ['zero','one','two','three'];
 const visualKinds = new Set(['mapping','placement','publication']);
+const grantRequest = input => /^(?:give|grant|allow|let)\s+(?:the\s+)?atlas\b.*\b(?:sources?|build)\b/i.test(input);
+
+function grantWords(value) {
+  const areas = value.areas.map(area => AREA_LABELS[area] ?? area).join(', ');
+  const duration = value.durationMs === null ? 'standing' : `for ${value.durationMs / 60000} minutes`;
+  const scope = {look:'read',suggest:'propose changes',edit:'apply changes you confirm'};
+  return `Give the Atlas permission to ${scope[value.scope]} for ${areas}, ${duration}.`;
+}
 
 export function confirmedSourceScores(scores) {
   return `<table class="source-score-table"><thead><tr><th scope="col">Dimension</th><th scope="col">Amount</th><th scope="col">Graphicness</th></tr></thead><tbody>${DIMENSIONS.map(([key,label]) =>
@@ -57,16 +66,16 @@ function reviewPreview({checks,budget}) {
 export class SourceConversationUI {
   constructor(host) {
     this.host = host;
-    this.journal = new ConversationJournal(()=>host.storage);
+    this.conversation = new SourceConversation(host.records);
   }
 
   begin(room,lens) {
-    this.journal.begin(room,lens);
+    this.conversation.begin(room,lens);
     this.messages = [];
     this.attachment = null;
     this.pendingTransfer = null;
     this.visual = null;
-    this.respond(`${capabilities} I’ll show proposals for ${room.title} and ask before acting.`);
+    this.respond(`${capabilities} I’ll show proposals for ${room.title} and ask before acting. To give me permission, say “${SOURCE_GRANT_COMMAND}.”`);
   }
 
   async end() {
@@ -77,7 +86,7 @@ export class SourceConversationUI {
     try {
       if (hadPreview) await this.host.emit('source-preview-clear');
     } finally {
-      await this.journal.end();
+      await this.conversation.end();
     }
   }
 
@@ -86,7 +95,8 @@ export class SourceConversationUI {
   }
 
   render() {
-    const proposal = this.journal.pending;
+    const grant = this.conversation.grantProposal;
+    const proposal = grant ? null : this.conversation.pending;
     const details = proposal?.kind === 'declaration' ? this.renderDeclaration(proposal) :
       proposal?.kind === 'mapping' && this.visual ? mappingPreview(this.visual) :
       proposal?.kind === 'placement' && this.visual ? placementPreview(this.visual) :
@@ -94,6 +104,7 @@ export class SourceConversationUI {
     return `<section class="source-conversation" aria-label="Ask the Atlas about connected sources">
       <div class="source-chat-log" data-source-chat-log role="log" aria-label="Conversation" aria-relevant="additions text">
         ${this.messages.map(({text,owner})=>`<p class="source-message${owner?' source-message-owner':''}"><strong>${owner?'You':'The Atlas'}</strong> ${esc(text)}</p>`).join('')}
+        ${grant ? `<div class="source-chat-proposal" data-source-chat-proposal="grant"><h3>Grant proposal</h3><p>${esc(grantWords(grant.value))}</p><p>Say <strong>yes</strong> to grant access or <strong>no</strong> to dismiss.</p></div>` : ''}
         ${proposal ? `<div class="source-chat-proposal" data-source-chat-proposal="${proposal.kind}"><h3>Proposal for ${esc(this.host.context.room.title)}</h3>${details}<p>Say <strong>yes</strong> to confirm or <strong>no</strong> to dismiss.</p></div>` : ''}
       </div>
       <form data-source-chat class="source-composer">
@@ -120,12 +131,14 @@ export class SourceConversationUI {
   }
 
   async attach(file) {
-    if (this.journal.pending || this.attachment || this.pendingTransfer) throw new Error('Finish or dismiss the current review before attaching another file.');
+    if (this.conversation.pending || this.conversation.grantProposal || this.attachment || this.pendingTransfer) throw new Error('Finish or dismiss the current review before attaching another file.');
+    await this.conversation.requireScope();
     this.pendingTransfer = {file,id:crypto.randomUUID()};
     return this.uploadAttachment();
   }
 
   async uploadAttachment() {
+    await this.conversation.requireScope();
     const host = this.host;
     const {file,id} = this.pendingTransfer;
     let item;
@@ -144,6 +157,7 @@ export class SourceConversationUI {
   }
 
   async startReview(item,file) {
+    await this.conversation.requireScope();
     const basis = uploadScoreBasis(item.contentType);
     if (!basis) {
       this.respond('Live assessment requires a short PCM WAV with speech. This file is uploaded and stays unpublished.');
@@ -159,12 +173,10 @@ export class SourceConversationUI {
   async review(description) {
     const {item,file} = this.attachment;
     const host = this.host;
-    const basis = uploadScoreBasis(item.contentType);
-    const bytes = basis === 'text' ? file ?? await host.uploads.media(item.id,'original') : undefined;
-    await host.score(item,bytes,description);
+    await host.score(item,file,description);
     this.attachment = null;
     const review = host.proposalFor(item);
-    await this.journal.propose('declaration', {
+    await this.conversation.propose('declaration', {
       itemId:item.id, scores:review.scores,
       ...(review.proposalReceiptId ? {assessmentReceiptId:review.proposalReceiptId} : {}),
       ...(review.transcriptionReceiptId ? {transcriptionReceiptId:review.transcriptionReceiptId} : {}),
@@ -178,11 +190,27 @@ export class SourceConversationUI {
     const words = commandText(value).toLowerCase();
     this.messages.push({text:value,owner:true});
     if (/^(no|cancel|dismiss|stop)(?:,? (?:thank you|thanks))?$/.test(words)) return this.dismiss();
-    const proposal = this.journal.pending;
+    const proposal = this.conversation.pending;
+    const grant = this.conversation.grantProposal;
     if (/^(yes|(?:confirm|approve)(?: it)?|yes,? (?:please|confirm|do it))$/.test(words)) {
+      if (grant) {
+        const confirmed = await this.conversation.confirmGrant();
+        if (proposal) {
+          await this.conversation.dismiss();
+          if (visualKinds.has(proposal.kind)) await this.host.emit('source-preview-clear');
+          this.visual = null;
+        }
+        this.respond(`Grant confirmed. Receipt ${confirmed.receipt}.${proposal ? ' Ask again to review the source action under this grant.' : ''}`);
+        return;
+      }
       this.respond(proposal ? await this.confirm() : this.attachment ? 'Give me a description or say “skip” so I can prepare a declaration.' : 'There is no proposal to confirm.');
       return;
     }
+    if (grant) {
+      this.respond('Please confirm or dismiss the grant proposal first.');
+      return;
+    }
+    if (grantRequest(words)) return this.askGrant(value);
     if (proposal) {
       if (proposal.kind === 'declaration' && /^(set|change|make)\b/.test(words)) return this.edit(words,proposal);
       this.respond('Please confirm or dismiss the open proposal first.');
@@ -203,6 +231,7 @@ export class SourceConversationUI {
     if (/^(place|hang|put|add)\b/.test(words)) return this.place(commandText(value));
     if (/^(publish|review (?:and )?publish)\b/.test(words)) return this.publication();
     if (/^(review|score)\s+/.test(words)) {
+      await this.conversation.requireScope();
       const target = words.replace(/^(review|score)\s+/, '');
       const match = this.find(this.host.hostedItems.filter(item=>item.state==='uploaded').map(item=>({...item,title:item.filename,
         media:item.contentType.startsWith('image/')?'photo':'upload'})),target);
@@ -210,6 +239,15 @@ export class SourceConversationUI {
       return;
     }
     this.respond(`${capabilities} Try “Connect my mock Drive in indexed mode” or “Publish draft.”`);
+  }
+
+  async askGrant(words) {
+    const value = atlasIntent(words);
+    if (value.kind === 'clarify') {
+      this.respond(`${value.text} For example, “${SOURCE_GRANT_COMMAND}.”`);
+      return;
+    }
+    await this.conversation.proposeGrant(value,words);
   }
 
   async edit(words, proposal) {
@@ -224,7 +262,7 @@ export class SourceConversationUI {
     const value = numberWords.includes(spoken) ? numberWords.indexOf(spoken) : Number(spoken);
     const data = structuredClone(proposal.data);
     data.scores[key][axis] = value;
-    await this.journal.amend(data,'Confirm the edited declaration and publish its copy');
+    await this.conversation.amend(data,'Confirm the edited declaration and publish its copy');
     this.respond(`${label} ${axis} is now ${value} in the proposal.`);
   }
 
@@ -234,6 +272,7 @@ export class SourceConversationUI {
       this.respond('I can connect the simulated Drive or gallery. Say “Connect my mock Drive” or “Connect my mock gallery.”');
       return;
     }
+    await this.conversation.requireScope();
     const syncMode = /\bsnapshot\b/.test(words) ? 'snapshot' : /\b(indexed|fed)\b/.test(words) ? 'indexed' : 'live';
     const host = this.host;
     const {placeId,actorId:owner} = host.context;
@@ -255,6 +294,7 @@ export class SourceConversationUI {
   }
 
   async place(input) {
+    await this.conversation.requireScope('suggest','placement');
     const host = this.host;
     const phrase = short(input).replace(/^(?:place|hang|put|add)\s+/i,'');
     const suffix = phrase.match(locationPattern);
@@ -283,6 +323,7 @@ export class SourceConversationUI {
   }
 
   async publication() {
+    await this.conversation.requireScope('suggest','publication');
     const review = await this.host.emit('source-publish-preview');
     if (!review?.receipt?.id) throw new Error('Open this Place in Build to review its draft before publishing.');
     await this.proposeVisual('publication',{previewReceiptId:review.receipt.id},'Publish the reviewed Place draft',review);
@@ -291,7 +332,7 @@ export class SourceConversationUI {
 
   async proposeVisual(kind,data,summary,visual) {
     try {
-      await this.journal.propose(kind,data,summary);
+      await this.conversation.propose(kind,data,summary);
       this.visual = visual;
     } catch (error) {
       await this.host.emit('source-preview-clear');
@@ -300,9 +341,14 @@ export class SourceConversationUI {
   }
 
   async dismiss() {
-    const proposal = this.journal.pending;
+    if (this.conversation.grantProposal) {
+      await this.conversation.dismiss();
+      this.respond('Grant proposal dismissed.');
+      return;
+    }
+    const proposal = this.conversation.pending;
     if (proposal) {
-      await this.journal.dismiss();
+      await this.conversation.dismiss();
       if (visualKinds.has(proposal.kind)) await this.host.emit('source-preview-clear');
       this.visual = null;
       this.respond('Proposal dismissed.');
@@ -317,28 +363,40 @@ export class SourceConversationUI {
 
   async confirm() {
     const host = this.host;
-    const {result,receiptId} = await this.journal.confirm(async ({kind,data,receiptId:proposalReceiptId,confirmationReceiptId}) => {
-      if (kind === 'declaration') {
-        const item = await host.publishUpload(data.itemId,data.scores,{assessmentReceiptId:data.assessmentReceiptId});
-        return {item,receiptId:item.declarationReceiptId};
-      }
-      if (kind === 'mapping') {
-        const {placeId,actorId:owner} = host.context;
-        const plan = this.visual;
-        if (!plan || plan.placeId !== placeId || plan.owner !== owner || plan.sourceId !== data.sourceId || plan.recipe !== data.recipe) throw new Error('The connection changed. Ask for a fresh proposal.');
-        const connected = await host.sources.commitConnection(plan,{...host.actor,proposalReceiptId,confirmationReceiptId});
-        await host.emit('sources-changed',{sourceId:connected.source.id});
+    const proposal = this.conversation.pending;
+    let confirmed;
+    try {
+      confirmed = await this.conversation.confirm(async ({kind,data,proposalReceipt,confirmationReceipt}) => {
+        if (kind === 'declaration') {
+          const declaration = await host.records.verifyExtension(host.context.lens,{
+            area:'sources',action:'declare-upload',placeId:host.context.placeId,proposalReceipt,confirmationReceipt
+          });
+          const item = await host.publishUpload(declaration.itemId,declaration.scores,declaration);
+          return {item,receiptId:item.declarationReceiptId};
+        }
+        if (kind === 'mapping') {
+          const {placeId,actorId:owner} = host.context;
+          const plan = this.visual;
+          if (!plan || plan.placeId !== placeId || plan.owner !== owner || plan.sourceId !== data.sourceId || plan.recipe !== data.recipe) throw new Error('The connection changed. Ask for a fresh proposal.');
+          const connected = await host.sources.commitConnection(plan,{lens:host.context.lens,records:host.records,proposalReceipt,confirmationReceipt});
+          await host.emit('sources-changed',{sourceId:connected.source.id});
+          return connected;
+        }
+        const event = kind === 'placement' ? 'source-placed' : 'source-publish-confirmed';
+        return host.emit(event,{...data,proposalReceipt,confirmationReceipt});
+      });
+    } finally {
+      if (!this.conversation.pending && this.visual && visualKinds.has(proposal.kind)) {
+        this.visual = null;
         await host.emit('source-preview-clear');
-        return connected;
       }
-      if (kind === 'placement') return host.emit('source-placed',data);
-      return host.emit('source-publish-confirmed',data);
-    });
+    }
+    const {result,confirmationReceipt,receipt} = confirmed;
     this.visual = null;
     const applied = result?.receipt?.id ?? result?.receiptId;
     const outcome = result?.item ? `Declaration confirmed. ${result.item.filename} is published to this Place.` :
       result?.source ? `${result.source.label} is attached and its mapping is approved.` :
       result?.receipt ? 'Draft published.' : 'Source placed in your draft.';
-    return `${outcome} Confirmation Receipt ${receiptId}.${applied ? ` Applied Receipt ${applied}.` : ''}`;
+    return `${outcome} Confirmation Receipt ${confirmationReceipt}. Atlas Receipt ${receipt}.${applied ? ` Applied Receipt ${applied}.` : ''}`;
   }
 }

@@ -4,6 +4,7 @@ import {AXES, DIMENSIONS, validPair} from './scores.js';
 import {uploadAccept, uploadLimitLabel} from './upload-client.js';
 import {PHOTO_DESCRIPTION_LIMIT, PHOTO_SCORE_MODEL, uploadScoreBasis, validPhotoObservation, validPhotoRecordId} from './upload-scores.js';
 import {SourceConversationUI, confirmedSourceScores} from './source-conversation-ui.js';
+import {requireSourceScope} from './source-conversation.js';
 
 const proposalKey = 'living-atlas.upload-proposals.v1';
 const modeLabels = {live: 'Live reference', indexed: 'Fed by the source', snapshot: 'Snapshot'};
@@ -83,11 +84,12 @@ function uploadUsage(result) {
 }
 
 export class SourcesUI {
-  constructor({sources = connectedSources, uploads, proposeScores, onChange, storage} = {}) {
+  constructor({sources = connectedSources, uploads, proposeScores, onChange, records, storage} = {}) {
     this.sources = sources;
     this.uploads = uploads;
     this.proposeScores = proposeScores;
     this.onChange = onChange;
+    this.records = records;
     this.proposals = {};
     this.openSources = new Set();
     try {
@@ -285,10 +287,12 @@ export class SourcesUI {
   }
 
   async score(item, file, description = '') {
+    await requireSourceScope(this.records,this.context.lens);
     if (!this.proposeScores) throw new Error('The proposal is unavailable. Your upload is still unpublished.');
-    const proposal = await this.proposeScores({file, item, description, room: this.context.room, lens: this.context.lens});
+    const basis = uploadScoreBasis(item.contentType);
+    const bytes = basis === 'text' && !file ? await this.uploads.media(item.id,'original') : file;
+    const proposal = await this.proposeScores({file:bytes, item, description, room: this.context.room, lens: this.context.lens});
     if (!pairsValid(proposal?.scores)) throw new Error('The proposal is missing one or more dials. Your upload is still unpublished.');
-    const basis=uploadScoreBasis(item.contentType);
     if (basis !== 'text' && (!hasLiveReview(proposal)||proposal.basis!==basis)) {
       throw new Error('A live proposal and its Receipts are required. Your upload is still unpublished.');
     }
@@ -303,11 +307,12 @@ export class SourcesUI {
     return basis === 'text' && (proposal.basis ?? 'text') === 'text' ? proposal : null;
   }
 
-  async publishUpload(itemId, scores, {assessmentReceiptId} = {}) {
+  async publishUpload(itemId, scores, {assessmentReceiptId,transcriptionReceiptId} = {}) {
     const pending = this.hostedItem(itemId);
     const proposal = pending?.state === 'uploaded' && this.proposalFor(pending);
     if (!proposal) throw new Error('Request a score proposal before confirming.');
     if (assessmentReceiptId && proposal.proposalReceiptId !== assessmentReceiptId) throw new Error('The review changed. Request a fresh proposal before publishing.');
+    if (transcriptionReceiptId && proposal.transcriptionReceiptId!==transcriptionReceiptId) throw new Error('The transcription changed. Request a fresh proposal before publishing.');
     if (!pairsValid(scores)) throw new Error('Choose amount and graphicness for every dimension.');
     let item;
     try {
@@ -539,7 +544,8 @@ export class SourcesUI {
     if (item.state !== 'uploaded') return 'Upload received.';
     const basis = uploadScoreBasis(item.contentType);
     if (!basis) return 'Audio uploaded. This copy stays unpublished. Live assessment requires a short PCM WAV with speech.';
-    await this.score(item, basis === 'text' ? pending.file : undefined, pending.description);
+    try { await this.score(item,basis === 'text' ? pending.file : undefined,pending.description); }
+    catch (error) { throw new Error(`Upload received and unpublished. ${error.message}`); }
     return 'Upload received. Review the proposed dials and confirm the declaration.';
   }
 
@@ -631,7 +637,7 @@ export class SourcesUI {
         const photo=action==='place-photo'&&this.hosted?.items?.find(item=>item.id===itemId&&item.state==='published'&&item.placeId===this.context.placeId);
         if(action==='place-photo'&&!photo)throw new Error('This published photo is unavailable.');
         const reference={kind:photo?'upload':'video',sourceId:photo?photo.sourceId:sourceId,itemId};
-        await this.emit('source-placed',{reference});
+        await this.emit('source-placed-manual',{reference});
         return 'Placed in your draft. Review and publish from Build when you are ready.';
       }
       if (action === 'review-upload') {
@@ -699,8 +705,7 @@ export class SourcesUI {
         if (!item || item.placeId !== this.context.placeId) throw new Error('This upload is unavailable.');
         const basis = uploadScoreBasis(item.contentType);
         if (!basis) throw new Error('Live assessment requires a short PCM WAV with speech. This upload remains unpublished.');
-        const bytes = basis === 'text' ? await this.uploads.media(item.id, 'original') : undefined;
-        await this.score(item, bytes, values.get('description')?.trim() ?? '');
+        await this.score(item,undefined,values.get('description')?.trim() ?? '');
         await this.refreshUploads();
         return 'Review both dials for each dimension, then confirm your declaration.';
       }
