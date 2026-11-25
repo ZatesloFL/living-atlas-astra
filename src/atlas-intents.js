@@ -48,10 +48,11 @@ export function atlasIntent(text,{limits={}}={}){
 }
 
 export function validateAtlasIntent(value){
- const fields={clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],lens:['changes']};
+ const fields={clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],lens:['changes'],trip:['target','choice','description']};
  if(!value||!fields[value.kind]||Object.keys(value).some(k=>!['kind',...fields[value.kind]].includes(k)))throw new Error('Invalid Atlas intent.');
  if(value.kind==='clarify'){if(typeof value.text!=='string'||!value.text||value.text.length>2000)throw new Error('Invalid clarification.');return value;}
  if(value.kind==='lens'){if(!value.changes||Array.isArray(value.changes)||!Object.keys(value.changes).length||Object.entries(value.changes).some(([k,p])=>!DIMENSIONS.some(([id])=>id===k)||!validPair(p)))throw new Error('Each dimension needs both dials from 0 to 3.');return value;}
+ if(value.kind==='trip'){if(typeof value.target!=='string'||value.target.length>200||!['inside','door','outside'].includes(value.choice)||typeof value.description!=='string'||value.description.length>12000)throw new Error('Invalid trip proposal.');return value;}
  if(!Array.isArray(value.areas)||new Set(value.areas).size!==value.areas.length||value.areas.some(a=>!ATLAS_AREAS.includes(a))||!value.areas.length&&value.kind!=='revoke')throw new Error('Choose supported areas.');
  if(value.kind==='grant'&&(!ATLAS_SCOPES.includes(value.scope)||value.durationMs!==null&&(!Number.isInteger(value.durationMs)||value.durationMs<=0||value.durationMs>365*86400000)))throw new Error('Choose a valid scope and a lease of up to one year, or standing.');
  if(value.kind==='envelope'){

@@ -2,6 +2,7 @@ import {ROOMS} from './data.js';
 import {graphEdges} from './navigation.js';
 import {visibleEdge} from './rules.js';
 import {permission,personId} from './permissions.js';
+import {doorAgreement} from './travel-agreement.js';
 export function planRoute(from,to,lens,{passable=()=>true}={}){
  if(!ROOMS[from]||!ROOMS[to]||!permission(ROOMS[to],lens).visible||visibleEdge({to,type:'seamless'},lens).state==='hidden')return null;if(from===to)return [];
  const queue=[from],seen=new Map([[from,null]]),edges=graphEdges();
@@ -23,7 +24,7 @@ export function planRoutes(from,lens,{passable=()=>true}={}){
  }
  return routes;
 }
-export function travelPlan(from,target,lens,{confirmed=new Set(),invites=new Set(),route=planRoute(from,target,lens)}={}){
+export function travelPlan(from,target,lens,{confirmed=new Set(),agreements=null,invites=new Set(),route=planRoute(from,target,lens)}={}){
  if(!route)return {route:null,rows:[],ready:false};const rows=[];
  for(const edge of route){
   const room=ROOMS[edge.to],gate=visibleEdge(edge,lens),p=permission(room,lens),request=[...(lens.access?.requests??[])].reverse().find(q=>q.room===room.id&&q.by===personId(lens)&&q.status!=='cancelled');
@@ -32,7 +33,8 @@ export function travelPlan(from,target,lens,{confirmed=new Set(),invites=new Set
    const accepted=p.grant.kind!=='invite'||invites.has(p.grant.id)||(lens.access?.ledgers?.[room.id]??[]).some(r=>r.action==='invite_opened'&&r.actor===personId(lens)&&r.diff.grant===p.grant.id);
    rows.push({id:'grant:'+p.grant.id,kind:p.grant.kind==='invite'?'invite':'pass',edge,grant:p.grant,state:accepted?'Ready':'Needs you',reason:`${p.scope} pass${p.grant.expires?' · expires '+new Date(p.grant.expires).toLocaleTimeString():''}`});
   }
-  if(gate.type==='door'||gate.admission?.explicit)rows.push({id:'door:'+edge.id,kind:'door',edge,admission:gate.admission,state:confirmed.has(edge.id)&&!gate.admission?.blocked?'Ready':'Needs you',reason:gate.reasons.join(' · ')||'Confirm this doorway before departure.'});
+  const agreement=doorAgreement(edge,lens),agreed=agreements?agreements.get(edge.id)===agreement.signature:confirmed.has(edge.id);
+  if(agreement.required)rows.push({id:'door:'+edge.id,kind:'door',edge,admission:gate.admission,agreement,state:agreed&&!gate.admission?.blocked?'Ready':'Needs you',reason:agreement.reasons.join(' · ')});
   if(gate.type==='window')rows.push({id:'window:'+edge.id,kind:'window',edge,state:'Ready',reason:'View-only stop: arrive outside the window.'});
  }
  return {route,rows,ready:rows.every(r=>r.state==='Ready')};

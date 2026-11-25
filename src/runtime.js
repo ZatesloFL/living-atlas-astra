@@ -1,3 +1,5 @@
+import {tripDetails} from './trip-words.js';
+import {doorAgreement} from './travel-agreement.js';
 import {AtlasUI} from './atlas-ui.js';
 export async function startAtlas(diag){
 const THREE=await diag.asyncRun('engine module',()=>import('../vendor/three/three.module.min.js'));
@@ -171,7 +173,7 @@ graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
 ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),readings:ref=>accessUI.standingUI.open(ref),actorRecord:id=>accessUI.standingUI.actor(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>lens.homePlaceId?startTravel(lens.homePlaceId,{choice:'inside'}):changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active&&!builderStage.active));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
-const atlasUI=new AtlasUI(ui,{lens:()=>lens,room:()=>context.room,inspector:()=>ui.lens(),applyLens:async(changes,refs)=>{const result=await profiles.applyLensProposal(changes,refs);lens=currentLens();lensChanged();return result;}});ui.api.askAtlas=()=>atlasUI.open();
+const atlasUI=new AtlasUI(ui,{lens:()=>lens,room:()=>context.room,tripDetails:(id,choice)=>tripDetails(context.room,id,lens,kind,choice),trip:(id,options)=>{if(!travel.start(id,options))throw new Error('This trip is no longer available.');return {status:'preflight started'};},inspector:()=>ui.lens(),applyLens:async(changes,refs)=>{const result=await profiles.applyLensProposal(changes,refs);lens=currentLens();lensChanged();return result;}});ui.api.askAtlas=()=>atlasUI.open();atlasUI.mountStatus(document.querySelector('.location-stack'));
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{askAtlas:()=>atlasUI.open(),state,apply:applyProfile,switchProfile,staff,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
 rebuild();controls.apply();if(savedStarter&&startPrefs.startAt!=='square'&&!(startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)))arriveHome(savedStarter.projection.rootPlaceId);
@@ -226,10 +228,10 @@ function refreshPublishedRoom(roomKey){
  refreshBuiltScene(roomKey);
  contentStore.emit(roomKey);
 }
-travel=new FastTravel(ui,access,{hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
+travel=new FastTravel(ui,access,{authorize:s=>{if(s.atlasTrip)atlasUI.records.require(lens,'travel','edit');},attendance:()=>atlasUI.attendance(),hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
 function landArrival(arrival,route,confirmed){
  const next=new World(arrival.scene,lens,reducedQuery.matches);retainDoors(next);for(const e of EDGES)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.id);
- for(const e of route)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.originalId??e.id);
+ for(const e of route)if(e.scene===arrival.scene&&(confirmed.has(e.id)||!doorAgreement(e,lens).required))next.granted.add(e.originalId??e.id);
  if(!next.canStand(...arrival.position)){next.dispose();throw new Error('That landing point is obstructed. Choose Outside or Door.');}
  stopMedia();world.dispose();world=next;kind=arrival.scene;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.teleport(...arrival.position,arrival.facing);place=arrival.contextRoom?null:{id:arrival.room,scene:kind,x:arrival.position[0],z:arrival.position[1]};near=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);ui.prompt(near);ui.fadeTitle();
 }
@@ -246,7 +248,7 @@ let expiryState=expirySignature();expiryTimer=setInterval(()=>{const next=expiry
 function expirySignature(){return access.visitGrants.map(g=>g.id+':'+g.state+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|')+'#'+access.data.grants.map(g=>g.id+':'+!!g.revokedAt+':'+!!(g.expires&&Date.parse(g.expires)<=Date.now())).join('|');}
 function refreshAccess({preserveAccess=false}={}){place=null;lens=currentLens();if(world)rebuild(kind,{keepDoors:true});if(page){page.lens=lens;page.render(true);}if(ui.mode==='info')ui.info(ui.infoId,true);if(ui.mode==='atlas')ui.renderAtlas();if(ui.mode==='layer')ui.close();if(!preserveAccess&&ui.mode==='access'&&accessUI.currentRoom){if(permission(ROOMS[accessUI.currentRoom],lens).visible)accessUI.open(accessUI.currentRoom);else ui.close();}profileUI?.refresh();expiryState=expirySignature();}
 function setWaypoint(id){if(planRoute(context.room,id,lens)===null||!permission(ROOMS[id],lens).canLook){ui.toast('No permitted route for a waypoint.');return;}waypoint=id;ui.fadeTitle();updateWaypoint();}
-function startTravel(id,options){ui.close();if(previewState||buildUI?.active)buildUI.exit();if(page){page.close();resume3D(pageOrigin);}travel.start(id,options);}
+function startTravel(id,options){ui.close();if(previewState||buildUI?.active)buildUI.exit();if(page){page.close();resume3D(pageOrigin);}if(!options?.words&&atlasUI.attendance().attending)return atlasUI.offerTrip(id,{choice:options?.choice??'inside'});return travel.start(id,options);}
 function goAddress(value){const id=resolveAddress(value,lens);if(!id||roomEntry(id,lens,EDGES).state==='hidden'){ui.toast('No accessible room at that address.');return;}if(planRoute(context.room,id,lens)===null){accessUI.open(id);return;}startTravel(id);}
 function updateWaypoint(){
  const panel=document.getElementById('compass');if(!panel||!world)return;const target=waypoint;

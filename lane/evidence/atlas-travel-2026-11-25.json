@@ -1,0 +1,395 @@
+{
+  "route": "Proposal · not applied\n\nRoute: Welcome to Tallahassee → Canopy roads → The two Capitols. Welcome to Tallahassee. Within your Lens; no additional door term to agree to. 1 Things are available in this reading; 0 withheld by content checks. Canopy roads. Within your Lens; no additional door term to agree to. 2 Things are available in this reading; 0 withheld by content checks. The two Capitols. Within your Lens; no additional door term to agree to. 2 Things are available in this reading; 0 withheld by content checks. This is a trip proposal. Any agreeing door will stop for your choice; ordinary doors need no review clicks.\n\nProposal receipt: 129178c3df356ab5f7fd377316de0f6d5a24809580ca676af8af313eacb04264\n\nYes, confirm this proposalNo, leave it unchanged",
+  "gapProposal": "Proposal · not applied\n\nRoute: Canopy roads → Welcome to Tallahassee → Nic’s Studio → The Commons → Night Market. Canopy roads. Within your Lens; no additional door term to agree to. 2 Things are available in this reading; 0 withheld by content checks. Welcome to Tallahassee. Within your Lens; no additional door term to agree to. 1 Things are available in this reading; 0 withheld by content checks. Nic’s Studio. Within your Lens; no additional door term to agree to. 1 Things are available in this reading; 0 withheld by content checks. The Commons. Within your Lens; no additional door term to agree to. 1 Things are available in this reading; 0 withheld by content checks. Night Market. Sensory amount: 2; your limit is 0 Sensory graphicness: 1; your limit is 0 1 Things are available in this reading; 0 withheld by content checks. This is a trip proposal. Any agreeing door will stop for your choice; ordinary doors need no review clicks.\n\nProposal receipt: 87eac97b9a3065071cf0b290a4d005e7830b121bf2d7d2c6cb1797c8eed97156\n\nYes, confirm this proposalNo, leave it unchanged",
+  "ordinaryCrossingsAdded": 3,
+  "perDoorReviewClicksForOrdinaryTrip": 0,
+  "receipts": [
+    {
+      "place": "square",
+      "id": 3,
+      "prevHash": "aa87b7b4b948c8caba11ad7cf09c43ea3610663c95554a4cb1f776e282252e4a",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:10:46.235Z",
+      "diff": {
+        "scope": "enter",
+        "visit": false,
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false
+      },
+      "hash": "4ae77bf846826f0ad9fb253cc0231add3c329f108fada5976600b6c7bd059cd8"
+    },
+    {
+      "place": "studio",
+      "id": 3,
+      "prevHash": "6ab3295d02000712da50d3f3ffcaaa6418b18b47d16757e519121f74a9cc8b4f",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:22.307Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "b0f8339f40278f4cf4af905cb72293fd8f902ae191bbc29a9b955c0fdca8daae"
+    },
+    {
+      "place": "tallahassee/capitol",
+      "id": 3,
+      "prevHash": "bbf32127695548870dcc728259585e49a6456299bb598817326458d958db9fd8",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:03.818Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "fd4689b07f45a4bac25e1f210d821d94237d09ebd310a5711752ab155551e5b8"
+    },
+    {
+      "place": "commons/market",
+      "id": 2,
+      "prevHash": "6335dc24d81635c5419304ea3494a0b1ffd6e81c3067c1e01a1bcb59bea94a3d",
+      "actor": "seed-me",
+      "action": "door_previewed",
+      "time": "2026-11-25T19:11:14.997Z",
+      "diff": {
+        "edgeId": "commons-market",
+        "choice": "filtered-preview",
+        "terms": {
+          "placeId": "commons/market",
+          "version": null,
+          "content": {
+            "violence": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sexual": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "language": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "disturbing": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "viewpoint": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sensory": {
+              "amount": 1,
+              "graphicness": 1
+            }
+          },
+          "measured": {
+            "violence": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sexual": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "language": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "disturbing": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "viewpoint": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sensory": {
+              "amount": 2,
+              "graphicness": 1
+            }
+          },
+          "admission": {
+            "mode": "threshold",
+            "minimum": {
+              "violence": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sexual": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "language": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "disturbing": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "viewpoint": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sensory": {
+                "amount": 0,
+                "graphicness": 0
+              }
+            },
+            "ageRule": null,
+            "price": null,
+            "standingRules": []
+          },
+          "minAge": 0
+        }
+      },
+      "hash": "adeeb8bd988a47307ce501cea271c49b04da3225d31fdc663a87eef7ff05115e"
+    },
+    {
+      "place": "commons/market",
+      "id": 3,
+      "prevHash": "adeeb8bd988a47307ce501cea271c49b04da3225d31fdc663a87eef7ff05115e",
+      "actor": "seed-me",
+      "action": "visit_lens_raised",
+      "time": "2026-11-25T19:11:20.090Z",
+      "diff": {
+        "grant": "2de7ee28-000e-4141-9fec-60d3d54574e2",
+        "place": "commons/market",
+        "limits": {
+          "sensory": {
+            "amount": 2,
+            "graphicness": 1
+          }
+        },
+        "scope": "this Place for this visit",
+        "pendingExpires": "2026-11-25T19:16:20.090Z"
+      },
+      "hash": "55fe0ef58d60e8a939cc07e8c917ee1de84994aa244e5ce17fcd364b57e3b872"
+    },
+    {
+      "place": "commons/market",
+      "id": 4,
+      "prevHash": "55fe0ef58d60e8a939cc07e8c917ee1de84994aa244e5ce17fcd364b57e3b872",
+      "actor": "seed-me",
+      "action": "door_agreed",
+      "time": "2026-11-25T19:11:20.118Z",
+      "diff": {
+        "edgeId": "commons-market",
+        "choice": "visit-raise",
+        "terms": {
+          "placeId": "commons/market",
+          "version": null,
+          "content": {
+            "violence": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sexual": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "language": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "disturbing": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "viewpoint": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sensory": {
+              "amount": 1,
+              "graphicness": 1
+            }
+          },
+          "measured": {
+            "violence": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sexual": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "language": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "disturbing": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "viewpoint": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "sensory": {
+              "amount": 2,
+              "graphicness": 1
+            }
+          },
+          "admission": {
+            "mode": "threshold",
+            "minimum": {
+              "violence": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sexual": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "language": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "disturbing": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "viewpoint": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sensory": {
+                "amount": 0,
+                "graphicness": 0
+              }
+            },
+            "ageRule": null,
+            "price": null,
+            "standingRules": []
+          },
+          "minAge": 0
+        }
+      },
+      "hash": "ca82fafd4f36b9a12d396ee692a958730ec3623a14abbcdc27360ee1e8992c6e"
+    },
+    {
+      "place": "commons/market",
+      "id": 5,
+      "prevHash": "ca82fafd4f36b9a12d396ee692a958730ec3623a14abbcdc27360ee1e8992c6e",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:22.307Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "97117ce06e34345fbe833d5faafb2cff84cf300306538371df6bf5622b543c72"
+    },
+    {
+      "place": "tallahassee",
+      "id": 1,
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:03.817Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "9a9140dc66693de0eeb24b707b7908395a97f160bf69005eb3d979ef56f168f0"
+    },
+    {
+      "place": "tallahassee",
+      "id": 2,
+      "prevHash": "9a9140dc66693de0eeb24b707b7908395a97f160bf69005eb3d979ef56f168f0",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:22.307Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "733e6512fd10da43d8924f6c923f11d87abcebe212bddca63043a54e4b03f974"
+    },
+    {
+      "place": "tallahassee/canopy",
+      "id": 1,
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:03.817Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "9a9140dc66693de0eeb24b707b7908395a97f160bf69005eb3d979ef56f168f0"
+    },
+    {
+      "place": "tallahassee/canopy",
+      "id": 2,
+      "prevHash": "9a9140dc66693de0eeb24b707b7908395a97f160bf69005eb3d979ef56f168f0",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:22.307Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "733e6512fd10da43d8924f6c923f11d87abcebe212bddca63043a54e4b03f974"
+    },
+    {
+      "place": "commons",
+      "id": 1,
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "actor": "seed-me",
+      "action": "access_used",
+      "time": "2026-11-25T19:11:22.307Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "Me",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside"
+      },
+      "hash": "bdbc4fe4495831dbdf91aeaee92f491a0df38667f965bc37baa9a3c68aba9903"
+    }
+  ],
+  "errors": []
+}

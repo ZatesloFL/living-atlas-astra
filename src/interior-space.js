@@ -10,9 +10,11 @@ export function hallExit(id){
  return {id:'hall-exit:'+id,from:id,to:h.parent,type:'door',scene:h.scene,position:h.exit,before:[h.exit[0],h.exit[1]-1.7],interiorExit:id,destination:r.layout.scene,contextPriority:-1};
 }
 export function spatialRoute(from,target,lens,scene,choice){
- const route=planRoute(from,target,lens);if(!route)return null;
+ const initial=planRoute(from,target,lens);if(!initial)return null;
  const current=hallRoom(scene),h=ROOMS[target]?.layout.interior;
  if(current===target&&choice!=='inside')return [hallExit(current)];
+ // Outside/Door arrival ends in the public parent, before the hall's terms.
+ const route=h&&choice!=='inside'?planRoute(from,h.parent,lens):initial;if(!route)return null;
  const result=route.map((e,i)=>i===0&&current===from&&e.from===current?hallExit(current):ROOMS[e.to]?.layout.interior&&(e.to!==target||choice==='inside')?hallEntry(e.to):e);
  if(h&&choice==='inside'&&current!==target&&!result.some(e=>e.interior===target))result.push(hallEntry(target));
  return result;

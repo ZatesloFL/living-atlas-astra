@@ -16,14 +16,14 @@ test('An interior adds a spatial door without changing the Place graph or readin
  assert.equal(hallRoom(h.scene),'boycott');assert.equal(hallExit('boycott').to,'tallahassee');
  assert.deepEqual(spatialArrival('boycott','inside').position,h.arrival.position);
  for(const choice of ['outside','door']){const a=spatialArrival('boycott',choice);assert.equal(a.scene,'history');assert.equal(a.contextRoom,'tallahassee');}
- const baseline=travelPlan('studio','boycott',lens());assert.deepEqual(baseline.rows.map(r=>r.edge.id),['studio-city']);
+ const baseline=travelPlan('studio','boycott',lens());assert.deepEqual(baseline.rows.map(r=>r.edge.id),['city-boycott']);
 });
-test('Physical Inside entry requires a fresh pre-flight confirmation; Door arrival does not enter',()=>{
+test('Inside entry agrees to the hall’s age term; Door arrival and the ordinary exit need no review',()=>{
  const l=lens(),route=spatialRoute('tallahassee','boycott',l,'history','inside');
  assert.equal(travelPlan('tallahassee','boycott',l,{route}).ready,false);
  assert.equal(travelPlan('tallahassee','boycott',l,{route,confirmed:new Set([h.edge])}).ready,true);
  const outside=spatialRoute('tallahassee','boycott',l,'history','door');assert.equal(travelPlan('tallahassee','boycott',l,{route:outside}).ready,true);
- const exit=spatialRoute('boycott','boycott',l,h.scene,'door');assert.deepEqual(exit.map(e=>e.to),['tallahassee']);assert.equal(travelPlan('boycott','boycott',l,{route:exit}).ready,false);
+ const exit=spatialRoute('boycott','boycott',l,h.scene,'door');assert.deepEqual(exit.map(e=>e.to),['tallahassee']);assert.equal(travelPlan('boycott','boycott',l,{route:exit}).ready,true);
  l.show.real=false;assert.equal(spatialRoute('tallahassee','boycott',l,'history','inside'),null);
 });
 test('Each audience retains its exhibits; fixture Style changes do not move bay centers',()=>{
