@@ -98,7 +98,7 @@ test('real deployed proxy captures replay through client evidence and provenance
 });
 
 test('six real paired-Lens v5 captures replay with their exact proposal and receipt provenance, including abstention',async()=>{
- const {readFile}=await import('node:fs/promises'),{allowedBlocks}=await import('../supabase/functions/ai-proxy/protocol.js');
+ const {readFile}=await import('node:fs/promises'),{allowedBlocks,catalog}=await import('../supabase/functions/ai-proxy/protocol.js');
  const capture=JSON.parse(await readFile(new URL('./fixtures/docent-proxy-live-arrival.json',import.meta.url),'utf8'));
  assert.match(capture.captureType,/real deployed proxy response/);assert.equal(capture.edgeFunctionVersion,5);assert.equal(capture.captures.length,6);
  for(const [index,wire] of capture.captures.entries()){
@@ -107,7 +107,7 @@ test('six real paired-Lens v5 captures replay with their exact proposal and rece
   let dispatched=0;
   const client=createAI({transport:createProxyTransport({endpoint:AI_PROXY_ENDPOINT,fetchImpl:async(url,opts)=>{
    if(url.endsWith('/session'))return session();dispatched++;
-   const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;assert.deepEqual(sent,expected);return Response.json(wire.response);
+   const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;expected.context.catalogRevision=catalog.revision;assert.deepEqual(sent,expected);return Response.json(wire.response);
   }})});
   const result=await client.request(request(c));assert.equal(dispatched,1);assert.equal(result.agentId,wire.response.agentId);
   // The browser capture stores the UI's proposal/model/provenance projection.

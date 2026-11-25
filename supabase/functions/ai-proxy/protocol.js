@@ -1,3 +1,4 @@
+import previousCatalog from './catalog-previous.js';
 import legacyCatalog from './catalog-legacy.js';
 import catalog from './catalog.js';
 import cases from './builder-cases.json' with {type:'json'};
@@ -31,7 +32,7 @@ export function checkRequest(v){
   if(!['primary','challenger'].includes(v.context.candidate)||!cases.cases.some(x=>x.id===v.context.caseId))fail('BAD_REQUEST');
  }else fail('OUT_OF_SCOPE',403);
  if(v.context.placeId!=='boycott')fail('OUT_OF_SCOPE',403);
- if(v.context.catalogRevision!==catalog.revision&&!(v.job==='guide'&&v.context.catalogRevision===legacyCatalog.revision))fail('STALE_CATALOG',409);
+ if(v.context.catalogRevision!==catalog.revision&&!(v.job==='guide'&&[legacyCatalog.revision,previousCatalog.revision].includes(v.context.catalogRevision)))fail('STALE_CATALOG',409);
  return v;
 }
 export function allowedBlocks(context){
@@ -39,7 +40,7 @@ export function allowedBlocks(context){
  exact(l.limits,dims);exact(l.hard,dims);exact(l.show,['real','pseudonym','anonymous','agents']);
  if(!Object.hasOwn(rank,l.depth)||!['Author','Academic','Vouched','Community'].includes(l.trustFrom)||!['child','teen'].includes(l.audience)||Object.values(l.show).some(v=>typeof v!=='boolean'))fail('BAD_REQUEST');
  const legacy=context.catalogRevision===legacyCatalog.revision,axes=legacy?['scalar']:['amount','graphicness'];
- const source=legacy?legacyCatalog:catalog,limits={},hard={},valid=n=>Number.isInteger(n)&&n>=0&&n<=3;
+ const source=legacy?legacyCatalog:context.catalogRevision===previousCatalog.revision?previousCatalog:catalog,limits={},hard={},valid=n=>Number.isInteger(n)&&n>=0&&n<=3;
  for(const d of dims){
   if(!legacy){exact(l.limits[d],axes);exact(l.hard[d],axes);}
   limits[d]={};hard[d]={};for(const axis of axes){
