@@ -1,0 +1,15 @@
+const {chromium}=require(process.env.ATLAS_PLAYWRIGHT_MODULE||'playwright-core');
+const assert=require('node:assert/strict');const fs=require('node:fs/promises');
+(async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});const p=await browser.newPage();try{
+ await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8012/')+'tests/fixtures/');
+ const setup=await p.evaluate(async()=>{
+  const [{Builder},{registerProjection},{Discovery},{CommunityUI},{AccessStore},{ROOMS,EDGES,PRESETS},{scores}]=await Promise.all(['builder','build-projection','discovery','community-ui','access-store','data','scores'].map(n=>import('/src/'+n+'.js')));
+  const key='synthetic-provenance',owner={...structuredClone(PRESETS.Adult),profileId:'synthetic-owner',age:30,identity:{display:'pseudonym',backing:'verified'},playAs:'visitor',show:{real:true,pseudonym:true,anonymous:true,agent:true}},visitor={...owner,profileId:'synthetic-reader'};
+  registerProjection({projection:{schemaVersion:2,rootPlaceId:key,rooms:[{placeId:key,parentPlaceId:null,layout:{kind:'courtyard'},pathIds:[],pieces:[],behaviors:[]}]},changes:[{op:'create',kind:'Place',ref:{placeId:key},fields:{title:'Synthetic publication observatory',visibility:'public',content:scores(),blocks:[]}}]},{ownerId:owner.profileId});EDGES.push({id:key,from:'square',to:key,type:'door',scene:'square',position:[2,2]});
+  const builder=new Builder(),access=new AccessStore();await access.ready;await builder.add(key,owner,'lantern');await builder.preview(key,owner,owner);const result=await builder.publish(key,owner);
+  const discovery=new Discovery({current:()=>visitor},access,{builder,lens:()=>access.lens(visitor)});document.body.innerHTML='<main id="surface"></main>';const ui={open(){},close(){},content:document.querySelector('main'),toast:m=>{throw Error(m);}};const surface=new CommunityUI(ui,discovery,{room:()=> 'square'});surface.query={words:'observatory'};surface.open('search');window.fixture={builder,discovery,surface};return{time:result.receipt.time,key};
+ });
+ const card=p.locator('.discovery-card').filter({has:p.getByRole('heading',{name:'Synthetic publication observatory',exact:true})});assert.equal(await card.locator('time').getAttribute('datetime'),setup.time);
+ await card.getByRole('button',{name:'Endorse this version',exact:true}).click();await card.getByRole('button',{name:'Endorsement on file',exact:true}).waitFor();
+ const result=await p.evaluate(()=>({text:[...document.querySelectorAll('.discovery-card')].find(e=>e.querySelector('h3').textContent==='Synthetic publication observatory').innerText,receipts:fixture.builder.data.receipts.filter(r=>r.action==='build_vouched').map(({id,time,diff})=>({id,time,diff}))}));assert.equal(result.receipts.length,1);assert.match(result.text,/Endorsements on file\s+1/);await fs.writeFile('lane/evidence/discovery-provenance-2026-11-25.json',JSON.stringify({published:setup.time,...result},null,2)+'\n');console.log('PASS visible date and receipted endorsement through the Discovery card');
+ }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

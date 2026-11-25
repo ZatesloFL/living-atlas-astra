@@ -134,11 +134,11 @@ export function queryIndex(lens,query={},options={}) {
    ...(entry.softGaps.length?['Shown with a soft gap; crossing still requires the ordinary door review.']:['Current crossing checks permit this result.']),
    `Order: ${SORTS[sort]}.`];
   const curated=(lens.access?.staffState?.proposals??[]).find(p=>p.status==='approved'&&Date.parse(p.publishedUntil)>Date.now()&&p.proposal.kind==='curation'&&matching.some(c=>p.proposal.cards.includes(c.id)));
-  results.push({...entry,...(card?{id:card.id,title:card.title,curator:card.curator,curatorRecord:card.curatorRecord,vouches:card.vouches??null,sampleVouches:Number.isInteger(card.vouches),sampleAge:card.age}:{}),
+  results.push({...entry,...(card?{id:card.id,title:card.title,curator:card.curator,curatorRecord:card.curatorRecord}:{}),
    indexId:entry.id,carriers:matching,reasons,why:reasons.join(' '),curationReceipt:curated?`Helper curation approved by a person · ${curated.model}`:null,
    orderPosition:Math.min(...matching.map(c=>{const index=BOARD_CARDS.findIndex(b=>b.id===c.id);return index<0?Infinity:index;}),Infinity)});
  }
- const compare=(a,b)=>sort==='newest'?(b.publishedAt??-Infinity)-(a.publishedAt??-Infinity)||((a.sampleAge??Infinity)-(b.sampleAge??Infinity)):
+ const compare=(a,b)=>sort==='newest'?(b.publishedAt??-Infinity)-(a.publishedAt??-Infinity):
   sort==='vouched'?(b.vouches??-1)-(a.vouches??-1):sort==='nearest'?a.distance-b.distance:a.orderPosition-b.orderPosition;
  results.sort((a,b)=>compare(a,b)||a.title.localeCompare(b.title)||a.id.localeCompare(b.id));
  return {results,sort,sortLabel:SORTS[sort],query};

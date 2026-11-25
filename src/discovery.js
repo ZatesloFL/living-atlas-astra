@@ -1,3 +1,4 @@
+import {Builder} from './builder.js';
 import {exhibitSpace} from './interior-kit.js';
 import {ROOMS,EDGES} from './data.js';
 import {TRAILS,CLUBS} from './community-data.js';
@@ -10,10 +11,17 @@ import {queryIndex} from './discovery-index.js';
 export function boardCards(lens,{from='square',club=null,standing}={}){return queryIndex(lens,{board:club?.id??'noticeboard'},{from,standing}).results;}
 export function allowedClubs(lens){return CLUBS.filter(c=>reachable(c.hall,lens));}
 export class Discovery {
- constructor(profiles,access,api={}){if(!access.communitySaved){access.communitySaved=true;access.ready.then(valid=>{if(valid)access.persist();});}this.profiles=profiles;this.access=access;this.api=api;this.notified=new Set();}
+ constructor(profiles,access,api={}){if(!access.communitySaved){access.communitySaved=true;access.ready.then(valid=>{if(valid)access.persist();});}this.profiles=profiles;this.access=access;this.api=api;this.builder=api.builder??new Builder();this.notified=new Set();}
  lens(){return this.api.lens?.()??this.access.lens(this.profiles.current());}
  query(query={},options={}){return queryIndex(this.lens(),query,{standing:this.access.standing,...options});}
  preview(id,query={},options={}){const card=this.query(query,options).results.find(c=>c.id===id||c.indexId===id);if(!card)throw new Error('This result no longer fits your current Lens or door terms.');return card;}
+ canEndorse(card){if(!['room','thing'].includes(card.type))return false;try{this.builder.vouchTarget(card.room,this.lens(),card.type==='thing'?card.target:null,this.builder.data.receipts);return true;}catch{return false;}}
+ async endorse(card,query={},options={}){
+  const current=this.preview(card.id,query,options);
+  if(current.node.recordVersionId!==card.node.recordVersionId)throw new Error('This version changed. Preview it again before endorsing.');
+  try{return await this.builder.vouch(card.room,this.lens(),{thingId:card.type==='thing'?card.target:null});}
+  catch(error){throw new Error(error.message.replace(/\bvouch\b/gi,'endorse'));}
+ }
  prefs(){return discoveryState(this.lens().discovery);}
  save(changes){const lens=this.lens();if(lens.preview)throw new Error('Exit Preview as before changing discovery.');lens.discovery=discoveryState({...lens.discovery,...changes});this.profiles.preferences(lens);if(changes.privacy){for(const p of this.access.data.presence)if(p.person===personId(lens))p.privacy=changes.privacy;this.access.persist();}this.api.changed?.(lens);return lens.discovery;}
  follow(id){const p=this.prefs();if(!p.followed.includes(id)&&!curatorsFor(this.lens()).some(c=>c.id===id)&&!visiblePeople(this.lens()).some(person=>person.id===id&&person.followable))throw new Error('This presentation cannot be followed in your current view.');this.save({followed:p.followed.includes(id)?p.followed.filter(x=>x!==id):[...p.followed,id]});}

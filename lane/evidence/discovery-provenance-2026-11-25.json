@@ -1,0 +1,18 @@
+{
+  "published": "2026-11-25T18:39:28.471Z",
+  "text": "Place\nSynthetic publication observatory\nPublished\n2026-11-25 18:39:28.471 UTC\nEndorsements on file\n1\nConnections from here\n1\n\nBy Place owner\n\nViolence\n0 × 0\nSexual content\n0 × 0\nLanguage\n0 × 0\nDisturbing themes\n0 × 0\nViewpoint\n0 × 0\nSensory\n0 × 0\n\nAmount × graphicness · each 0–3\n\nWithin current crossing limits\n\nWhy am I seeing this?\nDeclared · Steward · Audience · unmeasured\nDoor terms · review before entering\nPreview\nEnter\nEndorsement on file\n\nEndorsement recorded · 1 on file · Receipt builder:0833c1ebd30e42ad9a7abd5192596c1c39e8216caa1c64c11df38e8c51adf65d",
+  "receipts": [
+    {
+      "id": 3,
+      "time": "2026-11-25T18:39:28.927Z",
+      "diff": {
+        "target": {
+          "placeId": "synthetic-provenance",
+          "thingId": null,
+          "versionId": "kit-427ef619-2684-48b0-af30-08104f0d21d1"
+        },
+        "publicationReceiptRef": "builder:c0c8226bf637626b3cd4c8f3a7f57eee33c30320042386d24480900485147d65"
+      }
+    }
+  ]
+}

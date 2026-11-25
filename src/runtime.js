@@ -157,7 +157,7 @@ function resume3D(id){
 function openPage(id=context.room){
   stopMedia();
   if(previewState||buildUI?.active)buildUI.exit();travel?.cancel();ui.close();controls.resetInput();active=false;cancelAnimationFrame(frame);transition=null;pageOrigin=context.room;page?.close();lens.form='page';profiles.preferences(lens);
-  page=new PageRenderer({lens,room:id,originRoom:context.room,access,profiles,onAccessChange:refreshAccess,diagnostics:diag,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onVisit:next=>{selectedRoom=next;},onLensChange:next=>{lens=next;profiles.preferences(lens);rebuild();profileUI?.refresh();},on3D:resume3D});
+  page=new PageRenderer({builder,lens,room:id,originRoom:context.room,access,profiles,onAccessChange:refreshAccess,diagnostics:diag,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onVisit:next=>{selectedRoom=next;},onLensChange:next=>{lens=next;profiles.preferences(lens);rebuild();profileUI?.refresh();},on3D:resume3D});
   page.open(id);diag.setMode('Page form');if(diag.params.has('test'))window.__atlasPage=page;
 }
 diag.pageState=()=>({lens,room:context.room,access,profiles,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onLensChange:next=>{lens=next;profiles.preferences(lens);}});
@@ -231,7 +231,7 @@ function landArrival(arrival,route,confirmed){
  if(!next.canStand(...arrival.position)){next.dispose();throw new Error('That landing point is obstructed. Choose Outside or Door.');}
  stopMedia();world.dispose();world=next;kind=arrival.scene;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.teleport(...arrival.position,arrival.facing);place=arrival.contextRoom?null:{id:arrival.room,scene:kind,x:arrival.position[0],z:arrival.position[1]};near=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);ui.prompt(near);ui.fadeTitle();
 }
-discovery=new Discovery(profiles,access,{lens:()=>lens,changed:()=>{lens=currentLens();world.lens=lens;},waypoint:setWaypoint,clearWaypoint:()=>{waypoint=null;updateWaypoint();},message:(t)=>ui.toast(t)});
+discovery=new Discovery(profiles,access,{builder,lens:()=>lens,changed:()=>{lens=currentLens();world.lens=lens;},waypoint:setWaypoint,clearWaypoint:()=>{waypoint=null;updateWaypoint();},message:(t)=>ui.toast(t)});
 communityUI=new CommunityUI(ui,discovery,{inbox:()=>staffUI.inbox(),staff:()=>staff,readings:ref=>accessUI.standingUI.open(ref),room:()=>context.room,travel:startTravel,waypoint:setWaypoint,page:openPage,layer:(room,id)=>layerUI.peek(room,id),reminders:refreshReminders});
 staffUI=new StaffUI(ui,staff,{discovery:()=>communityUI.open('search'),lens:()=>lens,room:()=>context.room,changed:refreshAccess,receipts:id=>accessUI.open(id),trail:id=>discovery.startTrail(id)});
 staff.seed().then(()=>refreshAccess()).catch(error=>ui.toast(error.message));
