@@ -8,7 +8,7 @@ Standing direction adopted: [Ask the Atlas, file 31](../docs/shared/31-ask-the-a
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
-- Latest lane A implementation: [One delivered declaration per visitor](reports/2026-11-24-22.md), runtime `fba7678`: Discovery chips, both readings tables and hall entry agree under Documentary and Immersive Lenses, with version labels. 253 Node tests and 21 browser checks pass; all five served runtime files match.
+- Latest lane A landing: [Duet Part 1, A1–A3](reports/2026-11-25-05.md), runtime `65a0cc5`: fresh profiles leave the Lens unset, starter archives reflect attached sources, and account badges share the saved profile state. All 275 integrated Node tests pass. A4–A7 are preserved on `lane-a/duet-part1-prepared-2026-11-25`; lane B’s Builder Steward helper dependency blocks their landing and Part 2. See FOR FILING in report 05.
 - Previous lane A fix: [Existing-profile Arrival entry](reports/2026-11-24-20.md), runtime `07b3411`: Manage offers See your space only before a starter claim; the same profile reaches its home and Drive without clearing data. 250 Node tests and 12 targeted Arrival browser checks pass; the three served runtime files match.
 - Discovery round: [Discovery round and combined verification](reports/2026-11-24-19.md). The five part reports are [index](reports/2026-11-24-13.md), [search/preview/Docents](reports/2026-11-24-15.md), [trails/events](reports/2026-11-24-16.md), [presence](reports/2026-11-24-17.md), and [owner inbox](reports/2026-11-24-18.md). [main HEAD](https://github.com/ZatesloFL/living-atlas-astra/commits/main) includes the final filing.
 
