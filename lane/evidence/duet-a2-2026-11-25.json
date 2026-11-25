@@ -1,11 +1,11 @@
 {
   "before": "Your personal archive · archive not synced\n\nArchive not synced. Organize source references into collections here. No Google Drive connection, photos, files or live source data have been imported.\n\nDeclared · Steward · Audience · this Thing\n\nInbox is ready. Sources stay as references until you choose a connection in a later round.\n\nDeclared · Steward · Audience · this Thing\nBack to my spaceExplore Town Square\nArchive collections\n\nArchive not synced · organizing references does not import or upload files.\n\nInbox is empty. Sources are not set yet.",
   "pending": "Your personal archive · Synthetic field notebook · simulated · live · mapping-pending · not synced yet\n\nNo blocks match this Lens and Depth.\n\nBack to my spaceExplore Town Square\nArchive collections\n\nSynthetic field notebook · simulated · live · mapping-pending · not synced yet",
-  "after": "Your personal archive · Synthetic field notebook · simulated · live · ready · as of 2026-11-25T14:23:20.673Z\n\nNotebooks · mock folder\n\nSource: Synthetic field notebook / notebooks · Live reference · Simulated source · Synced 2026-11-25T14:23:20.673Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\n\nReference · mock folder\n\nSource: Synthetic field notebook / reference · Live reference · Simulated source · Synced 2026-11-25T14:23:20.673Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\n\nSample notebook for an imaginary archive. Morning light reached the worktable for twenty minutes. Try the same observation tomorrow.\n\nSource: Synthetic field notebook / observations · Live reference · Simulated source · Synced 2026-11-25T14:23:20.673Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\n\nSample reading list. Start with a short article and record one useful question beside its source.\n\nSource: Synthetic field notebook / reading-list · Live reference · Simulated source · Synced 2026-11-25T14:23:20.673Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\nBack to my spaceExplore Town Square\nArchive collections\n\nSynthetic field notebook · simulated · live · ready · as of 2026-11-25T14:23:20.673Z",
+  "after": "Your personal archive · Synthetic field notebook · simulated · live · ready · as of 2026-11-25T14:33:01.558Z\n\nNotebooks · mock folder\n\nSource: Synthetic field notebook / notebooks · Live reference · Simulated source · Synced 2026-11-25T14:33:01.558Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\n\nReference · mock folder\n\nSource: Synthetic field notebook / reference · Live reference · Simulated source · Synced 2026-11-25T14:33:01.558Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\n\nSample notebook for an imaginary archive. Morning light reached the worktable for twenty minutes. Try the same observation tomorrow.\n\nSource: Synthetic field notebook / observations · Live reference · Simulated source · Synced 2026-11-25T14:33:01.558Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\n\nSample reading list. Start with a short article and record one useful question beside its source.\n\nSource: Synthetic field notebook / reading-list · Live reference · Simulated source · Synced 2026-11-25T14:33:01.558Z · Rights: private\n\nDeclared · Steward · Audience · this Thing\nBack to my spaceExplore Town Square\nArchive collections\n\nSynthetic field notebook · simulated · live · ready · as of 2026-11-25T14:33:01.558Z",
   "source": {
-    "id": "home/a2abed81-ec75-4f8a-a05d-1bde01a0b244/drive/source-drive",
-    "owner": "a2abed81-ec75-4f8a-a05d-1bde01a0b244",
-    "placeId": "home/a2abed81-ec75-4f8a-a05d-1bde01a0b244/drive",
+    "id": "home/ff93c57d-e1cd-491d-a935-d8242a21d5a8/drive/source-drive",
+    "owner": "ff93c57d-e1cd-491d-a935-d8242a21d5a8",
+    "placeId": "home/ff93c57d-e1cd-491d-a935-d8242a21d5a8/drive",
     "kind": "drive",
     "label": "Synthetic field notebook",
     "simulated": true,
@@ -17,7 +17,7 @@
     "syncMode": "live",
     "rightsDefault": "private",
     "status": "ready",
-    "lastSync": "2026-11-25T14:23:20.673Z",
+    "lastSync": "2026-11-25T14:33:01.558Z",
     "writeEnabled": false,
     "writeOperations": []
   }
