@@ -42,7 +42,7 @@ function mayAdmitOutsideProfiles(room,lens,known,now) {
   const stamps=(lens.access?.grants??room.grants??[]).filter(grant=>grant.room===room.id&&!grant.revokedAt&&
     (!grant.expires||Date.parse(grant.expires)>now)&&(!grant.createdAt||Date.parse(grant.createdAt)<=now));
   return stamps.some(grant=>{
-    if (grant.denied||scopeRank(grant.scope)<0) return false;
+    if (grant.kind==='helper'||grant.denied||scopeRank(grant.scope)<0) return false;
     if (grant.delegation?.length && !grant.delegation.every(id=>stewardGrants(lens.access?.standingState,room.id,now).some(steward=>steward.id===id&&steward.active))) return false;
     if (grant.to?.person) return !known.has(grant.to.person);
     const group=groups.find(item=>item.id===grant.to?.group);

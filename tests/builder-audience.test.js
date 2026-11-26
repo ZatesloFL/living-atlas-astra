@@ -43,6 +43,8 @@ test('Publication review follows real private entry, a named grant, and the Publ
   assert.match(view.renderReview(),/Public<\/strong> under Visibility and select <strong>Save visibility/);
   view.command('manage-access',placeId);
   assert.deepEqual(opened,[placeId]);
+  await access.grant(placeId,{person:'resident-docent'},'look',null,lens,'helper');
+  assert.match(view.renderReview(),/Only you — this place is private/);
 
   view.setAudiencePreview({},false);
   assert.equal(view.previewState.blocked,true);
