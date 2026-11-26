@@ -6,7 +6,7 @@ export function holderReference(input){
  const text=fold(input);
  if(/\bwhere am i\b|\bmy (?:current )?(?:position|location)\b/.test(text))return 'location';
  if(/^(?:please )?(?:take|bring|go|send)(?: me)? back(?: to (?:the |my )?(?:entrance|start))?$/.test(text)||/^(?:back to (?:the |my )?entrance|my entrance)$/.test(text))return 'entrance';
- if(/\bmy (?:private )?(?:home|place|space|area)\b|\bwhere i started\b/.test(text))return 'home';
+ if(/^(?:please )?(?:(?:take|bring|send)(?: me)? |go )?(?:back )?(?:to )?home(?: please)?$/.test(text)||/\bmy (?:private )?(?:home|place|space|area)\b|\bwhere i started\b/.test(text))return 'home';
  if(/\bmy rooms\b/.test(text))return 'rooms';
  return null;
 }
