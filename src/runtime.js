@@ -55,7 +55,7 @@ let profileUI,page,pageOrigin,selectedRoom,accessUI,travel,waypoint=null,place=n
 let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>currentLens()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,lastContextUpdate=0,titlePosition=null,active=true,near=null,contextKey='studio';
 let enteredView=null,viewStatus=null;
 let stageCache=null,stageComparison=null,stageFraction=.5,stageRatio=null;
-const atlasRecords=new AtlasRecords();
+const atlasRecords=profiles.atlasRecords;await profiles.grantReady;
 const builder=new Builder({onPublish:refreshPublishedRoom,atlasRecords});
 const recoverBuilder=()=>builder.recover(lens,{arrivalRecords:profiles.arrivalRecords,loadArrivalSeed});
 await recoverBuilder();
@@ -318,7 +318,7 @@ document.addEventListener('visibilitychange',()=>{active=!document.hidden&&!docu
 $('world').addEventListener('webglcontextlost',event=>{event.preventDefault();diag.fallback('graphics context lost',new Error('The browser reported a lost graphics context after initialization.'));});
 $('loading').classList.add('done');requestAnimationFrame(loop);
 await diag.asyncRun('profile initialization',()=>profiles.ready);if(diag.threeFailed)return;
-if(!profiles.completed)diag.run('first-run UI',()=>profileUI.setup());else profileUI.refresh();
+if(!profiles.completed)diag.run('first-run UI',()=>profileUI.setup());else {profileUI.refresh();if(profiles.starterNotice)ui.toast(profiles.starterNotice,{duration:12000});}
 diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);
 window.atlasStatus=()=>({mode:document.body.classList.contains('page-mode')?'page':'3d',renderMode:graphics.mode,shadows:graphics.renderer.shadowMap.enabled,safe:diag.safe,scene:kind,room:page?.room??context.room,fps:Math.round(fps),drawCalls:graphics.calls,dpr:graphics.ratio,triangles:graphics.renderer.info.render.triangles,position:{x:controls.position.x,z:controls.position.z},reducedMotion:reducedQuery.matches});
 if(diag.params.get('form')==='3d'){lens.form='3d';profiles.preferences(lens);}

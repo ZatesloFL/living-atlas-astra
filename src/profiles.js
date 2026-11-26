@@ -6,6 +6,7 @@ import {PRESETS,DIMENSIONS} from './data.js';
 import {appendEntry,verifyChain} from './ledger.js';
 import {unsetDials,personalPair} from './lens-state.js';
 import {changedLens,lensBasis} from './lens-proposals.js';
+import {AtlasRecords,STARTER_GRANT_LINE} from './atlas-records.js';
 export const STORAGE_KEY='living-atlas.profiles.v4';
 export const GROUPS=[['family','Family','made'],['writing-circle','Writing circle','made'],['tallahassee-resident','Verified Tallahassee resident','credential'],['neighborhood','My neighborhood','credential']];
 const clone=value=>structuredClone(value);
@@ -48,6 +49,12 @@ export class ProfileStore {
     }catch{this.storageWarning='Saved settings could not be read. Set up a fresh local profile to continue.';}
     rememberAccounts(this.profiles);
     this.ready=verifyChain(this.entries).then(result=>{this.chain=result;return result;}).catch(()=>{this.chain={valid:false,count:this.entries.length};return this.chain;});
+    this.atlasRecords=new AtlasRecords(storage);this.grantReady=this.ready.then(result=>result.valid?this.entryGrant():null);
+  }
+  async entryGrant(profile=this.active()){
+    if(!profile||profile.isAgent||profile.age<13)return {created:false};
+    try{const result=await this.atlasRecords.ensureStarter({...profile,profileId:profile.id});if(result.created)this.starterNotice=STARTER_GRANT_LINE;return result;}
+    catch(error){this.grantWarning='Atlas could not record its starter: '+error.message;return {created:false,error:this.grantWarning};}
   }
   active(){return this.profiles.find(p=>p.id===this.activeId);}
   current(){rememberAccounts(this.profiles);const base=this.active()??makeProfile('Profile not set up',{age:0});return {...clone(base),...clone(this.override??{}),identity:{...base.identity,...this.override?.identity},accountState:accountSnapshot(base),profileId:base.id,profileName:base.name,viewAs:(this.override?.isAgent??base.isAgent)?'agent':'profile',testMode:this.testActive()};}
@@ -69,22 +76,22 @@ export class ProfileStore {
       await this.record('profile_starter_attached',{profile:id,homePlaceId,arrivalId});
       Object.assign(existing,{homePlaceId,arrivalId});
       for(const [key,value] of Object.entries({preset,limits,hard,depth,form}))if(value!==undefined)existing[key]=clone(value);
-      this.override=null;this.persist();return existing;
+      this.override=null;this.persist();await this.entryGrant(existing);return existing;
     }
     const base=PRESETS[preset];const p=makeProfile(name?.trim().slice(0,40)||'My visit',{...(id?{id}:{}),age,preset:preset??null,limits:clone(limits??base?.limits??unsetDials()),hard:clone(hard??base?.hard??unsetDials()),depth,form,identity:{display,backing:'none'},...(homePlaceId?{homePlaceId,arrivalId}:{} )});
     await this.record('profile_created',{profile:p.id,name:p.name});await this.record('profile_switched',{from:this.activeId,to:p.id});
-    this.profiles.push(p);this.activeId=this.regularId=p.id;this.completed=true;this.override=null;this.persist();return p;
+    this.profiles.push(p);this.activeId=this.regularId=p.id;this.completed=true;this.override=null;this.persist();await this.entryGrant(p);return p;
   });}
   switchProfile(id){return this.transact(async()=>{
     const next=this.profiles.find(p=>p.id===id);if(!next)throw new Error('Profile not found.');
     await this.record('profile_switched',{from:this.activeId,to:id,clearedOverrides:!!this.override});
-    this.activeId=id;this.override=null;if(!next.isTest)this.regularId=id;this.persist();return next;
+    this.activeId=id;this.override=null;if(!next.isTest)this.regularId=id;this.persist();await this.entryGrant(next);return next;
   });}
   saveAs(name){return this.transact(async()=>{
     if(!name?.trim())throw new Error('Give the profile a name.');
     const p=sanitize({...this.current(),id:crypto.randomUUID(),name:name.trim(),seed:false,isTest:this.testActive()});
     await this.record('profile_created',{profile:p.id,name:p.name,copiedFrom:this.activeId});await this.record('profile_switched',{from:this.activeId,to:p.id});
-    this.profiles.push(p);this.activeId=p.id;this.override=null;if(!p.isTest)this.regularId=p.id;this.persist();return p;
+    this.profiles.push(p);this.activeId=p.id;this.override=null;if(!p.isTest)this.regularId=p.id;this.persist();await this.entryGrant(p);return p;
   });}
   rename(id,name){return this.transact(async()=>{const p=this.profiles.find(p=>p.id===id);if(!p||p.seed)throw new Error('Built-in profiles keep their names. Save a copy to rename it.');if(!name?.trim())throw new Error('Give the profile a name.');await this.record('profile_renamed',{id,from:p.name,to:name.trim().slice(0,40)});p.name=name.trim().slice(0,40);this.persist();});}
   remove(id){return this.transact(async()=>{const p=this.profiles.find(p=>p.id===id);if(!p||p.seed)throw new Error('Built-in profiles cannot be deleted.');
