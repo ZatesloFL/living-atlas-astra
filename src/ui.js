@@ -17,18 +17,18 @@ import {graphEdges,graphRoute} from './navigation.js';
 import {articleHTML,blockHTML,bindBlocks} from './block-renderer.js';
 import {contentStore,roomEntry} from './content.js';
 import {identityBadge,authorName,accessSettings,appliedPreset} from './identity.js';
-import {positions,mapTitles,layoutAtlasLabels} from './atlas-layout.js';
+import {atlasGraphHTML} from './atlas-map-view.js';
+import {atlasMapModel} from './atlas-map-model.js';
 import { ROOMS, EDGES, DISTRICTS, DIMENSIONS, PRESETS } from './data.js';
 import { visibleEdge, roomVisible, setPreset } from './rules.js';
 const $=id=>document.getElementById(id);
 export const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon={seamless:'≈',door:'∩',embedded:'◎',window:'▧'};
 const substanceText={none:'View only · substance locked',suggest:'Suggest changes · author decides',branch:'Fork allowed · original stays intact',open:'Open to substance edits'};
-const atlasLabels=layoutAtlasLabels();
 const internal=[{id:'map-workbench',from:'studio',to:'workbench',type:'seamless'},{id:'map-family',from:'studio',to:'family',type:'door'}];
 export class UI {
   constructor(api){
-    this.api=api;this.mode=null;this.sheet=$('sheet');this.content=$('sheet-content');this.lastFocus=null;this.showOthers=false;this.softApproved=new Set();contentStore.subscribe(id=>{if(this.mode==='info'&&this.infoId===id)this.info(id,true);else if(this.mode==='thing'&&this.thingRoom===id)this.renderThing?.();});
+    this.api=api;this.mode=null;this.sheet=$('sheet');this.content=$('sheet-content');this.lastFocus=null;this.showOthers=false;this.softApproved=new Set();contentStore.subscribe(id=>{if(this.mode==='atlas')this.renderAtlas(true);else if(this.mode==='info'&&this.infoId===id)this.info(id,true);else if(this.mode==='thing'&&this.thingRoom===id)this.renderThing?.();});
     $('sheet-close').onclick=()=>this.close();$('veil').onclick=()=>this.close();
     $('lens-button').onclick=()=>this.api.askAtlas?this.api.askAtlas():this.lens();$('atlas-button').onclick=()=>this.atlas();$('location').onclick=()=>this.api.discover('board');
     $('build-button').onclick=()=>this.api.openBuild();
@@ -46,6 +46,7 @@ export class UI {
   close(){if(this.mode==='setup'&&!this.api.state().profiles.completed)return;const closedMode=this.mode;this.mode=null;this.sheet.hidden=true;this.content.replaceChildren();$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();this.api.panelClosed?.(closedMode);}
   toast(message,options){if(this.api.hud)this.api.hud.notify(message,options);else {$('toast').textContent=message;$('toast').hidden=false;}}
   location(context){
+    if(this.mode==='atlas'&&this.mapContext!==context.room)this.renderAtlas(true);
     const r=ROOMS[context.room]??ROOMS.studio,d=DISTRICTS[r.district];$('district-name').textContent=context.inside?`Inside: ${context.inside}`:d.name.toUpperCase();$('district-name').style.color=d.color;$('breadcrumb').textContent=r.address.replaceAll('/',' / ');document.querySelector('.district-dot').style.background=d.color;
   }
   fadeTitle(){clearTimeout(this.titleTimer);$('scene-title').classList.add('faded');}
@@ -135,40 +136,30 @@ export class UI {
     if($('edge-enter'))$('edge-enter').onclick=()=>{this.close();if(edge.travel)this.api.enter({...edge,result});else if(result.type==='seamless')this.toast('Follow the open path. No threshold to confirm.');else this.api.enter({...edge,result});};
   }
   atlas(){
-    this.open('atlas','A graph, shaped by your lens','Your Atlas');this.renderAtlas();
+    this.mapSelected=null;this.open('atlas','Live Places and Things through your Lens','Atlas Map');this.renderAtlas();
   }
-  renderAtlas(){
-    const {lens,context}=this.api.state(),all=graphEdges().map(e=>!e.reversed&&ROOMS[e.to]?.layout.interior?hallEntry(e.to):e);let paths='',nodes='';
-    const reachable=new Set(['studio']);for(let n=0;n<5;n++)for(const e of all){if(reachable.has(e.from)&&visibleEdge(e,lens).state!=='hidden')reachable.add(e.to);}
-    for(const e of all){if(!permission(ROOMS[e.to],lens).visible||!permission(ROOMS[e.from],lens).visible)continue;if(!positions[e.from]||!positions[e.to])continue;const r=visibleEdge(e,lens),[x1,y1]=positions[e.from],[x2,y2]=positions[e.to];const hidden=r.state==='hidden'||!reachable.has(e.from),downgraded=r.type!==e.type;if(hidden&&!this.showOthers)continue;
-      const c=hidden?'#627184':r.type==='door'?'#f2bc73':r.type==='embedded'?'#9ebeff':r.type==='window'?'#dfaae5':'#6dd6bf';
-      const dash=hidden?'3 7':r.type==='window'?'6 5':'';
-      paths+=`<g data-map-edge="${e.id}" role="button" tabindex="0" aria-label="${escapeHTML(ROOMS[e.to].title)} crossing"><path d="M${x1} ${y1} L${x2} ${y2}" stroke="transparent" stroke-width="22"/><path d="M${x1} ${y1} L${x2} ${y2}" stroke="${c}" stroke-width="${r.type==='seamless'?6:2}" stroke-opacity="${hidden?.45:.6}" stroke-dasharray="${dash}"/><text x="${(x1+x2)/2}" y="${(y1+y2)/2}" text-anchor="middle" style="font-size:18px;paint-order:stroke;stroke:#152332;stroke-width:4;fill:${c}">${icon[hidden?e.type:r.type]}</text>${this.showOthers&&downgraded&&!hidden?`<path d="M${x1+5} ${y1} L${x2+5} ${y2}" stroke="#7d8898" stroke-width="2" stroke-dasharray="2 5"/>`:''}</g>`;
-    }
-    for(const [id,[x,y]] of Object.entries(positions)){
-      if(!permission(ROOMS[id],lens).visible)continue;const visible=reachable.has(id);if(!visible&&!this.showOthers)continue;const r=ROOMS[id],color=DISTRICTS[r.district].color,isHere=id===context.room||id==='tallahassee'&&this.api.state().kind==='history'&&context.room==='tallahassee';
-      const title=permission(r,lens).canLook?mapTitles[id]:'Private',label=atlasLabels[id];
-      nodes+=`<g class="map-node" data-map-node="${id}" role="button" tabindex="0" aria-label="${escapeHTML(r.title)}${visible?'':', hidden'}"><circle cx="${x}" cy="${y}" r="22" fill="transparent"/>${isHere?`<circle cx="${x}" cy="${y}" r="16" fill="none" stroke="#fff" stroke-width="1.5"/>`:''}<circle cx="${x}" cy="${y}" r="${id==='studio'?10:7}" fill="${visible?color:'#465367'}" stroke="${visible?'#d4e4ec':'#8c99a9'}" stroke-width="1.2"/><g class="atlas-label" opacity="${visible?1:.6}"><rect x="${label.x}" y="${label.y}" width="${label.w}" height="${label.h}" rx="5" fill="#122332"/><text x="${label.x+label.w/2}" y="${label.y+15}" text-anchor="middle">${title}</text></g></g>`;
-    }
-    const places=this.api.state().access?.places(lens)??{pins:[],recent:[]};
-    const list=(ids)=>ids.filter(id=>ROOMS[id]&&roomEntry(id,lens,EDGES).state!=='hidden').map(id=>`<button data-place="${id}">${escapeHTML(roomTitle(ROOMS[id],lens))}</button>`).join('')||'<span class="muted">No places yet.</span>';
-    this.content.innerHTML=`<button id="atlas-ask-destination" class="primary">Ask Atlas where to go</button><details class="address-manual"><summary>Exact address · manual</summary><form id="atlas-address" class="address-form"><label>Room address<input name="address" placeholder="tlh/tallahassee/1956" autocapitalize="off" spellcheck="false" required></label><button type="submit">Go</button></form></details><div class="atlas-saved"><button id="atlas-square">Town Square</button><button id="atlas-home">⌂ Home</button><details><summary>Pins</summary>${list(places.pins)}</details><details><summary>Recent places</summary>${list(places.recent)}</details></div>
-      <div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}" class="${this.showOthers?'active':''}">${this.showOthers?'On':'Off'}</button></div><p class="muted">Tap a place to travel or set a waypoint. Review route doorways before a short arrival fade. Unknown hidden rooms are never revealed.</p><div class="map-wrap"><svg id="atlas-map" viewBox="0 0 440 660" aria-label="Room graph" role="group">${paths}${nodes}</svg></div><div class="legend"><span data-symbol="≈">Seamless</span><span data-symbol="∩">Door</span><span data-symbol="◎">Embedded</span><span data-symbol="▧">Window</span></div><details class="atlas-directory"><summary>Places & access</summary>${list(Object.keys(ROOMS))}</details><div id="map-detail" aria-live="polite">You are in ${escapeHTML(roomTitle(ROOMS[context.room],lens))}.</div>`;
-    $('atlas-ask-destination').onclick=()=>this.api.askAtlas();$('atlas-address').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;try{const result=await this.api.address(new FormData(form).get('address'));if(!result?.ok)showAddressFailure(form,result?.message??'The address could not be opened. Nothing has been crossed.');}catch(error){showAddressFailure(form,error.message);}};$('atlas-square').onclick=()=>this.api.travel('square');$('atlas-home').onclick=()=>{this.close();this.api.travel('studio');};
-    this.content.querySelectorAll('[data-place]').forEach(b=>b.onclick=()=>this.mapRoom(b.dataset.place));
-    $('show-others').onclick=()=>{this.showOthers=!this.showOthers;this.renderAtlas();};
-    this.content.querySelectorAll('[data-map-edge]').forEach(el=>{const select=()=>this.mapRoom(all.find(e=>e.id===el.dataset.mapEdge).to);el.onclick=select;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}};});
-    this.content.querySelectorAll('[data-map-node]').forEach(el=>{const select=()=>this.mapRoom(el.dataset.mapNode);el.onclick=select;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select();}};});
+  renderAtlas(preserve=false){
+    const {lens,context,access}=this.api.state(),model=atlasMapModel(lens,context.room,{showOthers:this.showOthers,columns:innerWidth<600?1:2}),byId=new Map(model.places.map(p=>[p.id,p]));
+    const scroll=this.content.scrollTop,focus=document.activeElement?.id,address=this.content.querySelector('[name=address]')?.value??'',selected=this.mapSelected;
+    const places=access?.places(lens)??{pins:[],recent:[]},list=ids=>ids.filter(id=>byId.get(id)?.visible).map(id=>`<button data-place="${escapeHTML(id)}">${escapeHTML(byId.get(id).title)}</button>`).join('')||'<span class="muted">No places yet.</span>';
+    this.content.innerHTML=`<p id="map-here" role="status"><strong>You are here · ${escapeHTML(roomTitle(ROOMS[context.room],lens))}</strong></p><div class="atlas-saved"><button id="atlas-home">My home</button><button id="atlas-ask-destination">Ask where to go</button></div><div id="map-detail" aria-live="polite" hidden></div>${atlasGraphHTML(model)}<p class="muted">Live Places, their Things and connections. Local positions come from published placements; this graph is not a floor plan.</p><button id="atlas-square">Town Square</button><div class="atlas-saved"><details><summary>Pins</summary>${list(places.pins)}</details><details><summary>Recent places</summary>${list(places.recent)}</details></div><div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}">${this.showOthers?'On':'Off'}</button></div><details class="address-manual"><summary>Exact address · manual</summary><form id="atlas-address" class="address-form"><label>Room address<input name="address" placeholder="tlh/tallahassee/1956" required></label><button type="submit">Go</button></form></details>`;
+    this.mapContext=context.room;this.mapModel=model;this.content.querySelector('[name=address]').value=address;
+    $('atlas-ask-destination').onclick=()=>this.api.askAtlas();$('atlas-address').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;try{const r=await this.api.address(form.elements.address.value);if(!r?.ok)showAddressFailure(form,r?.message??'The address could not be opened. Nothing has been crossed.');}catch(error){showAddressFailure(form,error.message);}};
+    $('atlas-square').onclick=()=>this.api.travel('square');$('atlas-home').onclick=()=>this.api.home();$('show-others').onclick=()=>{this.showOthers=!this.showOthers;this.renderAtlas(true);};
+    const bind=(selector,action)=>this.content.querySelectorAll(selector).forEach(el=>{el.onclick=()=>action(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();action(el);}};});
+    bind('[data-place]',e=>this.mapRoom(e.dataset.place));bind('[data-map-node]',e=>this.mapRoom(e.dataset.mapNode));bind('[data-map-edge]',e=>this.mapRoom(model.edges.find(x=>x.id===e.dataset.mapEdge).to));bind('[data-map-thing]',e=>this.thing(e.dataset.thingRoom,e.dataset.mapThing));
+    if(preserve&&selected&&byId.get(selected)?.visible)this.mapRoom(selected,false);if(preserve){this.content.scrollTop=scroll;if(focus)document.getElementById(focus)?.focus({preventScroll:true});}
   }
-  mapRoom(id){
+  mapRoom(id,scroll=true){
+    this.mapSelected=id;
     const {lens,context,access}=this.api.state(),r=ROOMS[id],result=roomEntry(id,lens,EDGES),rights=permission(r,lens);if(!rights.visible)return;
     const route=planRoute(context.room,id,lens),canGo=route!==null&&result.state!=='hidden',pinned=access?.places(lens).pins.includes(id);
-    $('map-detail').innerHTML=`<strong>${escapeHTML(roomTitle(r,lens))}</strong><p>${result.state==='hidden'?'Hidden by this lens':result.type} · ${escapeHTML(result.reasons.join(' · ')||result.oddness?.join(' · ')||'Within your lens')}</p>
+    $('map-detail').hidden=false;$('map-detail').innerHTML=`<strong>${escapeHTML(roomTitle(r,lens))}</strong><p>${result.state==='hidden'?'Hidden by this lens':result.type} · ${escapeHTML(result.reasons.join(' · ')||result.oddness?.join(' · ')||'Within your lens')}</p>
       ${canGo?`<button id="map-travel" class="primary">Travel here</button>${graphRoute(context.room,id,lens)!==null?'<button id="map-waypoint">Set waypoint</button>':''}`:''}
       ${result.state!=='hidden'&&rights.canLook?'<button id="map-read-page" class="secondary">Read in Page form</button>':''}
       ${result.state!=='hidden'?`<button id="map-access">${rights.canLook?'Access & receipts':'Knock'}</button>`:''}
       ${canGo?`<button id="map-pin">${pinned?'Unpin':'Pin this place'}</button>`:''}`;
-    if($('map-travel'))$('map-travel').onclick=()=>{this.close();this.api.travel(id);};if($('map-waypoint'))$('map-waypoint').onclick=()=>{this.api.waypoint(id);this.close();};if($('map-read-page'))$('map-read-page').onclick=()=>this.api.openPage(id);if($('map-access'))$('map-access').onclick=()=>this.api.accessRoom(id);if($('map-pin'))$('map-pin').onclick=()=>{access.pin(id,lens);this.mapRoom(id);};$('map-detail').scrollIntoView({block:'nearest',behavior:'smooth'});
+    if($('map-travel'))$('map-travel').onclick=()=>{this.close();this.api.travel(id);};if($('map-waypoint'))$('map-waypoint').onclick=()=>{this.api.waypoint(id);this.close();};if($('map-read-page'))$('map-read-page').onclick=()=>this.api.openPage(id);if($('map-access'))$('map-access').onclick=()=>this.api.accessRoom(id);if($('map-pin'))$('map-pin').onclick=()=>{access.pin(id,lens);this.mapRoom(id);};if(scroll)$('map-detail').scrollIntoView({block:'nearest',behavior:'smooth'});
   }
   guide(){
     this.open('guide','The first walk','Welcome to the studio');this.content.innerHTML=`<p>Left thumb to walk. Drag the scene with your right thumb to look. Tap an object or a glowing threshold to explore.</p><div class="info-box"><small>Find your way</small>Straight ahead: the amber door to Tallahassee.<br>Left: the Studio agent and the workbench.<br>Right: the view-only lab window.<br>Along the left side: the blue listening booth.<br>Follow the green path right to the Commons and Night Market.</div><p class="muted">Try Unverified visitor, then Child in the profile switcher. Built-in profiles show TEST MODE. Open the Atlas to see which connections changed. The small ◈ button below reveals frame rate and draw calls.</p><button class="primary" id="guide-close">Let’s walk</button><button class="secondary" id="return-home">Return to studio entrance</button>`;$('guide-close').onclick=()=>this.close();$('return-home').onclick=()=>{this.close();this.api.home();};

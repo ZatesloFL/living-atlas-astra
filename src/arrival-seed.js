@@ -2,6 +2,7 @@
 // stored kit payload goes to its entry point unchanged, including on reload.
 import {ROOMS,EDGES} from './data.js';
 import {registerProjection} from './build-projection.js';
+import {contentStore} from './content.js';
 import {resolvePublicReference} from './public-references.js';
 export function loadArrivalSeed(draft){
  const result=registerProjection(draft,{ownerId:draft.holderId});
@@ -12,6 +13,7 @@ export function loadArrivalSeed(draft){
   for(const block of room.blocks??[])if(block.author&&!block.author.isAgent)block.author={...block.author,profileId:draft.holderId};
   room.includedReferences=[...room.kitPieces.filter(p=>p.ref?.thingId&&p.ref.placeId!==room.id).map(p=>structuredClone(p.ref)),...EDGES.filter(e=>e.from===key&&e.reference&&e.consent==='Source inclusion policy checked at use').map(e=>structuredClone(e.reference))];
  }
+ for(const key of Object.values(result.roomKeys))contentStore.emit(key);
  return result;
 }
 export function starterReferences(room,lens){return (room.includedReferences??[]).map(ref=>resolvePublicReference(ref,lens));}
