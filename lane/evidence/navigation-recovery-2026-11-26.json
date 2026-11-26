@@ -1,0 +1,98 @@
+{
+  "home": "home/9da7092b-fbd6-431d-8ca9-379d79b14e10",
+  "liveMap": {
+    "piece": "kit-44559220-0094-4c6d-934a-a1a576a0f885",
+    "added": "home/a25a5ed0-8102-4877-9c89-70f16e235962",
+    "positionAfterMove": "Live navigation bench · Local position 2, -1",
+    "current": "home/9da7092b-fbd6-431d-8ca9-379d79b14e10"
+  },
+  "location": "You · Give Atlas standing edit access for Travel\n\nAtlas · Confirmed and recorded. Grant Atlas edit scope for Travel, standing, with no expiry. Look reads the named areas; suggest proposes; edit may apply only what you confirm. Hard limits and door terms still apply. Receipt e13ffe55312b8954a95247ddf2c9022657e5a4219c8b4ab15e1761dd5367286d\n\nYou · where am I\n\nAtlas · You are in My space’s space (local/home/9da7092b-fbd6-431d-8ca9-379d79b14e10).",
+  "homeOffer": "Proposal · not applied\n\nRoute: My space’s space. My space’s space. Within your Lens; no additional door term to agree to. 3 Things are readable at these limits; 0 need an individual preview; 0 are withheld by content checks. This is a trip proposal. Any agreeing door will stop for your choice; ordinary doors need no review clicks.\n\nProposal receipt: 7480b0a68c74eb23de9186f506cc2448434f583eaba1f5c76fdfdb79f906707e\n\nYes, confirm this proposalNo, leave it unchanged",
+  "returnWithoutCrossing": true,
+  "unknown": "You · Give Atlas standing edit access for Travel\n\nAtlas · Confirmed and recorded. Grant Atlas edit scope for Travel, standing, with no expiry. Look reads the named areas; suggest proposes; edit may apply only what you confirm. Hard limits and door terms still apply. Receipt e13ffe55312b8954a95247ddf2c9022657e5a4219c8b4ab15e1761dd5367286d\n\nYou · where am I\n\nAtlas · You are in My space’s space (local/home/9da7092b-fbd6-431d-8ca9-379d79b14e10).\n\nYou · Take me to my private home\n\nAtlas · Your home is My space’s space, from your own profile and arrival record.\n\nAtlas · The proposal was declined. Nothing changed.\n\nYou · my area where I started\n\nAtlas · Your home is My space’s space, from your own profile and arrival record.\n\nAtlas · Confirmed and recorded. Route: My space’s space. My space’s space.  Within your Lens; no additional door term to agree to. 3 Things are readable at these limits; 0 need an individual preview; 0 are withheld by content checks. This is a trip proposal. Any agreeing door will stop for your choice; ordinary doors need no review clicks. Receipt c08f01ce52983f33abbdaa6629353e8e04b2a495e1c952c2a0c5ff17a8b3adff\n\nYou · take me back\n\nAtlas · Your return is the entrance to My space’s space for this visit. You can return in one action without crossing a door.\n\nYou · Give Atlas standing look access for Discovery\n\nAtlas · Confirmed and recorded. Grant Atlas look scope for Discovery, standing, with no expiry. Look reads the named areas; suggest proposes; edit may apply only what you confirm. Hard limits and door terms still apply. Receipt 6a6f6189703e28104e138c5b58e9551a62deb5cc48988cfad3ad36a621026e70\n\nYou · Find a flibbertigibbet observatory\n\nAtlas · I couldn’t find a Place for “a flibbertigibbet observatory”. I searched Discovery for “flibbertigibbet observatory”, through your current Lens and door terms. Nothing has been crossed.",
+  "pageReturn": true,
+  "nativeDialogReturn": true,
+  "receipts": [
+    {
+      "id": 4,
+      "prevHash": "e13ffe55312b8954a95247ddf2c9022657e5a4219c8b4ab15e1761dd5367286d",
+      "actor": "atlas",
+      "action": "atlas_holder_located",
+      "time": "2026-11-26T05:56:31.781Z",
+      "diff": {
+        "holder": "9da7092b-fbd6-431d-8ca9-379d79b14e10",
+        "kind": "location",
+        "room": "home/9da7092b-fbd6-431d-8ca9-379d79b14e10",
+        "places": [],
+        "source": "holder records"
+      },
+      "hash": "5a9262351502b8e73d4349b7bff0ab9c9c5b88807a8552945d6b7bb377d45b12"
+    },
+    {
+      "id": 5,
+      "prevHash": "5a9262351502b8e73d4349b7bff0ab9c9c5b88807a8552945d6b7bb377d45b12",
+      "actor": "atlas",
+      "action": "atlas_holder_located",
+      "time": "2026-11-26T05:56:39.886Z",
+      "diff": {
+        "holder": "9da7092b-fbd6-431d-8ca9-379d79b14e10",
+        "kind": "home",
+        "room": null,
+        "places": [
+          "home/9da7092b-fbd6-431d-8ca9-379d79b14e10"
+        ],
+        "source": "holder records"
+      },
+      "hash": "a4164473c2591c7e9cb7014ad1eb3f64cb573c6b2a7ee1866eced29b5c5dd6a5"
+    },
+    {
+      "id": 8,
+      "prevHash": "7e7613c23033b918f32627215cf231e3fd483a3b58d20886ecddd459a62b86c7",
+      "actor": "atlas",
+      "action": "atlas_holder_located",
+      "time": "2026-11-26T05:56:42.814Z",
+      "diff": {
+        "holder": "9da7092b-fbd6-431d-8ca9-379d79b14e10",
+        "kind": "home",
+        "room": null,
+        "places": [
+          "home/9da7092b-fbd6-431d-8ca9-379d79b14e10"
+        ],
+        "source": "holder records"
+      },
+      "hash": "add0a4e105c5c3c5e4e249ba9e20570f99b43374888288ea512bbc45c4795b39"
+    },
+    {
+      "id": 12,
+      "prevHash": "c08f01ce52983f33abbdaa6629353e8e04b2a495e1c952c2a0c5ff17a8b3adff",
+      "actor": "atlas",
+      "action": "atlas_holder_located",
+      "time": "2026-11-26T05:56:47.106Z",
+      "diff": {
+        "holder": "9da7092b-fbd6-431d-8ca9-379d79b14e10",
+        "kind": "entrance",
+        "room": null,
+        "places": [],
+        "source": "holder records"
+      },
+      "hash": "fca1f21f01984ac0739222002e25903f5dfd260619aea01613c35774f5828310"
+    },
+    {
+      "id": 16,
+      "prevHash": "6a6f6189703e28104e138c5b58e9551a62deb5cc48988cfad3ad36a621026e70",
+      "actor": "atlas",
+      "action": "atlas_searched",
+      "time": "2026-11-26T05:56:52.129Z",
+      "diff": {
+        "holder": "9da7092b-fbd6-431d-8ca9-379d79b14e10",
+        "requested": "a flibbertigibbet observatory",
+        "query": "flibbertigibbet observatory",
+        "exact": false,
+        "rule": "Curator’s order",
+        "places": []
+      },
+      "hash": "ee89b2a76ba9b1ffb45452fd89276581bbd030c32a5d32d0a83301935ec21584"
+    }
+  ],
+  "errors": []
+}
