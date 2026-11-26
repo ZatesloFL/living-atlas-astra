@@ -1,3 +1,4 @@
+import {safeArrivalPosition} from './arrival-position.js';
 import {tripDetails} from './trip-words.js';
 import {doorAgreement} from './travel-agreement.js';
 import {AtlasUI} from './atlas-ui.js';
@@ -87,20 +88,21 @@ function rebuild(next=kind,{keepDoors=false}={}){
 function fadeTo(action){if(reducedQuery.matches){action();return;}transition={start:performance.now(),action,done:false};controls.resetInput();}
 function changeScene(next){stopMedia();fadeTo(()=>{controls.teleport(0,SPAWN_Z);rebuild(next);ui.title(next);ui.toast(`Entered ${next==='history'?'History Quarter':next==='square'?'Town Square':'Makers Row'}`);});}
 function lensChanged(){travel?.cancel();place=null;if(!previewState)profiles.preferences(lens);lens=currentLens();profileUI?.refresh();controls.resetInput();if(page&&!page.root.hidden)rebuild();else fadeTo(()=>rebuild());}
-function arriveHome(id){const draft=profiles.arrivalRecords.starter(profiles.activeId),registered=loadArrivalSeed(draft),r=ROOMS[id];rebuild(registered.arrival.scene);for(const e of EDGES.filter(e=>e.to===id))world.granted.add(e.id);const a=registered.arrival;controls.teleport(...a.position,a.facing);place={id,scene:kind,x:a.position[0],z:a.position[1]};updateContext();rememberEntrance(true);}
+function arriveHome(id){const draft=profiles.arrivalRecords.starter(profiles.activeId),registered=loadArrivalSeed(draft),r=ROOMS[id];rebuild(registered.arrival.scene);for(const e of EDGES.filter(e=>e.to===id))world.granted.add(e.id);const a=registered.arrival,position=safeArrivalPosition(world,{...a,room:id,choice:'inside'});controls.teleport(...position,a.facing);place={id,scene:kind,x:position[0],z:position[1]};updateContext();rememberEntrance(true);}
 async function applyProfile(arrival){await access.endVisits(lens);travel?.cancel();place=null;waypoint=null;const draft=profiles.arrivalRecords.starter(profiles.activeId);if(draft)loadArrivalSeed(draft);lens=currentLens();await recoverBuilder();controls?.resetInput();
  if(typeof arrival==='string'&&ROOMS[arrival]){firstArrivalPending=false;arriveHome(arrival);}else if(firstArrivalPending&&profiles.completed){firstArrivalPending=false;controls.teleport(0,6);rebuild('square');ui.title('square');}else if(ROOMS[context.room]?.arrivalSeed&&!permission(ROOMS[context.room],lens).canEnter){if(draft)arriveHome(draft.projection.rootPlaceId);else {controls.teleport(0,6);rebuild('square');}}else rebuild();
  if(lens.form==='page')setTimeout(()=>openPage(typeof arrival==='string'?arrival:context.room),0);profileUI?.refresh();expiryState=expirySignature();}
 
 async function switchProfile(id){if(previewState||buildUI?.active)buildUI.exit();await profiles.switchProfile(id);await applyProfile();}
+function crossDoor(edge){return startTravel(edge.interiorExit??edge.interior??edge.to,{choice:edge.interiorExit?'door':'inside',manual:true,words:true,auto:true,atlasTrip:false});}
 function enter(edge){
   const result=visibleEdge(edge,lens);if(result.state==='hidden'||result.type==='window'||result.admission?.blocked)return;
-  if(edge.interiorExit){startTravel(edge.interiorExit,{choice:'door'});return;}
-  if(edge.interior){startTravel(edge.interior,{choice:'inside'});return;}
+  if(edge.interiorExit){crossDoor(edge);return;}
+  if(edge.interior){crossDoor(edge);return;}
   if(edge.travel){travel.start(edge.to);return;}
   if(!result.rights?.canEnter)return;
   if(edge.readTarget){focusRoom(edge.readTarget,true);return;}
-  if(edge.portal){startTravel(edge.to);if(travel.session){travel.session.confirmed.add(edge.id);travel.render();}return;}
+  if(edge.portal){crossDoor(edge);return;}
   if(edge.destination){changeScene(edge.destination);return;}
   world.granted.add(edge.id);
   const [x,z]=edge.position;
@@ -114,7 +116,7 @@ function selectId(id){
   if(id?.startsWith('exhibit:')){const draft=world.draftSubjects.get(id);if(draft){openDraftThing(draft);return;}const subject=pickedThing(id,lens);if(!subject){ui.toast('This Thing is unavailable through your current Lens.');return;}ui.thing(subject.roomKey,subject.block.id);const node=ui.content.querySelector('[data-block-id="'+CSS.escape(subject.block.id)+'"]');if(subject.photo!==null)node?.querySelector('[data-value="'+subject.photo+'"]')?.click();else node?.querySelector('[data-kit-event="tap"]')?.click();return;}
   if(id?.startsWith('layer:')){const [,room,layer]=id.split(':');layerUI.peek(room,layer);return;}
   if(id?.startsWith('edge:')){const e=world.edgeObjects.find(e=>e.id===id.slice(5));if(e?.interior)ui.entrance(e.interior);else if(e?.interiorExit)enter(e);else if(e?.portal)startTravel(e.to);else if(e)ui.edge(e);}
-  else if(id&&id!=='wall'){selectedRoom=id;if(ROOMS[id]?.layout.interior&&kind!==ROOMS[id].layout.interior.scene)ui.entrance(id);else ui.info(id);}
+  else if(id&&ROOMS[id]){selectedRoom=id;if(ROOMS[id]?.layout.interior&&kind!==ROOMS[id].layout.interior.scene)ui.entrance(id);else ui.info(id);}
 }
 function select(x,y){
   const label=labels?.pick(x,y);if(label){selectId(label);return;}
@@ -208,12 +210,13 @@ function staticControls(){
 async function readingAge(age){if(!profiles.completed){await profiles.setup({name:'My reading visit',age,depth:'Standard',form:'page',display:'anonymous'});lens=currentLens();}return lens;}
 function focusRoom(id,approved=false){
   const r=ROOMS[id];if(!r?.layout||roomEntry(id,lens,EDGES).state==='hidden')return;
-  if(r.layout.interior){const landing=spatialArrival(id,'door');stopMedia();if(kind!==landing.scene)rebuild(landing.scene);controls.teleport(...landing.position,landing.facing);place=null;selectedRoom=id;updateContext();return;}
+  if(r.layout.interior){const landing=spatialArrival(id,'door');stopMedia();if(kind!==landing.scene)rebuild(landing.scene);try{controls.teleport(...safeArrivalPosition(world,landing),landing.facing);}catch(error){ui.toast(error.message);return;}place=null;selectedRoom=id;updateContext();return;}
   const edge=EDGES.find(e=>e.to===id);if(r.layout.scene!==kind){controls.teleport(0,SPAWN_Z);rebuild(r.layout.scene);}
   if(approved&&edge)world.granted.add(edge.id);
   const [x,z]=!permission(r,lens).canEnter&&edge?beforeDoor(edge):r.layout.approach??[r.layout.slot[0],r.layout.slot[1]+2];
-  if(world.canStand(x,z)){const dx=r.layout.slot[0]-x,dz=r.layout.slot[1]-z;controls.teleport(x,z,Math.atan2(-dx,-dz));}
-  selectedRoom=id;place={id,scene:kind,x:controls.position.x,z:controls.position.z};updateContext();
+  const facing=Math.atan2(x-r.layout.slot[0],z-r.layout.slot[1]),canEnter=permission(r,lens).canEnter;
+  try{const position=safeArrivalPosition(world,{room:id,scene:kind,position:[x,z],facing,choice:canEnter?'inside':'door'});controls.teleport(...position,facing);}catch(error){ui.toast(error.message);return;}
+  selectedRoom=id;place=canEnter?{id,scene:kind,x:controls.position.x,z:controls.position.z}:null;updateContext();
 }
 function readRoom(id,showCard=true){const result=roomEntry(id,lens,EDGES);if(result.state==='hidden')return;if(ROOMS[id].layout.interior){focusRoom(id);ui.entrance(id);return;}if(result.type==='door'&&result.state!=='private'){ui.edge({...EDGES.find(e=>e.to===id),id:'read-'+id,to:id,type:'door',readTarget:id});return;}focusRoom(id);if(showCard)ui.info(id);}
 function resume3D(id){
@@ -235,7 +238,7 @@ const builderStage=new BuilderStage({canvas:$('world'),onSelect:id=>buildUI.sele
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
-ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,entrance:returnEntrance,closer:offerCloser,canCloser:(room,block)=>!!closePlan(room,block),discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),readings:ref=>accessUI.standingUI.open(ref),actorRecord:id=>accessUI.standingUI.actor(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:goHome,openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,entrance:returnEntrance,closer:offerCloser,canCloser:(room,block)=>!!closePlan(room,block),discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,crossDoor,openPage,readRoom,accessRoom:id=>accessUI.open(id),readings:ref=>accessUI.standingUI.open(ref),actorRecord:id=>accessUI.standingUI.actor(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:goHome,openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active&&!builderStage.active,{scope:viewpointScope,message:t=>ui.toast(t,{key:'movement',immediate:true,duration:4500}),status:s=>viewStatus?.(s)}));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
 if(controls.land)viewStatus=visitorHUD(controls,()=>world);
 mountReturnControl(returnEntrance,{visible:()=>profiles.completed&&!firstArrivalPending&&!!enteredView});
@@ -307,11 +310,15 @@ function refreshPublishedRoom(roomKey){
  refreshBuiltScene(roomKey);
  contentStore.emit(roomKey);
 }
-travel=new FastTravel(ui,access,{authorize:s=>{if(s.atlasTrip)atlasUI.records.require(lens,'travel','edit');},attendance:()=>atlasUI.attendance(),hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),land:landArrival,arrived:id=>{access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
-function landArrival(arrival,route,confirmed){
+travel=new FastTravel(ui,access,{authorize:s=>{if(s.atlasTrip)atlasUI.records.require(lens,'travel','edit');},attendance:()=>atlasUI.attendance(),hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),prepareArrival,land:landArrival,arrived:id=>{access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
+function arrivalWorld(arrival,route,confirmed){
  const next=visitWorld(arrival.scene);retainDoors(next);for(const e of EDGES)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.id);
  for(const e of route)if(e.scene===arrival.scene&&(confirmed.has(e.id)||!doorAgreement(e,lens).required))next.granted.add(e.originalId??e.id);
- if(!next.canStand(...arrival.position)){next.dispose();throw new Error('That landing point is obstructed. Choose Outside or Door.');}
+ return next;
+}
+function prepareArrival(arrival,route,confirmed){const next=arrivalWorld(arrival,route,confirmed);try{const position=safeArrivalPosition(next,arrival);return {...arrival,position,...(position.some((v,i)=>v!==arrival.position[i])?{adjustedFrom:arrival.position}:{})};}finally{next.dispose();}}
+function landArrival(arrival,route,confirmed){
+ const next=arrivalWorld(arrival,route,confirmed);try{const clear=safeArrivalPosition(next,arrival);if(clear.some((v,i)=>v!==arrival.position[i]))throw new Error('The arrival spot changed. Review the crossing again.');}catch(error){next.dispose();throw error;}
  stopMedia();world.dispose();world=next;kind=arrival.scene;compareWorld?.dispose();compareWorld=null;graphics.comparison=null;graphics.renderer.shadowMap.needsUpdate=graphics.renderer.shadowMap.enabled;controls.teleport(...arrival.position,arrival.facing);place=arrival.contextRoom?null:{id:arrival.room,scene:kind,x:arrival.position[0],z:arrival.position[1]};near=world.nearest(controls.position.x,controls.position.z,controls.smoothYaw);ui.prompt(near);ui.fadeTitle();updateContext();rememberEntrance(true);
 }
 discovery=new Discovery(profiles,access,{builder,lens:()=>lens,changed:()=>{lens=currentLens();world.lens=lens;},waypoint:setWaypoint,clearWaypoint:()=>{waypoint=null;updateWaypoint();},message:(t)=>ui.toast(t)});

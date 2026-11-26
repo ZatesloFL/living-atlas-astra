@@ -1,0 +1,82 @@
+{
+  "fixture": {
+    "room": "home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+    "parentTitle": "My space’s space",
+    "hall": "kit-8cc9778e-2c06-4843-9fe4-94f0f7f42598",
+    "withheld": "kit-4315530d-ac9d-4f4f-b7f8-ead9bcea8ba5",
+    "addedPlaces": 0,
+    "addedEdges": 0,
+    "hallKind": "interior-shell",
+    "hallRef": {
+      "placeId": "home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+      "thingId": "kit-8cc9778e-2c06-4843-9fe4-94f0f7f42598"
+    }
+  },
+  "closer": {
+    "position": {
+      "x": 0,
+      "y": 1.88,
+      "z": 6.98
+    },
+    "frame": {
+      "isBox3": true,
+      "min": {
+        "x": -6.6240000000000006,
+        "y": 0,
+        "z": -6.112000000000001
+      },
+      "max": {
+        "x": 6.6240000000000006,
+        "y": 6.4,
+        "z": 6.08
+      }
+    }
+  },
+  "visibleBefore": 3,
+  "withheldAtGround": 0,
+  "withheldAboveAndZoomed": 0,
+  "aboveZoomed": {
+    "room": "home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+    "position": {
+      "x": 0,
+      "y": 5.005,
+      "z": 3.7072739592716286
+    },
+    "viewpoint": {
+      "ready": true,
+      "fov": 23.358516708523158,
+      "direction": [
+        0,
+        -0.6098343180492967,
+        -0.7925289297743958
+      ],
+      "normalFov": 61,
+      "flying": true,
+      "entrance": {
+        "key": "41fdd7da-7764-4bbf-9085-e25a1f7f6a3c|home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c|home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+        "room": "home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+        "scene": "home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+        "position": [
+          0,
+          1.88,
+          7.5
+        ],
+        "yaw": 0
+      }
+    }
+  },
+  "ownCardTarget": {
+    "placeId": "home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+    "audienceVersion": null,
+    "thingId": "kit-8cc9778e-2c06-4843-9fe4-94f0f7f42598"
+  },
+  "noCrossingOrGrantChanges": {
+    "room": "home/41fdd7da-7764-4bbf-9085-e25a1f7f6a3c",
+    "uses": 1,
+    "grants": 24
+  },
+  "mouseWheel": true,
+  "touchPinch": true,
+  "landed": true,
+  "errors": []
+}

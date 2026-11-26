@@ -30,8 +30,8 @@ export class WorldLabels {
       }
       if(!rect)continue;
       e.el.style.transform=`translate3d(${Math.round(rect.x)}px,${Math.round(rect.y)}px,0)`;e.el.hidden=false;e.el.style.opacity=String(1-THREE.MathUtils.smoothstep(d,8,this.compact?24:27)*.8);anchors.push(e.position);
-      blocked.push(rect);this.visible.push({...rect,id:e.id});
+      blocked.push(rect);this.visible.push({...rect,id:e.id,el:e.el});
     }
   }
-  pick(x,y){return this.visible.find(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)?.id;}
+  pick(x,y){return this.visible.find(r=>{if(!r.el?.isConnected||r.el.hidden)return false;const box=r.el.getBoundingClientRect();return box.width>0&&box.height>0&&x>=box.left&&x<=box.right&&y>=box.top&&y<=box.bottom;})?.id;}
 }

@@ -1,0 +1,67 @@
+{
+  "localChoice": "You chose not to include your local area.",
+  "receipts": {
+    "askRetained": true,
+    "readable": "Proposed, not yet applied: Grant Atlas look scope for Lens, standing, with no expiry. Look reads the named areas; suggest proposes; edit acts on your words in your own places and settings, and asks at the edges. Hard limits and door terms still apply.\n\n2026-11-26T21:05:56.364Z · atlas\n\n9fdb6f4c1ff0264a27de1d51346d454934f86a92f5e06393e0b19eed9c49c08a"
+  },
+  "attending": "Same On/Off state in header and panel; starter permission remains separate",
+  "bareHome": "home/739194a8-88f1-49ac-98c0-76086f942f18",
+  "robin": "◇ Robin · Docent · Agent · operator My space · operator verification not connected",
+  "emptySky": "Canvas sky tap and unbound ID opened no card",
+  "mission": {
+    "room": "mission",
+    "position": {
+      "x": -9,
+      "y": 1.88,
+      "z": -0.9
+    },
+    "clear": true,
+    "arrival": {
+      "id": 1,
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "actor": "739194a8-88f1-49ac-98c0-76086f942f18",
+      "action": "access_used",
+      "time": "2026-11-26T21:06:08.793Z",
+      "diff": {
+        "scope": "enter",
+        "grant": "public",
+        "approvedBy": "room author",
+        "name": "My space",
+        "agent": false,
+        "via": "fast travel",
+        "arrival": "inside",
+        "arrivalRoom": "mission",
+        "arrivalPosition": [
+          -9,
+          -0.9
+        ]
+      },
+      "hash": "dfbd3e52e695b784343eefecff6c7f6a177def7a83399bc7a58af36a196d4233"
+    },
+    "geometry": {
+      "authored": [
+        -9,
+        -0.9
+      ],
+      "clear": [
+        -9,
+        -0.9
+      ],
+      "obstructed": [
+        -9,
+        -4
+      ],
+      "recovered": [
+        -11.8,
+        -4
+      ]
+    }
+  },
+  "door": "One terms confirmation at the standing door; no final Go or second dialog",
+  "mara": "◇ Mara · Docent · Agent · operator Nic · demonstration operator; verification not connected",
+  "localAbstention": {
+    "label": "Simulated · local helper",
+    "text": "I don't know from the blocks available in this view."
+  },
+  "errors": []
+}
