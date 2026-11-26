@@ -1,0 +1,77 @@
+{
+  "fixture": {
+    "room": "home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+    "parentTitle": "My space’s space",
+    "hall": "kit-117e5e9c-83b3-491b-9930-a873b9d4a03e",
+    "withheld": "kit-e68b8c09-583a-4f1e-b2e5-c8ad5e90ca95",
+    "addedPlaces": 0,
+    "addedEdges": 0,
+    "hallKind": "interior-shell",
+    "hallRef": {
+      "placeId": "home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+      "thingId": "kit-117e5e9c-83b3-491b-9930-a873b9d4a03e"
+    }
+  },
+  "closer": {
+    "position": {
+      "x": 0,
+      "y": 1.88,
+      "z": 6.98
+    },
+    "frame": {
+      "isBox3": true,
+      "min": {
+        "x": -6.6240000000000006,
+        "y": 0,
+        "z": -6.112000000000001
+      },
+      "max": {
+        "x": 6.6240000000000006,
+        "y": 6.4,
+        "z": 6.08
+      }
+    }
+  },
+  "visibleBefore": 3,
+  "withheldAtGround": 0,
+  "withheldAboveAndZoomed": 0,
+  "aboveZoomed": {
+    "room": "home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+    "position": {
+      "x": 0,
+      "y": 5.0875,
+      "z": 3.760230503457345
+    },
+    "viewpoint": {
+      "ready": true,
+      "fov": 23.35828436015355,
+      "normalFov": 61,
+      "flying": true,
+      "entrance": {
+        "key": "59d17aaa-0aa5-4e56-baa4-d00c2190cb10|home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10|home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+        "room": "home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+        "scene": "home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+        "position": [
+          0,
+          1.88,
+          7.5
+        ],
+        "yaw": 0
+      }
+    }
+  },
+  "ownCardTarget": {
+    "placeId": "home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+    "audienceVersion": null,
+    "thingId": "kit-117e5e9c-83b3-491b-9930-a873b9d4a03e"
+  },
+  "noCrossingOrGrantChanges": {
+    "room": "home/59d17aaa-0aa5-4e56-baa4-d00c2190cb10",
+    "uses": 1,
+    "grants": 24
+  },
+  "mouseWheel": true,
+  "touchPinch": true,
+  "landed": true,
+  "errors": []
+}

@@ -1,0 +1,191 @@
+{
+  "portrait": [
+    {
+      "id": "visitor-rise",
+      "x": 12,
+      "y": 682,
+      "width": 90.625,
+      "height": 44,
+      "right": 102.625,
+      "bottom": 726
+    },
+    {
+      "id": "visitor-land",
+      "x": 12,
+      "y": 730,
+      "width": 90.625,
+      "height": 44,
+      "right": 102.625,
+      "bottom": 774
+    },
+    {
+      "id": "navigation-return",
+      "x": 12,
+      "y": 810.21875,
+      "width": 112,
+      "height": 46.78125,
+      "right": 124,
+      "bottom": 857
+    },
+    {
+      "id": "joystick",
+      "x": 152,
+      "y": 795,
+      "width": 108,
+      "height": 108,
+      "right": 260,
+      "bottom": 903
+    },
+    {
+      "id": "build-button",
+      "x": 12,
+      "y": 858,
+      "width": 73.25,
+      "height": 45,
+      "right": 85.25,
+      "bottom": 903
+    },
+    {
+      "id": "lens-button",
+      "x": 289.78125,
+      "y": 853,
+      "width": 110.21875,
+      "height": 50,
+      "right": 400,
+      "bottom": 903
+    }
+  ],
+  "touchRiseKeyboardLowerLand": true,
+  "buildReturn": true,
+  "diagnosticsReturn": true,
+  "narrow": [
+    {
+      "id": "visitor-rise",
+      "x": 12,
+      "y": 453,
+      "width": 79.1875,
+      "height": 44,
+      "right": 91.1875,
+      "bottom": 497
+    },
+    {
+      "id": "visitor-land",
+      "x": 12,
+      "y": 501,
+      "width": 79.1875,
+      "height": 44,
+      "right": 91.1875,
+      "bottom": 545
+    },
+    {
+      "id": "navigation-return",
+      "x": 12,
+      "y": 581.21875,
+      "width": 112,
+      "height": 46.78125,
+      "right": 124,
+      "bottom": 628
+    },
+    {
+      "id": "joystick",
+      "x": 134,
+      "y": 636,
+      "width": 92,
+      "height": 92,
+      "right": 226,
+      "bottom": 728
+    },
+    {
+      "id": "build-button",
+      "x": 12,
+      "y": 639,
+      "width": 73.25,
+      "height": 45,
+      "right": 85.25,
+      "bottom": 684
+    },
+    {
+      "id": "lens-button",
+      "x": 254.65625,
+      "y": 678,
+      "width": 93.34375,
+      "height": 50,
+      "right": 348,
+      "bottom": 728
+    }
+  ],
+  "landscape": [
+    {
+      "id": "visitor-rise",
+      "x": 12,
+      "y": 208,
+      "width": 112,
+      "height": 44,
+      "right": 124,
+      "bottom": 252
+    },
+    {
+      "id": "visitor-land",
+      "x": 12,
+      "y": 254,
+      "width": 112,
+      "height": 44,
+      "right": 124,
+      "bottom": 298
+    },
+    {
+      "id": "navigation-return",
+      "x": 12,
+      "y": 307.21875,
+      "width": 112,
+      "height": 46.78125,
+      "right": 124,
+      "bottom": 354
+    },
+    {
+      "id": "joystick",
+      "x": 411.5,
+      "y": 312,
+      "width": 92,
+      "height": 92,
+      "right": 503.5,
+      "bottom": 404
+    },
+    {
+      "id": "build-button",
+      "x": 12,
+      "y": 359,
+      "width": 73.25,
+      "height": 45,
+      "right": 85.25,
+      "bottom": 404
+    },
+    {
+      "id": "lens-button",
+      "x": 723,
+      "y": 354,
+      "width": 180,
+      "height": 50,
+      "right": 903,
+      "bottom": 404
+    }
+  ],
+  "ceiling": {
+    "authored": 4.8,
+    "eye": 4.55
+  },
+  "exitHeld": {
+    "position": {
+      "x": 0,
+      "y": 4.55,
+      "z": 8.719394219944379
+    },
+    "receipts": {
+      "room": "boycott",
+      "grants": 24,
+      "uses": 4
+    }
+  },
+  "mediaStillPlays": true,
+  "errors": []
+}
