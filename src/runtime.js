@@ -2,6 +2,9 @@ import {tripDetails} from './trip-words.js';
 import {doorAgreement} from './travel-agreement.js';
 import {AtlasUI} from './atlas-ui.js';
 import {AtlasRecords} from './atlas-records.js';
+import {mountReturnControl} from './navigation-return.js';
+import {entranceSpot} from './visit-return.js';
+import {resolveHolderDestination} from './holder-destinations.js';
 import {visitorHUD} from './visitor-hud.js';
 import {pickedThing,thingSubject} from './thing-subject.js';
 import {localSegment,viewingSpot,airPointAllowed} from './visitor-viewpoint.js';
@@ -125,16 +128,25 @@ function rememberEntrance(force=false){
  const key=personId(lens)+'|'+kind+'|'+context.room;
  if(force||enteredView?.key!==key)enteredView={key,room:context.room,scene:kind,position:controls.position.toArray(),yaw:controls.smoothYaw};
 }
-function viewpointScope(){return {room:context.room,scene:kind,anchor:enteredView?[enteredView.position[0],enteredView.position[2]]:[controls.position.x,controls.position.z]};}
-function moveWithin(scope,spot){
- const valid=()=>context.room===scope.room&&kind===scope.scene&&world.canStand(spot.position[0],spot.position[2])&&localSegment(world,scope,controls.position.toArray(),spot.position);
+function viewpointScope(){return {room:context.room,scene:kind,holder:personId(lens),anchor:enteredView?[enteredView.position[0],enteredView.position[2]]:[controls.position.x,controls.position.z]};}
+function moveWithin(scope,spot,{returning=false}={}){
+ const valid=()=>personId(lens)===scope.holder&&context.room===scope.room&&kind===scope.scene&&world.canStand(spot.position[0],spot.position[2])&&(returning?!!entranceSpot(world,scope,{...enteredView,position:spot.position}):localSegment(world,scope,controls.position.toArray(),spot.position));
  if(!valid())throw new Error('That viewing spot is unavailable inside this Place. Nothing has moved.');
  ui.close();fadeTo(()=>{if(!valid()){ui.toast('The Place or path changed. Nothing has moved.');return;}controls.teleport(spot.position[0],spot.position[2],spot.yaw,spot.pitch);place={id:scope.room,scene:kind,x:spot.position[0],z:spot.position[2]};updateContext();});
 }
+function entranceRecord(){return enteredView?{...structuredClone(enteredView),holder:enteredView.key.split('|')[0]}:null;}
 function returnEntrance(){
- if(!enteredView||enteredView.room!==context.room||enteredView.scene!==kind)return;
- try{moveWithin(viewpointScope(),{position:enteredView.position,yaw:enteredView.yaw});}catch(error){ui.toast(error.message);}
+ if(!enteredView||enteredView.key!==personId(lens)+'|'+kind+'|'+context.room)return;
+ travel?.cancel({quiet:true});if(previewState||buildUI?.active)buildUI.exit();
+ if(page&&!page.root.hidden){page.returnEntrance();return;}
+ for(const d of document.querySelectorAll('dialog[open]'))d.close();
+ for(const root of document.querySelectorAll('.access-overlay:not([hidden])'))root.querySelector('[data-dialog-close]')?.click();
+ const scope=viewpointScope(),spot=entranceSpot(world,scope,enteredView);
+ if(!spot){ui.toast('Your recorded entrance is obstructed. No safe spot is available beside it. Nothing has moved.');return;}
+ try{moveWithin(scope,spot,{returning:true});if(spot.adjusted)ui.toast('The entrance is obstructed; returning to clear ground beside it.');}catch(error){ui.toast(error.message);}
 }
+function holderContext(){return {profiles,room:context.room,position:controls.position,entrance:entranceRecord()};}
+function goHome(){const found=resolveHolderDestination('my home',lens,holderContext());if(found.matches.length)startTravel(found.matches[0].room,{choice:'inside'});else ui.toast(found.message);}
 function closePlan(roomKey,blockId){
  if(roomKey!==context.room||!thingSubject(roomKey,blockId,lens))return null;
  const frame=world.thingFrame(roomKey,blockId);if(!frame)return null;
@@ -193,7 +205,7 @@ function resume3D(id){
 function openPage(id=context.room){
   stopMedia();
   if(previewState||buildUI?.active)buildUI.exit();travel?.cancel();ui.close();controls.resetInput();active=false;cancelAnimationFrame(frame);transition=null;pageOrigin=context.room;page?.close();lens.form='page';profiles.preferences(lens);
-  page=new PageRenderer({builder,lens,room:id,originRoom:context.room,access,profiles,onAccessChange:refreshAccess,diagnostics:diag,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onVisit:next=>{selectedRoom=next;},onLensChange:next=>{lens=next;profiles.preferences(lens);rebuild();profileUI?.refresh();},on3D:resume3D});
+  page=new PageRenderer({builder,lens,room:id,originRoom:context.room,access,profiles,onAccessChange:refreshAccess,diagnostics:diag,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onVisit:next=>{selectedRoom=next;},onLensChange:next=>{lens=next;profiles.preferences(lens);rebuild();profileUI?.refresh();},on3D:resume3D,onEntrance:returnEntrance,visitContext:holderContext});
   page.open(id);diag.setMode('Page form');if(diag.params.has('test'))window.__atlasPage=page;
 }
 diag.pageState=()=>({lens,room:context.room,access,profiles,approvedRooms:[context.room,...state().approvedRooms],onAgeChange:readingAge,onLensChange:next=>{lens=next;profiles.preferences(lens);}});
@@ -204,10 +216,11 @@ const builderStage=new BuilderStage({canvas:$('world'),onSelect:id=>buildUI.sele
 try{diag.run('shadows',()=>graphics.setupShadows(!diag.safe));}catch(error){graphics.setupShadows(false);diag.recovered('shadows','Shadows disabled.');}
 graphics.initPost();
 diag.onFullQuality=()=>{try{diag.safe=false;const url=new URL(location.href);url.searchParams.delete('safe');history.replaceState(null,'',url);graphics.retryFull(world.scene,camera);diag.setMode(`3D · ${graphics.mode} · shadows ${graphics.renderer.shadowMap.enabled?'on':'off'}`);}catch(error){diag.fallback('quality retry',error);}};
-ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,entrance:returnEntrance,closer:offerCloser,canCloser:(room,block)=>!!closePlan(room,block),discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),readings:ref=>accessUI.standingUI.open(ref),actorRecord:id=>accessUI.standingUI.actor(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:()=>lens.homePlaceId?startTravel(lens.homePlaceId,{choice:'inside'}):changeScene('studio'),openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
+ui=diag.run('UI',()=>new UI({state,hud,diagnostics:diag,entrance:returnEntrance,closer:offerCloser,canCloser:(room,block)=>!!closePlan(room,block),discover:section=>communityUI.open(section),staff:id=>staffUI.open(id??context.room),panelClosed:mode=>{if(mode==='travel'&&travel?.session&&!travel.active)travel.cancel({quiet:true});},openBuild:()=>buildUI.open(),peekLayer:(room,layer)=>layerUI.peek(room,layer),experienceChanged,pause:()=>controls?.resetInput(),lensChanged,enter,openPage,readRoom,accessRoom:id=>accessUI.open(id),readings:ref=>accessUI.standingUI.open(ref),actorRecord:id=>accessUI.standingUI.actor(id),travel:id=>startTravel(id),cancelTravel:()=>{travel.cancel();waypoint=null;updateWaypoint();},waypoint:id=>setWaypoint(id),address:goAddress,home:goHome,openProfiles:()=>profileUI.switcher(),panelChanged:()=>profileUI?.refresh()}));
 try{controls=diag.run('controls',()=>new Controls($('world'),camera,$('joystick'),select,()=>!ui.mode&&!transition&&active&&!travel?.active&&!builderStage.active,{scope:viewpointScope,message:t=>ui.toast(t),status:s=>viewStatus?.(s)}));}catch(error){controls=staticControls();diag.recovered('controls','Movement disabled; switch to Page form to browse.');}
-if(controls.land)viewStatus=visitorHUD(controls,()=>world,returnEntrance);
-const atlasUI=new AtlasUI(ui,{lens:()=>lens,room:()=>context.room,discovery:()=>discovery,tripDetails:(id,choice)=>tripDetails(context.room,id,lens,kind,choice),trip:(id,options)=>{if(!travel.start(id,options))throw new Error('This trip is no longer available.');return {status:'preflight started'};},inspector:()=>ui.lens(),applyLens:async(changes,refs)=>{const result=await profiles.applyLensProposal(changes,refs);lens=currentLens();lensChanged();return result;}},{records:atlasRecords});ui.api.askAtlas=()=>atlasUI.open();atlasUI.mountStatus(document.querySelector('.location-stack'));
+if(controls.land)viewStatus=visitorHUD(controls,()=>world);
+mountReturnControl(returnEntrance,{visible:()=>profiles.completed&&!firstArrivalPending&&!!enteredView});
+const atlasUI=new AtlasUI(ui,{lens:()=>lens,room:()=>context.room,holderContext,entrance:returnEntrance,discovery:()=>discovery,tripDetails:(id,choice)=>tripDetails(context.room,id,lens,kind,choice),trip:(id,options)=>{if(!travel.start(id,options))throw new Error('This trip is no longer available.');return {status:'preflight started'};},inspector:()=>ui.lens(),applyLens:async(changes,refs)=>{const result=await profiles.applyLensProposal(changes,refs);lens=currentLens();lensChanged();return result;}},{records:atlasRecords});ui.api.askAtlas=()=>atlasUI.open();atlasUI.mountStatus(document.querySelector('.location-stack'));
 profileUI=diag.run('profile UI',()=>new ProfileUI(ui,profiles,{askAtlas:()=>atlasUI.open(),state,apply:applyProfile,switchProfile,staff,override:async changes=>{profiles.setOverride(changes);await applyProfile();}}));
 try{labels=diag.run('labels',()=>new WorldLabels($('world-labels')));}catch(error){diag.recovered('labels','Nameplates disabled; object selection remains available.');}
 rebuild();controls.apply();if(savedStarter&&startPrefs.startAt!=='square'&&!(startPrefs.startAt==='last'&&savedPlace&&reachable(savedPlace.room,lens)))arriveHome(savedStarter.projection.rootPlaceId);
@@ -297,7 +310,7 @@ diag.run('first scene update',()=>world.update(0));
 diag.run('first render',()=>graphics.render(world.scene,camera));
 if(labels)try{diag.run('first label pass',()=>labels.update(world,camera));}catch(error){labels=null;$('world-labels')?.replaceChildren();diag.recovered('first label pass','Nameplates disabled; object selection remains available.');}
 try{diag.run('scene HUD',()=>ui.title(kind));}catch(error){diag.recovered('scene HUD','Decorative scene title unavailable; the scene remains usable.');}
-window.addEventListener('resize',()=>{try{controls.resetInput();camera.aspect=innerWidth/innerHeight;camera.fov=innerHeight>innerWidth?67:61;if(controls.normalFov){controls.normalFov=camera.fov;controls.zoomTarget=camera.fov;}camera.updateProjectionMatrix();graphics.resize();}catch(error){diag.fallback('resize',error);}});
+window.addEventListener('resize',()=>{try{controls.resetInput();camera.aspect=innerWidth/innerHeight;camera.fov=innerHeight>innerWidth?67:61;if(controls.normalFov){controls.normalFov=camera.fov;controls.zoomTarget=camera.fov;}camera.updateProjectionMatrix();graphics.resize();if(ui.mode==='atlas')ui.renderAtlas(true);}catch(error){diag.fallback('resize',error);}});
 reducedQuery.addEventListener('change',()=>{try{controls.reduced=reducedQuery.matches;rebuild();}catch(error){diag.fallback('reduced-motion update',error);}});
 document.addEventListener('visibilitychange',()=>{active=!document.hidden&&!document.body.classList.contains('page-mode');controls.resetInput();lastTime=performance.now();frames=0;period=0;});
 $('world').addEventListener('webglcontextlost',event=>{event.preventDefault();diag.fallback('graphics context lost',new Error('The browser reported a lost graphics context after initialization.'));});
@@ -311,6 +324,6 @@ if(profiles.completed&&lens.form==='page')openPage(context.room);
 const initialRoom=diag.params.get('room');if(initialRoom&&ROOMS[initialRoom]&&profiles.completed&&initialRoom!==context.room)readRoom(initialRoom,false);
 const invite=diag.params.get('invite');if(invite){const g=access.data.grants.find(g=>g.id===invite&&g.kind==='invite'&&g.to.person===lens.profileId&&!g.revokedAt&&(!g.expires||Date.parse(g.expires)>Date.now()));const id=g&&Object.keys(ROOMS).find(id=>ROOMS[id].id===g.room);if(id)startTravel(id);else ui.toast('This local invite is missing, expired, or addressed to another profile.');}
 if(new URLSearchParams(location.search).has('test')){
-  window.__atlas={atlas:atlasUI,staff,staffUI,discovery,community:communityUI,travel,access,build:buildUI,buildScene:()=>builderStage.world?.scene,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),viewpoint:{ready:controls.canMove?.(),fov:camera.fov,normalFov:controls.normalFov,flying:controls.flying,entrance:structuredClone(enteredView)},edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus(),position:controls.position.clone()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),viewpoint:{frame:(room,block)=>world.thingFrame(room,block),plan:closePlan,entrance:returnEntrance},pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
+  window.__atlas={atlas:atlasUI,staff,staffUI,discovery,community:communityUI,travel,access,build:buildUI,buildScene:()=>builderStage.world?.scene,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),viewpoint:{ready:controls.canMove?.(),fov:camera.fov,normalFov:controls.normalFov,flying:controls.flying,entrance:structuredClone(enteredView)},edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus(),position:controls.position.clone()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),viewpoint:{entry:entranceRecord,frame:(room,block)=>world.thingFrame(room,block),plan:closePlan,entrance:returnEntrance},pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
 }
 }

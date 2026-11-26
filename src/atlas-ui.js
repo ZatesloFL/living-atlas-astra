@@ -6,6 +6,7 @@ import {assuranceExplanation} from './lens-state.js';
 import {esc} from './block-renderer.js';
 import {DIMENSIONS} from './scores.js';
 import {lensBasis} from './lens-proposals.js';
+import {holderReference,resolveHolderDestination} from './holder-destinations.js';
 import {resolveDestination} from './atlas-destinations.js';
 
 export function intentWords(value){
@@ -21,7 +22,7 @@ export function intentWords(value){
 export class AtlasUI {
  constructor(ui,api,{records=new AtlasRecords(),brain=ai}={}){this.ui=ui;this.api=api;this.records=records;this.brain=brain;this.messages=[];this.pending=null;if(!document.querySelector('[data-atlas-style]')){const link=document.createElement('link');link.rel='stylesheet';link.href=new URL('../atlas.css',import.meta.url).href;link.dataset.atlasStyle='';document.head.append(link);}}
  lens(){return this.api.lens();}
- sync(){const holder=personId(this.lens());if(holder!==this.holder){this.holder=holder;this.messages=[];this.pending=null;this.destinations=null;this.controller?.abort();}return holder;}
+ sync(){const holder=personId(this.lens());if(holder!==this.holder){this.holder=holder;this.messages=[];this.pending=null;this.destinations=null;this.returnOffer=null;this.controller?.abort();}return holder;}
  safeState(){try{return this.records.state(this.lens());}catch(error){return {grants:[],envelopes:{},receipts:[],attending:false,error:'Atlas records are unavailable: '+error.message+' Manual controls remain available.'};}}
  attendance(){const state=this.safeState(),envelope=state.envelopes.travel;return {attending:state.attending,posture:envelope?.posture??null,watch:state.attending&&envelope?.posture==='Proactive'?envelope.watch:[]};}
  mountStatus(parent){this.status=document.createElement('button');this.status.id='ask-atlas-status';this.status.className='glass';this.status.onclick=()=>this.open();parent.append(this.status);this.refreshStatus();this.statusTimer=setInterval(()=>this.refreshStatus(),1000);}
@@ -35,15 +36,22 @@ export class AtlasUI {
   root.querySelector('#atlas-confirm')?.addEventListener('click',()=>this.confirm());
   root.querySelector('#atlas-decline')?.addEventListener('click',()=>this.run(async()=>{await this.records.decline(this.lens(),this.pending.id);this.pending=null;this.messages.push({who:'atlas',text:'The proposal was declined. Nothing changed.'});this.render();}));
   root.querySelector('#atlas-audit').onclick=()=>this.audit();root.querySelector('#atlas-inspector')?.addEventListener('click',()=>this.api.inspector());
-  if(this.destinations?.matches.length>1){const choices=document.createElement('section');choices.innerHTML=`<h3>Choose the Place you mean</h3><p>Order: ${esc(this.destinations.rule)} · the same Discovery index</p>${this.destinations.matches.map(c=>`<article><h4>${esc(c.title)}</h4><p>${esc(c.why)}</p><button data-atlas-destination="${esc(c.room)}">Offer this trip</button></article>`).join('')}`;root.querySelector('#atlas-ask-form').before(choices);choices.querySelectorAll('[data-atlas-destination]').forEach(b=>b.onclick=()=>this.run(async()=>{const fresh=resolveDestination(this.destinations.requested,this.api.discovery(),{from:this.api.room?.()??'square'});if(!fresh.matches.some(c=>c.room===b.dataset.atlasDestination))throw new Error('That Place no longer fits the current Lens or door terms. Ask again.');this.destinations=null;await this.offerTrip(b.dataset.atlasDestination);}));}
+  if(this.destinations?.matches.length>1){const choices=document.createElement('section');choices.innerHTML=`<h3>Choose the Place you mean</h3><p>Order: ${esc(this.destinations.rule)} · ${esc(this.destinations.source??'Discovery index')}</p>${this.destinations.matches.map(c=>`<article><h4>${esc(c.title)}</h4><p>${esc(c.why)}</p><button data-atlas-destination="${esc(c.room)}">Offer this trip</button></article>`).join('')}`;root.querySelector('#atlas-ask-form').before(choices);choices.querySelectorAll('[data-atlas-destination]').forEach(b=>b.onclick=()=>this.run(async()=>{const fresh=resolveHolderDestination(this.destinations.requested,this.lens(),this.api.holderContext?.())??resolveDestination(this.destinations.requested,this.api.discovery(),{from:this.api.room?.()??'square'});if(!fresh.matches.some(c=>c.room===b.dataset.atlasDestination))throw new Error('That Place no longer fits the current Lens or door terms. Ask again.');this.destinations=null;await this.offerTrip(b.dataset.atlasDestination);}));}
+  if(this.returnOffer){const back=document.createElement('button');back.id='atlas-return';back.textContent='Back to the entrance';back.onclick=()=>this.run(async()=>{this.records.require(this.lens(),'travel','edit');const current=resolveHolderDestination('take me back',this.lens(),this.api.holderContext?.());if(!current.entrance||JSON.stringify(current.entrance)!==this.returnOffer)throw new Error('Your current visit changed. Ask again.');this.returnOffer=null;this.api.entrance?.();});root.querySelector('#atlas-ask-form').before(back);}
   const status=this.refreshStatus(),button=document.createElement('button');button.id='atlas-attending';button.className='atlas-attending';button.textContent=`Atlas attending: ${status.attending?'On · turn off':'Off · turn on'}`;button.onclick=()=>this.run(async()=>{await this.records.attendance(this.lens(),!this.attendance().attending);this.refreshStatus();this.render();});root.prepend(button);
  }
  async run(action){try{await action();}catch(error){const status=this.ui.content.querySelector('#atlas-message');if(status)status.textContent=error.message;else this.ui.toast(error.message);}}
  async ask(words){return this.run(async()=>{
   this.sync();if(this.pending)throw new Error('Confirm or decline the open proposal first.');this.records.holder(this.lens());
-  const holder=this.holder;this.controller?.abort();this.controller=new AbortController();this.messages.push({who:'you',text:words});
+  const holder=this.holder;this.destinations=null;this.returnOffer=null;this.controller?.abort();this.controller=new AbortController();this.messages.push({who:'you',text:words});
   const result=await this.brain.request({job:'guide',agentId:'atlas',schema:ATLAS_INTENT_SCHEMA,context:{action:'personal-intent',question:words,lensLimits:structuredClone(this.lens().limits),place:{key:this.api.room?.()??'studio'},blocks:[]},signal:this.controller.signal,isCurrent:()=>personId(this.lens())===holder&&this.ui.mode==='ask-atlas'});
-  if(result.proposal.kind==='destination'){this.records.require(this.lens(),'discovery','look');if(!this.api.discovery)throw new Error('Discovery is unavailable during setup. Finish your starter before asking for a trip.');const found=resolveDestination(result.proposal.query,this.api.discovery(),{from:this.api.room?.()??'square'});await this.records.lookup(this.lens(),found);if(personId(this.lens())!==holder)throw new Error('The profile changed. Ask again in this profile.');this.messages.push({who:'atlas',text:found.message});this.destinations=found;
+  if(result.proposal.kind==='destination'){
+   if(holderReference(result.proposal.query))this.records.require(this.lens(),'travel','look');
+   const personal=resolveHolderDestination(result.proposal.query,this.lens(),this.api.holderContext?.());
+   if(personal){await this.records.holderLookup(this.lens(),personal);if(personId(this.lens())!==holder)throw new Error('The profile changed. Ask again.');this.messages.push({who:'atlas',text:personal.message});this.destinations=personal;this.returnOffer=personal.entrance?JSON.stringify(personal.entrance):null;
+    if(personal.matches.length===1){this.destinations=null;await this.offerTrip(personal.matches[0].room,{words});return;}this.render();return;
+   }
+   this.records.require(this.lens(),'discovery','look');if(!this.api.discovery)throw new Error('Discovery is unavailable during setup. Finish your starter before asking for a trip.');const found=resolveDestination(result.proposal.query,this.api.discovery(),{from:this.api.room?.()??'square'});await this.records.lookup(this.lens(),found);if(personId(this.lens())!==holder)throw new Error('The profile changed. Ask again in this profile.');this.messages.push({who:'atlas',text:found.message});this.destinations=found;
    if(found.matches.length===1){this.destinations=null;await this.offerTrip(found.matches[0].room,{words});return;}
   }
   else if(result.proposal.kind==='clarify')this.messages.push({who:'atlas',text:result.proposal.text});

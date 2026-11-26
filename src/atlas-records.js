@@ -113,6 +113,7 @@ export class AtlasRecords {
  }
  decline(lens,id){return this.write(lens,async(data,record,holder)=>{const p=this.state(lens,Date.now(),data).proposals.find(p=>p.id===id&&p.status==='proposal');if(p)await record(holder,'atlas_declined',{id,proposalReceipt:p.receipt});});}
  attendance(lens,enabled){return this.write(lens,async(data,record,holder)=>{if(typeof enabled!=='boolean')throw new Error('Choose attending on or off.');if(enabled)this.require(lens,'travel','look',data);return record(holder,'atlas_attendance_changed',{enabled});});}
+ holderLookup(lens,{kind,room,matches=[]}){return this.write(lens,async(data,record)=>{this.require(lens,'travel','look',data);return record('atlas','atlas_holder_located',{kind,room:room??null,places:matches.map(c=>c.room),source:'holder records'});});}
  lookup(lens,{requested,query,exact,rule,matches}){return this.write(lens,async(data,record)=>{this.require(lens,'discovery','look',data);return record('atlas','atlas_searched',{requested,query,exact,rule,places:matches.map(c=>c.room)});});}
  revoke(lens,id){return this.write(lens,async(data,record,holder)=>{if(!this.state(lens,Date.now(),data).grants.some(g=>g.id===id&&g.active))throw new Error('No active grant for this profile.');return record(holder,'atlas_grant_revoked',{grant:id});});}
  narrow(lens,id,{areas,scope}){return this.write(lens,async(data,record,holder)=>{const prior=this.state(lens,Date.now(),data).grants.find(g=>g.id===id&&g.active);
