@@ -517,7 +517,7 @@ export class BuildUI {
     const outsideControl=restricted.filter(key=>!permission(ROOMS[key],this.lens).owner).map(key=>ROOMS[key].title);
     const canMakePublic=restricted.length>0&&!outsideControl.length&&restricted.every(key=>ROOMS[key].visibility!=='private');
     const privateOnly=restricted.length>0&&!readable.length&&!mayHaveOthers;
-    const headline=privateOnly?'Only you — this place is private':restricted.length?'Access to this private Place':'Visitors who meet this Place’s door terms';
+    const headline=privateOnly?'Only you — this place is private':restricted.length?'You and people with access — this place is private':'Visitors who meet this Place’s door terms';
     const describe=visitor=>visitor.name+(visitor.canEnter?'':' (look only)');
     const list=new Intl.ListFormat('en',{type:'conjunction'});
     const privateDescription=[readable.length?`Current access includes ${list.format(readable.map(describe))}.`:'',
