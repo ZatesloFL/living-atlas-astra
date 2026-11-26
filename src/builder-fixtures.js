@@ -4,6 +4,105 @@ import {authoredPiecePlacement} from './kit-placement.js';
 import {drawModel} from './world-models.js';
 import {readHostedPhotoPreview,sourceStateMessage,uploadedCopyLabel} from './source-media.js';
 
+const SIGN_BOARD = {width:1.15,height:.66,depth:.16,y:1.1};
+const SIGN_TILE = {width:512,height:320,textWidth:192,textHeight:226};
+const glyphs = new Intl.Segmenter(undefined,{granularity:'grapheme'});
+
+function signLines(context,text,width,splitWords) {
+  const lines=[];
+  let line='';
+  for (const word of text.split(/\s+/)) {
+    const next=line ? line+' '+word : word;
+    if(context.measureText(next).width<=width) {line=next;continue;}
+    if(line) lines.push(line);
+    line='';
+    if(context.measureText(word).width<=width) {line=word;continue;}
+    if(!splitWords) return null;
+    for(const {segment} of glyphs.segment(word)) {
+      if(line&&context.measureText(line+segment).width>width) {lines.push(line);line='';}
+      line+=segment;
+    }
+  }
+  return [...lines,line];
+}
+
+function paintSign(context,text,x,y) {
+  const {width,height,textWidth,textHeight}=SIGN_TILE;
+  context.fillStyle='#eee1c2';
+  context.fillRect(x,y,width,height);
+  context.strokeStyle='#9a8964';
+  context.lineWidth=3;
+  context.strokeRect(x+10,y+10,width-20,height-20);
+  context.fillStyle='#253432';
+  context.textAlign='center';
+  context.textBaseline='middle';
+  let lines,lineHeight,size;
+  for(size=72;size>=8;size-=2) {
+    context.font='700 '+size+'px system-ui, sans-serif';
+    lines=signLines(context,text,textWidth,size<=24);
+    lineHeight=size*1.13;
+    if(lines&&lines.length*lineHeight<=textHeight) break;
+  }
+  const top=y+(height-(lines.length-1)*lineHeight)/2;
+  lines.forEach((line,index)=>context.fillText(line,x+width/2,top+index*lineHeight,textWidth));
+  return lines;
+}
+
+function queueSign(world,piece,block,marker) {
+  const {width,height,depth,y}=SIGN_BOARD;
+  const wording=piece.settings?.text?.trim()||
+    (typeof block.body==='string'&&block.body!==BUILDER_PIECES.sign.label?block.body.trim():'')||block.title;
+  if(!wording) return;
+  const characters=Array.from(wording);
+  const text=characters.length>240 ? characters.slice(0,239).join('')+'…' : wording;
+  const z=depth/2+.004;
+  const corners=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([x,dy])=>
+    world.transform(x*(width-.06)/2,y+dy*(height-.06)/2,z).toArray());
+  (world.builderSigns??=[]).push({marker,text,corners,center:world.transform(0,y,z).toArray()});
+}
+
+export function flushBuilderSigns(world) {
+  const signs=world.builderSigns;
+  if(!signs?.length)return;
+  const {width,height}=SIGN_TILE,columns=4,batchSize=32;
+  for(let offset=0;offset<signs.length;offset+=batchSize) {
+    const batch=signs.slice(offset,offset+batchSize);
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.min(columns,batch.length)*width;
+    canvas.height=Math.ceil(batch.length/columns)*height;
+    const context=canvas.getContext('2d'),positions=[],uv=[],indices=[],faceIds=[],signFaces=[];
+    for(const [i,{marker,text,corners,center}] of batch.entries()) {
+      const x=i%columns*width,y=Math.floor(i/columns)*height;
+      const lines=paintSign(context,text,x,y);
+      const u0=(x+.5)/canvas.width,u1=(x+width-.5)/canvas.width;
+      const v0=1-(y+height-.5)/canvas.height,v1=1-(y+.5)/canvas.height;
+      const n=positions.length/3;
+      positions.push(...corners.flat());
+      uv.push(u0,v0,u1,v0,u1,v1,u0,v1);
+      indices.push(n,n+1,n+2,n,n+2,n+3);
+      faceIds.push(marker,marker);
+      signFaces.push({id:marker,text,lines,center});
+    }
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    texture.anisotropy=4;
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    geometry.setIndex(indices);
+    const material=new THREE.MeshBasicMaterial({map:texture,toneMapped:false});
+    const mesh=new THREE.Mesh(geometry,material);
+    mesh.name='Builder sign faces';
+    mesh.userData={faceIds,signFaces};
+    world.scene.add(mesh);
+    world.pickables.push(mesh);
+    world.dynamicResources.push({dispose(){
+      geometry.dispose();material.dispose();texture.dispose();canvas.width=canvas.height=1;
+    }});
+  }
+  signs.length=0;
+}
+
 function hostedPhotoFrame(world,room,block,marker,status){
   const panel=document.createElement('canvas');
   panel.width=512;panel.height=352;
@@ -86,8 +185,9 @@ export function drawBuilderFixtures(world,room,roomKey,blocks){
         world.block(0,0,1.8,.55);
         break;
       case 'sign':
-        box(0,.59,0,.14,1.18,.14,'#54666c');
-        box(0,1.28,0,1.15,.49,.15,'#c6b48a','wood');
+        box(0,SIGN_BOARD.y/2,0,.14,SIGN_BOARD.y,.14,'#54666c');
+        box(0,SIGN_BOARD.y,0,SIGN_BOARD.width,SIGN_BOARD.height,SIGN_BOARD.depth,'#c6b48a','wood');
+        queueSign(world,piece,block,marker);
         break;
       case 'lantern':
         box(0,.62,0,.11,1.24,.11,'#46616c','metal');
@@ -109,7 +209,7 @@ export function drawBuilderFixtures(world,room,roomKey,blocks){
         drawModel(world,BUILDER_PIECES[piece.kind]?.model??'plinth',marker);
     }
     const title=world.transform(0,1.85,0);
-    world.label(block.title,piece.settings?.text||'READ THING',title.x,title.y,title.z,marker,2.3,'#b2d4cf');
+    world.label(block.title,(piece.kind==='sign'?null:piece.settings?.text)||'READ THING',title.x,title.y,title.z,marker,2.3,'#b2d4cf');
     world.placement=parent;
   }
 }

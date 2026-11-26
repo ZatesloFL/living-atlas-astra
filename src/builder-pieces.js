@@ -70,7 +70,7 @@ const definitions = {
     seats: [{ label: 'Seat one', caption: 'Sample seat story. Add your own caption here.' }],
   }, [field('seats', 'Seats and their stories', 'list')], [rule('seat', 'seat')]),
   lantern: fixture('Lantern', 'lantern', 3, 2),
-  sign: fixture('Sign', 'sign', 2, 1),
+  sign: fixture('Sign', 'sign', 2, 2),
   bench: fixture('Bench', 'bench', 3, 1),
   plant: fixture('Plant', 'plant', 4, 2),
   plinth: fixture('Plinth', 'plinth', 2, 1),

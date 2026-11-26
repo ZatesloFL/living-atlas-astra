@@ -47,23 +47,33 @@ export class BuilderStage {
 
   get active() { return !!this.world; }
 
-  show({world, roomKey, layout, pieces = [], selectedId = null, camera = 'orbit', preview = false}) {
+  show({world, roomKey, layout, pieces = [], selectedId = null, camera = 'orbit', preview = false, focus = [], audience}) {
     const newRoom = !this.active || roomKey !== this.roomKey;
     const newWorld = world !== this.world;
     const newMode = !!preview !== this.preview;
+    const newAudience = audience !== this.audience;
     if (newWorld) this.releaseWorld();
     this.world = world;
     this.roomKey = roomKey;
     this.layout = layout;
     this.preview = !!preview;
+    this.audience = audience;
     this.pieces = pieces;
     this.byBlock = new Map(pieces.filter(piece => piece.block?.id).map(piece => [piece.block.id, piece.id]));
 
-    if (newRoom) {
+    if (newRoom || newMode || newAudience) {
       this.target.set(layout.slot[0], .7, layout.slot[1]);
       this.yaw = .35;
       this.elevation = .77;
       this.distance = clamp(Math.max(layout.width ?? 10, layout.depth ?? 10) * (layout.scale ?? 1) * 1.3, 10, 38);
+      if (focus.length) {
+        const centers = focus.map(piece => this.pieceCenter(piece));
+        this.target.set(0,0,0);
+        for (const center of centers) this.target.add(center);
+        this.target.divideScalar(centers.length);
+        this.target.y += .8;
+        this.distance = clamp(8 + Math.max(...centers.map(center => center.distanceTo(this.target))) * 2.8, 10, 38);
+      }
       this.mode = 'orbit';
       this.updateCamera();
     }

@@ -100,3 +100,27 @@ test('Failed persistence cannot expose a published draft',async()=>{
   assert.equal(ROOMS[roomKey].blocks.length,1);
   assert.deepEqual(builder.history(roomKey,lens),[]);
 });
+
+test('Visiting drafts stay with the owner and the scene, even across reload and removal',async()=>{
+  const {roomKey,lens}=starter(), disk=storage(), changed=[];
+  const builder=new Builder({storage:()=>disk,onDraft:key=>changed.push(key)});
+  const live=ROOMS[roomKey];
+  const {pieces:[sign]}=await builder.add(roomKey,lens,'sign');
+  await builder.preview(roomKey,lens,lens);
+  assert.deepEqual(changed,[roomKey]);
+  assert.equal(ROOMS[roomKey],live);
+  assert.deepEqual([...builder.visitDrafts(roomKey,lens).get(roomKey).changed],[sign.id]);
+  for(const visitor of [{...lens,profileId:'guest'},{...lens,preview:true},{...lens,isAgent:true}]){
+    assert.equal(builder.visitDrafts(roomKey,visitor).size,0);
+  }
+  assert.equal(builder.visitDrafts('square',lens).size,0);
+
+  const recovered=new Builder({storage:()=>disk});
+  await recovered.recover(lens);
+  assert.ok(recovered.visitDrafts(roomKey,lens).get(roomKey).room.blocks.some(block=>block.id===sign.id));
+  await recovered.publish(roomKey,lens);
+  assert.equal(recovered.visitDrafts(roomKey,lens).size,0);
+  await recovered.remove(roomKey,lens,sign.id);
+  assert.equal(recovered.visitDrafts(roomKey,lens).get(roomKey).room.blocks.some(block=>block.id===sign.id),false);
+  assert.ok(ROOMS[roomKey].blocks.some(block=>block.id===sign.id));
+});

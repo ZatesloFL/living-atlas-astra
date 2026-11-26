@@ -80,9 +80,10 @@ function estimate(base, pieces) {
 }
 
 export class Builder {
-  constructor({storage=storageDefault,onPublish=()=>{},atlasRecords=new AtlasRecords(storage)}={}) {
+  constructor({storage=storageDefault,onPublish=()=>{},onDraft=()=>{},atlasRecords=new AtlasRecords(storage)}={}) {
     this.storage = storage;
     this.onPublish = onPublish;
+    this.onDraft = onDraft;
     this.atlasRecords = atlasRecords;
     this.base = new Map();
     this.data = empty();
@@ -155,6 +156,7 @@ export class Builder {
       if (!storage) throw new Error('Builder needs browser storage to keep this change.');
       if ((storage.getItem(BUILDER_STORAGE)??null)!==this.raw) throw new Error('Builder changed in another tab. Reload to continue.');
       storage.setItem(BUILDER_STORAGE,serialized);
+      const previousDraft = this.data.drafts[roomKey]?.pieces;
       this.raw = serialized;
       this.data = data;
       if(result.projected) {
@@ -162,6 +164,7 @@ export class Builder {
         if (base) authoredBases.set(result.projected,base);
         ROOMS[roomKey]=result.projected;
       }
+      if (!result.projected && !same(previousDraft ?? [], data.drafts[roomKey]?.pieces ?? [])) this.onDraft(roomKey);
       return result;
     };
     const task = this.queue.then(()=>globalThis.navigator?.locks
@@ -346,6 +349,22 @@ export class Builder {
   roomFor(roomKey,lens,draft=this.open(roomKey,lens)) {
     const room=this.owner(roomKey,lens);
     return composeBuilderRoom(this.base.get(roomKey),normalizePieces(copy(draft.pieces),room));
+  }
+
+  visitDrafts(scene,lens) {
+    const drafts = new Map();
+    if (this.invalid || !lens || lens.preview || lens.isAgent) return drafts;
+    for (const [key,saved] of Object.entries(this.data.drafts)) {
+      const room = ROOMS[key];
+      if (!room || saved.ownerId !== personId(lens) || room.ownerId !== saved.ownerId ||
+        scene !== (room.layout.interior?.scene ?? room.layout.scene)) continue;
+      const draft = this.open(key,lens);
+      if (!draft.dirty) continue;
+      const published = new Map(draft.basePieces.map(piece=>[piece.id,piece]));
+      const changed = new Set(draft.pieces.filter(piece=>!same(piece,published.get(piece.id)??null)).map(piece=>piece.block.id));
+      drafts.set(key,{room:this.roomFor(key,lens,draft),changed});
+    }
+    return drafts;
   }
 
   preview(roomKey,lens,visitorLens) {

@@ -6,9 +6,9 @@ import {flushCrossingSurfaces} from './crossing-surfaces.js';
 import {flushGlowBatch} from './glow-batch.js';
 import {drawKit,flushKit} from './kit-world.js';
 import {exhibitPlacement,authoredPiecePlacement} from './kit-placement.js';
-import {selectContent,blockNeedsPreview} from './content.js';
+import {selectContent,blockAccess,blockNeedsPreview} from './content.js';
 import {sourcedRoom} from './source-catalog.js';
-import {drawBuilderFixtures} from './builder-fixtures.js';
+import {drawBuilderFixtures,flushBuilderSigns} from './builder-fixtures.js';
 import {viewRoom,versionLabel} from './audience.js';
 import {itemStyle} from './item-style.js';
 import {layerSelection} from './layers.js';
@@ -42,6 +42,7 @@ const makersSun=new THREE.Color(0xffdfad),commonsSun=new THREE.Color(0xd2e6c3);
 export class World {
   constructor(kind,lens,reduced=false,diffLens=null,builderView=null){
     this.diffLens=diffLens;this.builderView=builderView;
+    this.draftSubjects=new Map();
     this.kind=kind;this.hall=hallRoom(kind);this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
     this.labels=[];this.batches=new Map();this.colliders=[];this.solids=[];this.subjectBounds=new Map();this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;this.portalSurfaces=[];this.groundBands=[];
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
@@ -60,7 +61,7 @@ export class World {
         }
       } else this.history();
     }
-    this.renderRooms();drawPresence(this);if(!this.hall)this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);flushHallSigns(this);flushCrossingSurfaces(this,stoneTexture);
+    this.renderRooms();drawPresence(this);if(!this.hall)this.particles();this.add('diamond','teal',0,0,0,0,0,0);this.markerIndex=this.batches.get('diamond|teal').items.length-1;this.flush();flushKit(this);flushHallSigns(this);flushBuilderSigns(this);flushCrossingSurfaces(this,stoneTexture);
     this.scene.userData.view={profile:lens.profileId,rooms:this.renderedRooms};this.scene.updateMatrixWorld(true);
   }
   add(shape,mat,x,y,z,sx=1,sy=1,sz=1,color='#ffffff',id=null,rotation=[0,0,0]){
@@ -94,8 +95,9 @@ export class World {
       const editing=build?.editing===true&&permission(original,this.lens).owner;
       const own=editing||visible(id,this.lens),other=this.diffLens&&visible(id,this.diffLens),rights=permission(original,this.lens),ghost=!own&&other&&rights.visibility==='public';
       if(!own&&!ghost)continue;
+      const draft=own&&rights.owner?this.builderView?.visitDrafts?.get(id):null;
       const viewLens=ghost?this.diffLens:this.lens;
-      let r=sourcedRoom(editing?original:viewRoom(original,viewLens),viewLens);
+      let r=sourcedRoom(editing?original:viewRoom(draft?.room??original,viewLens),viewLens);
       if(editing&&build.mapping)r={...r,blocks:[...r.blocks,...build.mapping.blocks],
         sourcePlacements:[...r.sourcePlacements??[],...build.mapping.placements]};
       const style=itemStyle(r,viewLens);
@@ -103,9 +105,20 @@ export class World {
       const layout=this.hall?exhibitSpace(r):r.layout;
       this.placement={scale:1,facing:0,...layout,style,ghost};if(rights.canLook){if(this.hall)Object.assign(this.placement,exhibitSpace(r,style.scale));else this.placement.scale*=style.scale;}
       if(!this.hall)drawModel(this,rights.canLook?(r.layout.model??r.layout.landmark??r.layout.kind):'boundary',id);
-      if(rights.canLook&&!ghost&&r.layout.components)drawKit(this,{...r,layout:this.placement},id,{unfiltered:editing,allowed:build?.allowed});
+      const display=rights.canLook&&!ghost&&(draft||r.builderFixtures?.length)?selectContent(r,this.lens).blocks:[];
+      if(draft) {
+        for(const block of r.blocks) if(draft.changed.has(block.id)) {
+          const piece=this.placement.components?.find(p=>p.block===block.id)??r.builderFixtures?.find(p=>p.block===block.id);
+          if(piece)this.draftSubjects.set('exhibit:'+id+':'+block.id,{roomKey:id,room:r,block,placement:authoredPiecePlacement(this.placement,piece,block,this.lens)});
+        }
+      }
+      if(rights.canLook&&!ghost&&r.layout.components){
+        const allowed=draft?new Set([...draft.changed,...display.filter(b=>!b.filtered&&!blockAccess(b,r,this.lens).hidden).map(b=>b.id)]):build?.allowed;
+        drawKit(this,{...r,layout:this.placement},id,{unfiltered:editing||!!draft,allowed});
+      }
       if(rights.canLook&&!ghost&&r.builderFixtures?.length){
-        const shown=editing?r.blocks:selectContent(r,this.lens).blocks.filter(block=>!block.filtered&&!blockNeedsPreview(block,r,this.lens,{approved:true}));
+        const shown=editing?r.blocks:[...display.filter(block=>!block.filtered&&!draft?.changed.has(block.id)&&!blockNeedsPreview(block,r,this.lens,{approved:true})),
+          ...r.blocks.filter(block=>draft?.changed.has(block.id))];
         const blocks=new Map(shown.filter(block=>!build?.allowed||build.allowed.has(block.id)).map(block=>[block.id,block]));
         drawBuilderFixtures(this,r,id,blocks);
       }
@@ -114,7 +127,7 @@ export class World {
         const parent=this.placement;
         for(const piece of r.sourcePlacements){
           const block=displayed.get(piece.blockId);
-          if(!block)continue;
+          if(!block||build?.allowed&&!build.allowed.has(block.id))continue;
           this.placement=exhibitPlacement(parent,piece);
           if(block.styleControl==='fixed')this.placement.style=null;
           if(piece.kind==='plinth')drawModel(this,'plinth','exhibit:'+id+':'+piece.blockId);
@@ -122,7 +135,7 @@ export class World {
         }
         this.placement=parent;
       }
-      this.renderedRooms.push({id,ghost:!!ghost,version:r.version?.id,style:rights.canLook?style:null});
+      this.renderedRooms.push({id,ghost:!!ghost,version:r.version?.id,style:rights.canLook?style:null,...(draft?{draft:true}:{})});
       if(!this.hall&&r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':versionLabel(r,this.lens)||sign[1],p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
       if(this.diffLens&&own&&rights.visibility==='public'&&(!other||viewRoom(original,this.diffLens).version?.id!==r.version?.id))this.add('ring','ghost',0,.15,0,2,2,2,'#aaa',null,[Math.PI/2,0,0]);
       if(!ghost&&rights.canLook){
@@ -144,7 +157,7 @@ export class World {
     }
     flushGlowBatch(this,glowBatches,geo,material);this.batches.clear();
   }
-  label(title,sub,x,y,z,id=null,width=3.1,color){if(this.hall&&id?.startsWith('exhibit:'))return;this.labels.push({title,sub,position:new THREE.Vector3(x,y,z),id,color});}
+  label(title,sub,x,y,z,id=null,width=3.1,color){const draft=this.draftSubjects.has(id);if(this.hall&&id?.startsWith('exhibit:')&&!draft)return;this.labels.push({title,sub:draft?'Draft · '+sub:sub,position:new THREE.Vector3(x,y,z),id,color});}
   tree(x,z,size=1,seed=1){
     const r=random(seed*174+23),y=1.6*size;
     this.add('cylinder','wood',x,y,z,.2*size,3.2*size,.22*size,'#746452');
@@ -265,8 +278,11 @@ export class World {
     return true;
   }
   thingFrame(roomKey,blockId){
+    const marker='exhibit:'+roomKey+':'+blockId,bounds=this.subjectBounds.get(marker)?.clone();
+    const draft=this.draftSubjects.get(marker);
+    if(draft&&bounds)return {...draft.placement,bounds};
     const original=ROOMS[roomKey];if(!original||!permission(original,this.lens).canLook)return null;
-    const room=sourcedRoom(viewRoom(original,this.lens),this.lens),marker='exhibit:'+roomKey+':'+blockId,bounds=this.subjectBounds.get(marker)?.clone();
+    const room=sourcedRoom(viewRoom(original,this.lens),this.lens);
     if(!bounds)return null;
     const block=selectContent(room,this.lens).blocks.find(b=>b.id===blockId&&!b.filtered);if(!block||blockNeedsPreview(block,room,this.lens,{approved:true}))return null;
     const style=itemStyle(room,this.lens),parent=exhibitSpace(room,style.scale),piece=parent.components?.find(p=>p.block===blockId)??room.builderFixtures?.find(p=>p.block===blockId)??room.sourcePlacements?.find(p=>p.blockId===blockId);
