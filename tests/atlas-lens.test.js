@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {AtlasRecords} from '../src/atlas-records.js';import {atlasIntent} from '../src/atlas-intents.js';import {ProfileStore} from '../src/profiles.js';import {lensBasis} from '../src/lens-proposals.js';import {verifyChain} from '../src/ledger.js';
-const fixture=async()=>{const memory=new Map(),storage=()=>({getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)}),profiles=new ProfileStore(storage);await profiles.setup({name:'Synthetic Lens',age:34,display:'pseudonym'});return {profiles,records:new AtlasRecords(storage)};};
+const fixture=async()=>{const memory=new Map(),storage=()=>({getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)}),profiles=new ProfileStore(storage);await profiles.setup({name:'Synthetic Lens',age:34,display:'pseudonym'});const records=new AtlasRecords(storage);for(const g of records.state(profiles.current()).grants)await records.revoke(profiles.current(),g.id);return {profiles,records};};
 const grant=async(r,lens)=>{const p=await r.propose(lens,atlasIntent('Give Atlas standing edit access for Lens'),'grant');await r.confirm(lens,p.id);return p;};
 test('Lens words propose exact pairs; only confirmed granted acts change the profile and produce linked receipts',async()=>{
  const {profiles,records}=await fixture(),lens=profiles.current(),words='Set violence to amount 1 and graphicness 0, and disturbing themes to amount 1 and graphicness 1';

@@ -4,8 +4,10 @@ import {ATLAS_AREAS,ATLAS_SCOPES,validateAtlasIntent} from './atlas-intents.js';
 import {lensBasis,validateLensChanges} from './lens-proposals.js';
 import {ROOMS} from './data.js';
 import {extensionAreas} from './atlas-builder-contract.js';
+import {atlasActionBoundary} from './atlas-action-policy.js';
 
 export const ATLAS_RECORDS_KEY='living-atlas.atlas-records.v1';
+export const STARTER_GRANT_LINE='Atlas can help with your places and settings from the start — narrow or turn off any of it anytime, in words.';
 const clone=value=>structuredClone(value);
 export class AtlasRecords {
  constructor(storage=()=>globalThis.localStorage){this.storage=storage;this.queue=Promise.resolve();this.applying=new Set();}
@@ -14,6 +16,10 @@ export class AtlasRecords {
  state(lens,now=Date.now(),data=this.read()){
   const holder=personId(lens),receipts=data.receipts.filter(r=>r.diff.holder===holder),grants=[],envelopes={},proposals=new Map();let attending=false;
   for(const r of receipts){const d=r.diff;
+   if(r.action==='atlas_starter_granted'){
+    grants.push({kind:'grant',id:d.id,areas:[...d.areas],scope:'edit',durationMs:null,to:{person:'atlas'},issuedBy:'system',origin:'starter',createdAt:r.time,expires:null,receipt:r.hash});
+    for(const area of d.areas)if(!envelopes[area])envelopes[area]={kind:'envelope',areas:[area],posture:'Conversational',specification:'Starter at arrival',origin:'starter',unasked:'',alwaysAsk:'Actions that reach outside your own places and settings.',watch:[],receipt:r.hash,time:r.time};
+   }
    if(r.action==='atlas_attendance_changed')attending=d.enabled===true;
    if(r.action==='atlas_proposed'){
     const old=proposals.get(d.supersedes);if(old?.status==='proposal')old.status='superseded';
@@ -32,6 +38,12 @@ export class AtlasRecords {
   for(const g of grants)g.active=!g.revokedAt&&(!g.expires||Date.parse(g.expires)>now);
   return {holder,receipts,grants,envelopes,proposals:[...proposals.values()],attending:attending&&grants.some(g=>g.active&&g.areas.includes('travel'))};
  }
+ ensureStarter(lens){return this.write(lens,async(data,record,holder)=>{
+  const state=this.state(lens,Date.now(),data),chosen=state.receipts.some(r=>r.action==='atlas_starter_granted'||r.action.startsWith('atlas_grant_')||r.action==='atlas_proposed'&&['grant','revoke','narrow'].includes(r.diff.value?.kind));
+  if(chosen)return {created:false};
+  const id=crypto.randomUUID(),receipt=await record('system','atlas_starter_granted',{id,areas:[...ATLAS_AREAS],scope:'edit',durationMs:null,origin:'starter',givenAt:'arrival',posture:'Conversational',attending:false});
+  return {created:true,id,receipt:receipt.hash,holder};
+ });}
  require(lens,area,scope='look',data=this.read()){
   this.holder(lens);if(!ATLAS_AREAS.includes(area)||!ATLAS_SCOPES.includes(scope))throw new Error('Choose a supported Atlas area and scope.');
   const grant=this.state(lens,Date.now(),data).grants.findLast(g=>g.active&&g.areas.includes(area)&&ATLAS_SCOPES.indexOf(g.scope)>=ATLAS_SCOPES.indexOf(scope));
@@ -82,14 +94,20 @@ export class AtlasRecords {
   const id=crypto.randomUUID(),r=await record('atlas','atlas_proposed',{id,value,words:String(words).slice(0,1600),basis,...(supersedes?{supersedes}:{})});
   return {id,value:clone(value),basis,receipt:r.hash,status:'proposal'};
  });}
- confirm(lens,id,apply){return this.write(lens,async(data,record,holder)=>{
+ confirmRequested(lens,id,apply){return this.confirm(lens,id,apply,{fromRequest:true});}
+ confirm(lens,id,apply,{fromRequest=false}={}){return this.write(lens,async(data,record,holder)=>{
   const p=this.state(lens,Date.now(),data).proposals.find(p=>p.id===id&&p.status==='proposal');if(!p)throw new Error('This proposal is no longer open for this profile.');validateAtlasIntent(p.value);
+  if(fromRequest&&(!p.words.trim()||atlasActionBoundary(p.value,lens).ask))throw new Error('This action reaches an edge. Ask the holder before applying it.');
   if(p.value.kind==='extension'){
    this.extensionBasis(lens,p.value,'edit',data,{requested:p.basis?.requested,prior:p.basis});
    if(typeof apply!=='function')throw new Error('No actuator can apply this Atlas proposal here.');
-  }else if(!['grant','envelope','revoke'].includes(p.value.kind))this.require(lens,p.value.kind==='lens'?'lens':'travel','edit',data);
+  }else if(!['grant','envelope','revoke','narrow'].includes(p.value.kind))this.require(lens,p.value.kind==='lens'?'lens':'travel','edit',data);
   if(p.value.kind==='lens'){if(p.basis!==lensBasis(lens))throw new Error('Your Lens or assurance changed. Decline this proposal and ask again.');validateLensChanges(p.value.changes,lens);if(!apply)throw new Error('No Lens actuator is connected.');}
-  const confirmation=await record(holder,'atlas_confirmed',{id,proposalReceipt:p.receipt});
+  const confirmation=await record(holder,'atlas_confirmed',{id,proposalReceipt:p.receipt,source:fromRequest?'holder request':'confirmation',...(fromRequest?{words:p.words}:{})});
+  if(p.value.kind==='narrow')for(const g of this.state(lens,Date.now(),data).grants.filter(g=>g.active)){
+   const areas=g.areas.filter(a=>p.value.areas.includes(a)),scope=p.value.scope&&ATLAS_SCOPES.indexOf(p.value.scope)<ATLAS_SCOPES.indexOf(g.scope)?p.value.scope:g.scope;
+   await record(holder,areas.length?'atlas_grant_narrowed':'atlas_grant_revoked',{grant:g.id,...(areas.length?{changes:{areas,scope}}:{}),proposalReceipt:p.receipt});
+  }
   if(p.value.kind==='revoke')for(const g of this.state(lens,Date.now(),data).grants.filter(g=>g.active&&(!p.value.areas.length||g.areas.some(a=>p.value.areas.includes(a))))){
    const remaining=p.value.areas.length?g.areas.filter(a=>!p.value.areas.includes(a)):[];
    await record(holder,remaining.length?'atlas_grant_narrowed':'atlas_grant_revoked',{grant:g.id,...(remaining.length?{changes:{areas:remaining,scope:g.scope}}:{}),proposalReceipt:p.receipt});

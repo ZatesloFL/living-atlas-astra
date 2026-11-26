@@ -2,11 +2,11 @@ import {DIMENSIONS,validPair} from './scores.js';
 import {BUILDER_ATLAS_AREAS,extensionAreas} from './atlas-builder-contract.js';
 
 export const ATLAS_INTENT_SCHEMA={name:'atlas-personal-intent-v1'};
-export const ATLAS_AREAS=['lens','travel','discovery',...Object.keys(BUILDER_ATLAS_AREAS)];
+export const ATLAS_AREAS=['lens','travel','discovery',...Object.keys(BUILDER_ATLAS_AREAS),'standing'];
 export const ATLAS_SCOPES=['look','suggest','edit'];
-export const AREA_LABELS={lens:'Lens',travel:'Travel',discovery:'Discovery',...BUILDER_ATLAS_AREAS};
+export const AREA_LABELS={lens:'Lens',travel:'Travel',discovery:'Discovery',...BUILDER_ATLAS_AREAS,standing:'Standing'};
 const clear=text=>({kind:'clarify',text});
-const areaWords={lens:'lens',travel:'travel|trips?|crossings?|visits?',discovery:'discovery|search',build:'build|building|builder',sources:'sources?|uploads?'};
+const areaWords={lens:'lens',travel:'travel|trips?|crossings?|visits?',discovery:'discovery|search',build:'build|building|builder',sources:'sources?|uploads?',standing:'standing(?: records| preferences| rules)?'};
 const areaNames=Object.values(AREA_LABELS).join(', ');
 const areasIn=text=>ATLAS_AREAS.filter(area=>new RegExp('\\b('+areaWords[area]+')\\b','i').test(text));
 const clause=(text,start)=>text.match(new RegExp(start+'\\s+([^.;\\n]+)','i'))?.[1]?.trim()??'';
@@ -14,8 +14,9 @@ const clause=(text,start)=>text.match(new RegExp(start+'\\s+([^.;\\n]+)','i'))?.
 // Local interpretation, through ai.request. It cannot actuate anything.
 export function atlasIntent(text,{limits={}}={}){
  if(typeof text!=='string'||!text.trim()||text.length>1600)throw new Error('Use one request of up to 1,600 characters.');
- const areas=areasIn(text);
- if(/\b(revoke|remove|end)\b.*\bgrant\b/i.test(text))return {kind:'revoke',areas};
+ const areas=areasIn(text.replace(/\bstanding (?=(?:edit|look|suggest|access|grant|permission))/ig,''));
+ if(/\b(revoke|remove|end|suspend)\b.*\bgrant\b|\b(?:turn off|stop) (?:the )?atlas\b|\bstop helping\b/i.test(text))return {kind:'revoke',areas};
+ if(/\b(?:narrow|only help|only allow|limit atlas)\b/i.test(text))return areas.length?{kind:'narrow',areas,scope:/\blook|read.only\b/i.test(text)?'look':/\bsuggest\b/i.test(text)?'suggest':null}:clear('Which areas should Atlas keep?');
  const posture=['Quiet','Conversational','Proactive'].find(p=>new RegExp('\\b'+p+'\\b','i').test(text));
  if(posture){
   areas.splice(0,areas.length,...areasIn(text.split(/[.;\n]/)[0]));
@@ -25,6 +26,7 @@ export function atlasIntent(text,{limits={}}={}){
   return {kind:'envelope',areas,posture,specification:text,unasked,alwaysAsk,watch:watch?[watch]:[]};
  }
  if(/\b(grant|allow|let|permission|access)\b/i.test(text)){
+  if(!areas.length&&/\b(?:everything|full|all areas|standing edit access)\b/i.test(text))areas.push(...ATLAS_AREAS);
   if(!areas.length)return clear('Name the areas Atlas may help with. Choose from '+areaNames+' and say whether the grant is standing or leased.');
   const duration=text.match(/\b(?:for|lease(?:d)?(?: for)?)\s+(\d+)\s*(minutes?|hours?|days?)\b/i),standing=/\bstanding\b/i.test(text);
   if(standing&&duration)return clear('Choose a standing grant or one lease duration, so the grant has one clear end condition.');
@@ -49,12 +51,13 @@ export function atlasIntent(text,{limits={}}={}){
   }
  }
  if(Object.keys(changes).length)return {kind:'lens',changes};
+ if(/\b(?:keep (?:it|things) gentle|gentle (?:please|lens|settings))\b/i.test(text))return {kind:'lens',changes:Object.fromEntries(DIMENSIONS.map(([key])=>[key,{amount:key==='sexual'?0:1,graphicness:key==='sexual'?0:1}]))};
  return {kind:'destination',query:text};
 }
 
 export function validateAtlasIntent(value){
  if(value?.kind==='extension'){extensionAreas(value);return value;}
- const fields={clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],lens:['changes'],trip:['target','choice','description'],destination:['query']};
+ const fields={clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],narrow:['areas','scope'],lens:['changes'],trip:['target','choice','description'],destination:['query']};
  if(!value||!fields[value.kind]||Object.keys(value).some(k=>!['kind',...fields[value.kind]].includes(k)))throw new Error('Invalid Atlas intent.');
  if(value.kind==='clarify'){if(typeof value.text!=='string'||!value.text||value.text.length>2000)throw new Error('Invalid clarification.');return value;}
  if(value.kind==='destination'){if(typeof value.query!=='string'||!value.query.trim()||value.query.length>1600)throw new Error('Name a Place to find.');return value;}
@@ -62,6 +65,7 @@ export function validateAtlasIntent(value){
  if(value.kind==='trip'){if(typeof value.target!=='string'||value.target.length>200||!['inside','door','outside'].includes(value.choice)||typeof value.description!=='string'||value.description.length>12000)throw new Error('Invalid trip proposal.');return value;}
  if(!Array.isArray(value.areas)||new Set(value.areas).size!==value.areas.length||value.areas.some(a=>!ATLAS_AREAS.includes(a))||!value.areas.length&&value.kind!=='revoke')throw new Error('Choose supported areas.');
  if(value.kind==='grant'&&(!ATLAS_SCOPES.includes(value.scope)||value.durationMs!==null&&(!Number.isInteger(value.durationMs)||value.durationMs<=0||value.durationMs>365*86400000)))throw new Error('Choose a valid scope and a lease of up to one year, or standing.');
+ if(value.kind==='narrow'&&value.scope!==null&&!ATLAS_SCOPES.includes(value.scope))throw new Error('Choose a supported scope.');
  if(value.kind==='envelope'){
   if(!['Quiet','Conversational','Proactive'].includes(value.posture)||['specification','unasked','alwaysAsk'].some(k=>typeof value[k]!=='string'||value[k].length>1600)||!Array.isArray(value.watch)||value.watch.some(s=>typeof s!=='string'||!s.trim()||s.length>1600))throw new Error('Invalid initiative specification.');
   if(value.posture==='Proactive'&&(!value.unasked||!value.alwaysAsk||!value.watch.length))throw new Error('Proactive requires your full specification.');
