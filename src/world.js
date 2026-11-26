@@ -277,16 +277,28 @@ export class World {
     for(const e of this.edgeObjects){if(this.zone(e,x,z)&&(()=>{const r=visibleEdge(e,this.lens);return r.state==='hidden'||r.state==='private'||r.type==='window'||(r.type==='door'&&!this.granted.has(e.id));})())return false;}
     return true;
   }
+  readingFace(marker){
+    for(const mesh of this.pickables){
+      const face=mesh.userData.signFaces?.find(f=>f.id===marker);if(!face)continue;
+      const first=mesh.userData.faceIds.indexOf(marker),g=mesh.geometry,p=g.getAttribute('position');
+      const [a,b,c]=[0,1,2].map(i=>new THREE.Vector3().fromBufferAttribute(p,g.index.getX(first*3+i)).applyMatrix4(mesh.matrixWorld));
+      const normal=new THREE.Vector3().crossVectors(b.clone().sub(a),c.clone().sub(b)).normalize();
+      return {point:face.center.slice(),normal:normal.toArray(),width:a.distanceTo(b),height:b.distanceTo(c)};
+    }
+  }
   thingFrame(roomKey,blockId){
     const marker='exhibit:'+roomKey+':'+blockId,bounds=this.subjectBounds.get(marker)?.clone();
     const draft=this.draftSubjects.get(marker);
-    if(draft&&bounds)return {...draft.placement,bounds};
+    if(draft&&bounds)return {...draft.placement,bounds,face:this.readingFace(marker)};
     const original=ROOMS[roomKey];if(!original||!permission(original,this.lens).canLook)return null;
     const room=sourcedRoom(viewRoom(original,this.lens),this.lens);
     if(!bounds)return null;
     const block=selectContent(room,this.lens).blocks.find(b=>b.id===blockId&&!b.filtered);if(!block||blockNeedsPreview(block,room,this.lens,{approved:true}))return null;
     const style=itemStyle(room,this.lens),parent=exhibitSpace(room,style.scale),piece=parent.components?.find(p=>p.block===blockId)??room.builderFixtures?.find(p=>p.block===blockId)??room.sourcePlacements?.find(p=>p.blockId===blockId);
-    if(!piece)return null;return {...authoredPiecePlacement(parent,piece,block,this.lens),bounds};
+    if(!piece)return null;
+    const placement=authoredPiecePlacement(parent,piece,block,this.lens),tile=this.kitTiles?.find(t=>t.id===marker||t.id.startsWith(marker+':')),sign=this.hallSigns?.find(s=>s.id===marker);
+    const face=tile?{point:tile.point.toArray(),normal:[Math.sin(tile.facing),0,Math.cos(tile.facing)],width:tile.width*tile.scale,height:tile.height*tile.scale,flat:!!tile.flat}:sign?{point:[sign.position[0]+Math.sin(sign.facing)*.06,sign.position[1],sign.position[2]+Math.cos(sign.facing)*.06],normal:[Math.sin(sign.facing),0,Math.cos(sign.facing)],width:sign.width,height:sign.height}:piece?.kind==='sign'?this.readingFace(marker):undefined;
+    return {...placement,bounds,face};
   }
   nearest(x,z,yaw=0){let found=null,dist=Infinity;for(const e of this.edgeObjects){if(e.render===false)continue;if(e.result.state==='hidden')continue;const dx=e.position[0]-x,dz=e.position[1]-z,d=Math.hypot(dx,dz);if(d>1.4&&(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)<.1)continue;if(d<(e.interior?7.4:4)&&d<dist){dist=d;found=e;}}return found;}
   context(x,z){

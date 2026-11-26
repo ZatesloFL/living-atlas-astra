@@ -56,13 +56,19 @@ export function landingSpot(world,scope,position){
  }
  return null;
 }
-export function viewingSpot(world,scope,frame,position){
- const direction=[Math.sin(frame.facing),Math.cos(frame.facing)],side=[direction[1],-direction[0]],bounds=frame.bounds;
+export function viewingSpot(world,scope,frame,position,{fov=61,aspect=1}={}){
+ const direction=frame.face?[frame.face.normal[0],frame.face.normal[2]]:[Math.sin(frame.facing),Math.cos(frame.facing)],side=[direction[1],-direction[0]],bounds=frame.bounds;
  const reach=Math.abs(direction[0])*(bounds.max.x-bounds.min.x)/2+Math.abs(direction[1])*(bounds.max.z-bounds.min.z)/2;
- const center=[(bounds.min.x+bounds.max.x)/2,(bounds.min.z+bounds.max.z)/2];
- for(const gap of [.9,1.5,2.3,3.2])for(const offset of [0,-.8,.8,-1.6,1.6]){
-  const x=center[0]+direction[0]*(reach+gap)+side[0]*offset,z=center[1]+direction[1]*(reach+gap)+side[1]*offset,target=[x,VISITOR_EYE,z];
-  if(world.canStand(x,z)&&localSegment(world,scope,position,target))return {position:target,yaw:Math.atan2(x-center[0],z-center[1]),pitch:Math.atan2(Math.min(2.5,(bounds.min.y+bounds.max.y)/2)-VISITOR_EYE,Math.hypot(x-center[0],z-center[1]))};
+ const aim=frame.face?.point??[(bounds.min.x+bounds.max.x)/2,Math.min(2.5,(bounds.min.y+bounds.max.y)/2),(bounds.min.z+bounds.max.z)/2];
+ const distance=frame.face?Math.max(1.2,frame.face.width/(2*Math.tan(fov*Math.PI/360)*aspect*.8)):reach+.9;
+ for(const extra of [0,.6,1.4,2.3,3.4,4.6,6,8])for(const offset of [0,-.8,.8,-1.6,1.6,-2.6,2.6]){
+  const x=aim[0]+direction[0]*(distance+extra)+side[0]*offset,z=aim[2]+direction[1]*(distance+extra)+side[1]*offset,target=[x,VISITOR_EYE,z];
+  if(world.canStand(x,z)&&airPointAllowed(world,scope,target)&&localSegment(world,scope,position,target)&&(!frame.face||clearView(world,target,aim)))return {position:target,yaw:Math.atan2(x-aim[0],z-aim[2]),pitch:Math.atan2(aim[1]-VISITOR_EYE,Math.hypot(x-aim[0],z-aim[2])),aim};
  }
  return null;
+}
+function clearView(world,from,to){
+ const steps=Math.max(2,Math.ceil(Math.hypot(...to.map((n,i)=>n-from[i]))/.07));
+ for(let i=1;i<steps-1;i++){const p=to.map((n,j)=>from[j]+(n-from[j])*i/steps);if((world.solids??[]).some(b=>p[0]>b.min.x&&p[0]<b.max.x&&p[1]>b.min.y&&p[1]<b.max.y&&p[2]>b.min.z&&p[2]<b.max.z))return false;}
+ return true;
 }

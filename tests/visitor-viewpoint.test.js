@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {ROOMS,PRESETS} from '../src/data.js';import {scores,pair} from '../src/scores.js';
-import {VISITOR_EYE,inEnteredPlace,airPointAllowed,airStepAllowed,landingSpot,localSegment,viewpointCeiling} from '../src/visitor-viewpoint.js';
+import {VISITOR_EYE,inEnteredPlace,airPointAllowed,airStepAllowed,landingSpot,localSegment,viewpointCeiling,viewingSpot} from '../src/visitor-viewpoint.js';
 import {thingSubject,pickedThing} from '../src/thing-subject.js';
 const lens=()=>({...structuredClone(PRESETS.Adult),profileId:'seed-me',age:34,identity:{display:'pseudonym',backing:'verified'},show:{real:true,pseudonym:true,anonymous:true,agent:true}});
 function fixture(){const world={kind:'studio',lens:lens(),edgeObjects:[],solids:[],withinBounds:(x,z)=>Math.abs(x)<10&&Math.abs(z)<10,zone:(e,x,z)=>x>e.zone.x[0]&&x<e.zone.x[1]&&z>e.zone.z[0]&&z<e.zone.z[1],canStand:(x,z)=>Math.abs(x)<10&&Math.abs(z)<10};return {world,scope:{room:'studio',scene:'studio',anchor:[0,5]}};}
@@ -12,3 +12,5 @@ test('Thing picks bind their own exact record, including colon IDs, and withheld
 test('A profile change cancels the previous holder’s flight and pending local teleport',()=>{const {world,scope}=fixture();scope.holder='seed-me';assert(airPointAllowed(world,scope,[0,4,5]));world.lens.profileId='another-synthetic-profile';assert(!airPointAllowed(world,scope,[0,4,5]));assert(!localSegment(world,scope,[0,4,5],[0,VISITOR_EYE,4]));});
 
 test('Embedded Place zones cannot be flown into from the side even when omitted from the location label',()=>{const {world,scope}=fixture();world.edgeObjects.push({to:'lab',contextPriority:-1,position:[6,2],zone:{x:[4,8],z:[-4,2]},result:{type:'window',state:'visible'}});assert(!airPointAllowed(world,scope,[6,7,-2]));assert(!airStepAllowed(world,scope,[9,7,-2],[5,7,-2]));});
+
+test('Viewing spots face the readable plane after rotation, not a support or whole-object center',()=>{const {world,scope}=fixture();const frame={facing:0,bounds:{min:{x:-1,y:0,z:-1},max:{x:1,y:4,z:1}},face:{point:[0,2.8,0],normal:[1,0,0],width:1,height:.8}};const spot=viewingSpot(world,scope,frame,[4,VISITOR_EYE,5]);assert(spot.position[0]>frame.face.point[0]);assert.equal(spot.yaw,Math.PI/2);assert(spot.pitch>0);assert.deepEqual(spot.aim,frame.face.point);world.solids=[{min:{x:.3,y:0,z:-.5},max:{x:1.1,y:3,z:.5}}];const clear=viewingSpot(world,scope,frame,[4,VISITOR_EYE,5]);assert(clear);assert(Math.abs(clear.position[2])>.5,'moves sideways when an object obscures the face');});

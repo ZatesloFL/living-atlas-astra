@@ -1,0 +1,114 @@
+{
+  "arrivalSource": {
+    "place": "starter Home",
+    "state": "https://drive.google.com/drive/folders/synthetic-builder-experience\nInbox \u00b7 Not connected",
+    "url": "https://drive.google.com/drive/folders/synthetic-builder-experience"
+  },
+  "ownerDraft": {
+    "marked": "Trail NoticeDraft \u00b7 READ THING",
+    "thingTitle": "Trail Notice",
+    "signFace": {
+      "id": "exhibit:home/750405c3-cdc5-4ca0-8012-cd895df567ca:kit-632b60aa-2792-4a42-855b-2d82cf789202",
+      "text": "BLUE GATE",
+      "lines": [
+        "BLUE",
+        "GATE"
+      ],
+      "center": [
+        0,
+        1.1,
+        3.2840000000000003
+      ]
+    },
+    "spot": {
+      "position": [
+        0,
+        1.88,
+        5.574292151447752
+      ],
+      "yaw": 0,
+      "pitch": -0.3282474766064712,
+      "aim": [
+        0,
+        1.1,
+        3.2840000000000003
+      ]
+    },
+    "pixels": {
+      "board": {
+        "center": [
+          262,
+          578.8606949581305
+        ],
+        "clip": {
+          "x": 55,
+          "y": 475,
+          "width": 413,
+          "height": 207
+        },
+        "withinViewport": true
+      },
+      "ink": {
+        "center": [
+          262.7906209016133,
+          579.0445442547398
+        ],
+        "clip": {
+          "x": 194,
+          "y": 536,
+          "width": 135,
+          "height": 85
+        },
+        "withinViewport": true
+      }
+    }
+  },
+  "headline": "Only you \u2014 this place is private",
+  "publicationLocation": "Synthetic Builder experience owner\u2019s space",
+  "receipt": {
+    "status": "Published \u00b7 Receipt 87fd330b",
+    "id": "builder:87fd330b3ee1a25e96e214c19794b4c626b2b2e1fc87e4582e06172ffdeb974e",
+    "time": "2026-11-26T20:49:55.828Z",
+    "chain": true
+  },
+  "ownerAfterPublish": {
+    "room": "home/750405c3-cdc5-4ca0-8012-cd895df567ca",
+    "signFace": {
+      "id": "exhibit:home/750405c3-cdc5-4ca0-8012-cd895df567ca:kit-632b60aa-2792-4a42-855b-2d82cf789202",
+      "text": "BLUE GATE",
+      "lines": [
+        "BLUE",
+        "GATE"
+      ],
+      "center": [
+        0,
+        1.1,
+        3.2840000000000003
+      ]
+    },
+    "markedDraft": false
+  },
+  "lurkerAfterPublish": {
+    "profile": "seed-visitor",
+    "backing": "none",
+    "display": "anonymous",
+    "room": "square",
+    "foundThing": false,
+    "message": "No accessible room at that address. I tried \u201chome/750405c3-cdc5-4ca0-8012-cd895df567ca\u201d as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+  },
+  "adultAfterPublish": {
+    "profile": "seed-verified",
+    "backing": "verified",
+    "display": "real",
+    "room": "square",
+    "foundThing": false,
+    "message": "No accessible room at that address. I tried \u201chome/750405c3-cdc5-4ca0-8012-cd895df567ca\u201d as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+  },
+  "selectedLens": {
+    "verifiedAdult": "sign drawn",
+    "unverifiedVisitor": "entered preview; sign withheld",
+    "proposedSensoryAmount": 2
+  },
+  "build": "local (unstamped)",
+  "calls": 0
+}
