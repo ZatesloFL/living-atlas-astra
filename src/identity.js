@@ -8,14 +8,14 @@ export function identityOf(subject){
 export function identityBadge(subject){
   subject=accountSubject(subject);
   const i=identityOf(subject);
-  if(subject.isAgent)return `Agent · ${i.backing==='verified'?'verified person operates it':'no verified operator'}`;
+  if(subject.isAgent)return helperIdentityLabel(subject);
   return `${DISPLAY_LABELS[i.display]} · ${accountStateLabel(subject)}`;
 }
 export function accountStateLabel(subject){
  subject=accountSubject(subject);
  const i=identityOf(subject);
  if(subject.isTest&&subject.age<13)return 'Under-13 rejection fixture · no account';
- if(i.backing!=='verified')return 'Unverified · age unknown';
+ if(i.backing!=='verified')return Number.isFinite(subject.age)&&subject.age>0?'Unverified · age given, not verified':'Unverified · age unknown';
  if(Number.isFinite(subject.age)&&subject.age<18)return 'Minor 13–17 · simulated; guardian link not connected';
  return Number.isFinite(subject.age)?'Verified adult · simulated':'Verified adult';
 }
@@ -35,3 +35,9 @@ export function accessSettings(lens,place=null){
 export const lensSummary=lens=>{const a=accessSettings(lens);return DIMENSIONS.map(([k,label])=>`${label} ≤ ${scoreText(a.limits[k])}`).join(' · ');};
 
 export function appliedPreset(lens){const access=accessSettings(lens);return access.cap&&DIMENSIONS.some(([k])=>AXES.some(a=>asPair(lens.limits[k])[a]>access.limits[k][a]||asHard(lens.hard[k])[a]!==access.hard[k][a]))?`${access.cap} cap`:lens.preset;}
+
+// A helper's operator comes from that helper's record, never the viewer's Lens.
+export function helperIdentityLabel(actor){
+ const operator=actor.operator;if(!operator)return 'Agent · operator not recorded';
+ return `Agent · operator ${operator.name??'not named'} · ${operator.backing_ref&&operator.backing==='verified'?'verified operator record':operator.simulated?'demonstration operator; verification not connected':'operator verification not connected'}`;
+}

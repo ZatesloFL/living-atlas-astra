@@ -2,7 +2,7 @@ import {validPair,scoreText} from './scores.js';
 import {ATLAS_INTENT_SCHEMA,atlasIntent,validateAtlasIntent} from './atlas-intents.js';
 // One provider boundary with validated simulation when live help is unavailable.
 import {createBrowserTransport,browserLocalReason} from './ai-proxy.js';
-import {localQuestionAnswer} from './docent-questions.js';
+import {localQuestionAnswer,quotedQuestionCoverage,DONT_KNOW} from './docent-questions.js';
 import {PHOTO_DESCRIPTION_LIMIT,PHOTO_SCORE_MODEL,UPLOAD_SCORE_SCHEMA,simulatedUploadScores,validPhotoRecordId,validateUploadScores} from './upload-scores.js';
 import {requestAudioScores,requestPhotoScores} from './source-session.js';
 import {answerFromIndex,validateIndexAnswer} from './discovery-answer.js';
@@ -66,13 +66,16 @@ export function createAI({transport=null,requestPhotoScores,requestAudioScores,l
    if(result.agentId!==agentId||result.proposal.kind!=='answer'||result.proposal.room!==copy.place.key||result.proposal.citations.some(id=>!copy.blocks.some(b=>b.id===id))||typeof result.model!=='string'||result.model.length>200||typeof result.receiptData?.receiptId!=='string'||!/^[a-f0-9-]{36}$/.test(result.receiptData.receiptId))throw new Error('Invalid live proposal');
    const cited=copy.blocks.filter(b=>result.proposal.citations.includes(b.id));
    if(cited.length?!result.proposal.text.split('\n\n').every(part=>part.trim()&&cited.some(b=>typeof b.body==='string'&&b.body.includes(part))):result.proposal.text!=="I don't know from the blocks available in this view.")throw new Error('Live answer no longer matches visible Things');
-   return {proposal:result.proposal,model:result.model,agentId,receiptData:{provider:'proxy',job,model:result.model,agentId,result:'proposed',receiptId:result.receiptData.receiptId}};
+   const known=result.proposal.text!==DONT_KNOW,covered=known&&quotedQuestionCoverage(copy,result.proposal);
+   const proposal=known&&!covered?{...result.proposal,text:DONT_KNOW,citations:[],reason:'The live response contained exact source quotations, but coverage of this question was not established. The client withheld those excerpts as an answer.'}:result.proposal;
+   return {proposal,model:result.model,agentId,receiptData:{provider:'proxy',job,model:result.model,agentId,result:'proposed',receiptId:result.receiptData.receiptId,...(!known?{answerEvidence:'none'}:!covered?{answerEvidence:'coverage-not-established'}:{})}};
   }catch(error){current();transport.failed?.(error);fallback=error.code==='LIVE_LIMIT_REACHED'?'LIVE_LIMIT_REACHED':'LIVE_UNAVAILABLE';}
  }
  current();const proposal=simulated(copy);validateProposal(proposal,schema);if(copy.discovery)validateIndexAnswer(proposal,copy);
  return {proposal,model:'simulated-v1',agentId,receiptData:{provider:'simulated',job,model:'simulated-v1',agentId,result:'proposed',...(fallback?{fallbackReason:fallback,diagnostic:transport.diagnostics?.()??null}:{localReason:route({job,agentId,context:copy})})}};
 }};}
-export function provenanceLabel(data){
+export function provenanceLabel(data,proposal){
+ if(data?.provider==='proxy'&&(data.answerEvidence||proposal?.text===DONT_KNOW))return data.answerEvidence==='coverage-not-established'?'Live response · answer withheld':'Live · no supported answer';
  if(data?.provider==='proxy')return 'Live · grounded answer';
  if(data?.fallbackReason==='LIVE_LIMIT_REACHED')return 'Simulated · live limit reached';
  if(data?.fallbackReason==='LIVE_UNAVAILABLE')return 'Simulated · live helper unavailable';

@@ -22,8 +22,7 @@ function presentation(person){
 }
 export function presenceBadge(person){
  if(identityOf(person.author).display==='anonymous'&&!person.author.isAgent)return 'Anonymous presentation · account details private · simulation';
- const operator=person.author.operator;
- return identityBadge(person.author)+(person.author.isAgent?' · operator '+(operator?.name??'not supplied'):'')+' · simulation';
+ return identityBadge(person.author)+(person.author.isAgent?(person.simulation?' · presence simulation':''):' · simulation');
 }
 export function visiblePeople(lens,{located=false}={}){
  const local=(lens.access?.presence??[]).filter(p=>p.person!==personId(lens)&&(p.expires?Date.parse(p.expires):Date.parse(p.at)+5*60000)>Date.now()).map(p=>({

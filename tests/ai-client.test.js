@@ -92,8 +92,8 @@ test('real deployed proxy captures replay through client evidence and provenance
    assert.deepEqual(sent,expected);return Response.json(capture.response);
   }})});
   const result=await client.request(request(c));
-  assert.equal(calls,1);assert.deepEqual(result,capture.clientResult);
-  assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');
+  assert.equal(calls,1);assert.deepEqual(result,currentEvidenceLabel(capture.clientResult));
+  assert.equal(provenanceLabel(result.receiptData),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');
  }
 });
 
@@ -111,7 +111,7 @@ test('six real paired-Lens v5 captures replay with their exact proposal and rece
   }})});
   const result=await client.request(request(c));assert.equal(dispatched,1);assert.equal(result.agentId,wire.response.agentId);
   // The browser capture stores the UI's proposal/model/provenance projection.
-  assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},capture.clientResults[index]);assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');
+  assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},currentEvidenceLabel(capture.clientResults[index]));assert.equal(provenanceLabel(result.receiptData),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');
   if(index===5)assert.equal(result.proposal.text,"I don't know from the blocks available in this view.");else assert.deepEqual(result.proposal.citations,['lead']);
  }
 });
@@ -125,7 +125,10 @@ test('seven real v8 hall captures replay exact quoted answers and the unsupporte
   const client=createAI({transport:createProxyTransport({endpoint:AI_PROXY_ENDPOINT,fetchImpl:async(url,opts)=>{
    if(url.endsWith('/session'))return session();const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;expected.context.catalogRevision=catalog.revision;assert.deepEqual(sent,expected);return Response.json(wire.response);
   }})});
-  const result=await client.request(request(c));assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},capture.clientResults[index]);
+  const result=await client.request(request(c));assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},currentEvidenceLabel(capture.clientResults[index]));
   if(index===5)assert.deepEqual(result.proposal.citations,['place-overview']);if(index===6)assert.deepEqual(result.proposal.citations,[]);
  }
 });
+
+// Historical wire captures remain immutable; only the client provenance adds an honest abstention label.
+function currentEvidenceLabel(captured){const result=structuredClone(captured);if(result.proposal.text==="I don't know from the blocks available in this view.")result.receiptData.answerEvidence='none';return result;}

@@ -75,7 +75,7 @@ test('Free text reaches the unchanged server protocol as a single question, with
   const prepared=prepare(request);assert.equal(request.context.question,context.question);assert(!JSON.stringify(request).includes(context.blocks[0].body));assert(prepared.blocks.some(b=>b.id==='lead'));assert(new TextEncoder().encode(prepared.prompt).length+500<=6000);
   const block=prepared.blocks.find(b=>b.id==='lead');return Response.json({agentId:actor.id,model:'synthetic/evidence-fixture',proposal:validateAnswer({excerpts:[{blockId:block.id,quote:block.body.slice(0,120)}]},prepared.blocks),receiptData:{receiptId:crypto.randomUUID()}});
  }})});
- const result=await client.request({job:'guide',agentId:actor.id,context});assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');assert.equal(sent.length,2);assert(docentBlockIds(context).length<=3);assert(sent[1].context.visibleBlockIds.every(id=>context.visibleThings.includes(id)));assert.equal(sent[1].context.catalogRevision,AI_CATALOG_REVISION);
+ const result=await client.request({job:'guide',agentId:actor.id,context});assert.equal(provenanceLabel(result.receiptData),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');assert.equal(sent.length,2);assert(docentBlockIds(context).length<=3);assert(sent[1].context.visibleBlockIds.every(id=>context.visibleThings.includes(id)));assert.equal(sent[1].context.catalogRevision,AI_CATALOG_REVISION);
 });
 
 test('Arbitrary-question injection cannot relax exact quotations, citation scope or response shape',async()=>{
@@ -113,7 +113,7 @@ test('Real typed proxy captures replay through the unchanged client evidence val
   assert.match(capture.captureType,/real deployed proxy/);assert.equal(capture.httpStatus,200);assert.equal(capture.serverReceipt.result,'accepted');assert.equal(capture.serverReceipt.id,capture.response.receiptData.receiptId);
   const {blocks}=prepare(capture.request),context={place:{key:'boycott'},action:'answer',question:capture.request.context.question,blocks};
   const client=createAI({transport:{eligible:()=>true,request:async()=>structuredClone(capture.response)}}),result=await client.request({job:'guide',agentId:'docent-silver',context});
-  assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');assert.equal(result.receiptData.receiptId,capture.serverReceipt.id);
+  assert.equal(provenanceLabel(result.receiptData),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');assert.equal(result.receiptData.receiptId,capture.serverReceipt.id);
   if(which==='unknown'){assert.equal(result.proposal.text,DONT_KNOW);assert.deepEqual(result.proposal.citations,[]);}else assert(result.proposal.citations.length);
  }
 });
@@ -127,7 +127,7 @@ test('Six real file-19 captures retain accepted receipts, bounded accounting, an
   assert.equal(request.context.question,index<5?'What bus service did residents boycott?':'What is the airspeed of a swallow?');
   const {blocks}=prepare(request),context={place:{key:'boycott'},action:'answer',question:request.context.question,blocks};
   const result=await createAI({transport:{eligible:()=>true,request:async()=>structuredClone(response)}}).request({job:'guide',agentId:'docent-silver',context});
-  assert.equal(provenanceLabel(result.receiptData),'Live · grounded answer');assert.equal(result.receiptData.receiptId,r.id);
+  assert.equal(provenanceLabel(result.receiptData),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');assert.equal(result.receiptData.receiptId,r.id);
   if(index===5){assert.equal(result.proposal.text,DONT_KNOW);assert.deepEqual(result.proposal.citations,[]);}else assert(result.proposal.citations.length);
  }
  assert.equal(ids.size,6);

@@ -16,7 +16,7 @@ export function drawSquare(w){
  if(w.lens.identity?.backing==='verified'&&memberOf('tallahassee-resident',w.lens)){w.box(-9,1.5,4,1.7,2.5,.18,'#587b71','wood','neighborhood-board');w.block(-9,4,1.8,.3);w.label('NEIGHBORS','VERIFIED RESIDENT BOARD',-9,3,4,'neighborhood-board');}
 }
 export function drawPresence(w){
- const helpers=(w.lens.access?.staffState?.helpers??[]).filter(a=>!a.revokedAt&&(!a.expires||Date.parse(a.expires)>Date.now())).map((a,i)=>({id:a.id,name:a.name,author:{...a,verifiedHuman:true},room:a.places[0],offset:[2.8+(i%2)*.4,2.8],staff:true})).filter(a=>{const r=ROOMS[a.room],p=r&&permission(r,{...w.lens,profileId:a.id,playAs:'visitor',isAgent:true});return p?.grant?.to?.person===a.id&&p.canLook&&!p.denied&&w.gate({to:a.room,type:'seamless'}).state!=='hidden';}).filter((a,i,list)=>list.findIndex(b=>b.room===a.room)===i); // One Staff marker per Place; the panel lists every named attachment.
+ const helpers=(w.lens.access?.staffState?.helpers??[]).filter(a=>!a.revokedAt&&(!a.expires||Date.parse(a.expires)>Date.now())).map((a,i)=>({id:a.id,name:a.name,author:a,room:a.places[0],offset:[2.8+(i%2)*.4,2.8],staff:true})).filter(a=>{const r=ROOMS[a.room],p=r&&permission(r,{...w.lens,profileId:a.id,playAs:'visitor',isAgent:true});return p?.grant?.to?.person===a.id&&p.canLook&&!p.denied&&w.gate({to:a.room,type:'seamless'}).state!=='hidden';}).filter((a,i,list)=>list.findIndex(b=>b.room===a.room)===i); // One Staff marker per Place; the panel lists every named attachment.
  const people=[...visiblePeople(w.lens,{located:true}),...helpers];
  for(const p of people){
   const room=ROOMS[p.room],layout=exhibitSpace(room);if(layout.scene!==w.kind||p.room==='guide')continue;

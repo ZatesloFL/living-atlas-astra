@@ -38,3 +38,14 @@ export function typedQuestionBlockIds(context){
  }
  return ids;
 }
+
+export function quotedQuestionCoverage(context,proposal){
+ if(proposal.text===DONT_KNOW)return false;
+ if(Object.hasOwn(PRESET_QUESTIONS,context.question))return true;
+ // A Place overview is an explicit evidence kind, not keyword fuzziness.
+ if(/^what (?:is|are) (?:this|the) (?:place|hall|exhibition|exhibit)(?: about)?[?.!]*$/i.test(context.question.trim()))return proposal.citations.includes(PLACE_OVERVIEW_ID);
+ // Exact quotations establish source fidelity, not that all parts of a question
+ // were answered. Apply the local lookup's conservative coverage floor as well.
+ const cited=context.blocks.filter(block=>proposal.citations.includes(block.id));
+ return rankedQuestionBlocks({...context,blocks:cited}).some(match=>match.score===match.terms);
+}
