@@ -1,3 +1,4 @@
+import {BUILDER_PIECES} from './builder-pieces.js';
 import {ROOMS} from './data.js';
 import {personId,visibilityOf} from './permissions.js';
 
@@ -9,6 +10,7 @@ export function atlasActionBoundary(value,lens){
  if(value.kind!=='extension')return {ask:true,reason:'Review this action before it happens.'};
  const room=Object.values(ROOMS).find(r=>r.id===value.placeId);
  if(!room||room.ownerId!==personId(lens))return {ask:true,reason:'This would change a Place you do not own.'};
+ if(value.action==='place-piece'){const definition=BUILDER_PIECES[value.payload.kind];if(definition?.recordKind==='helper')return {ask:true,reason:'Appoint this helper and grant it access?'};if(!['Thing','Place'].includes(definition?.recordKind))return {ask:true,reason:'Review this connection or authority before adding it.'};}
  if(value.action==='connect-and-map')return {ask:true,reason:'Connect this external source and bring its records into your Place?'};
  const shared=visibilityOf(room,lens)==='public'||(lens.access?.grants??room.grants??[]).some(g=>g.room===room.id&&g.kind!=='helper'&&!g.denied&&!g.revokedAt&&(!g.expires||Date.parse(g.expires)>Date.now())&&(g.to?.group||g.to?.person&&g.to.person!==personId(lens)));
  if(value.action==='publish-draft'&&shared)return {ask:true,reason:'Publish these changes where other people can see or enter them?'};

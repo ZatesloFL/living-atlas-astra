@@ -1,0 +1,205 @@
+{
+  "checked_at": "2026-11-26T21:11:34.335163+00:00",
+  "commit": "501798b17046121d72135b7cd7ca62e97f6422ae",
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "tls_verification": true,
+  "files": [
+    {
+      "path": "src/profiles.js",
+      "expected_sha256": "407d4ee4ba8ffd4fe2df9e6bea61f6c53a267b4762cb63d8983d512df5f97ea2",
+      "status": 200,
+      "served_sha256": "407d4ee4ba8ffd4fe2df9e6bea61f6c53a267b4762cb63d8983d512df5f97ea2",
+      "match": true
+    },
+    {
+      "path": "src/atlas-records.js",
+      "expected_sha256": "05e70d7bae472d09058868ab8ae521ed8af0e541b8c4f76e0f34a9c369f70e81",
+      "status": 200,
+      "served_sha256": "05e70d7bae472d09058868ab8ae521ed8af0e541b8c4f76e0f34a9c369f70e81",
+      "match": true
+    },
+    {
+      "path": "src/atlas-intents.js",
+      "expected_sha256": "82de047fea07b151f1edf61a8be6209b949b5c39269a93a66d45feb15b0b182e",
+      "status": 200,
+      "served_sha256": "82de047fea07b151f1edf61a8be6209b949b5c39269a93a66d45feb15b0b182e",
+      "match": true
+    },
+    {
+      "path": "src/atlas-action-policy.js",
+      "expected_sha256": "73abe803eb26a78529b4672e53ce2738d31758244d0f87b79f58b3eec7e1418b",
+      "status": 200,
+      "served_sha256": "73abe803eb26a78529b4672e53ce2738d31758244d0f87b79f58b3eec7e1418b",
+      "match": true
+    },
+    {
+      "path": "src/atlas-ui.js",
+      "expected_sha256": "20a51b78c0cb397b97a0a9aa03df5c411420dba25b653f3bb60bd03225f4ce4a",
+      "status": 200,
+      "served_sha256": "20a51b78c0cb397b97a0a9aa03df5c411420dba25b653f3bb60bd03225f4ce4a",
+      "match": true
+    },
+    {
+      "path": "atlas.css",
+      "expected_sha256": "fd59153b4fbc14d7f4cbcd03e27c2cf752c7fb74010e7cb53f805b3e1343838c",
+      "status": 200,
+      "served_sha256": "fd59153b4fbc14d7f4cbcd03e27c2cf752c7fb74010e7cb53f805b3e1343838c",
+      "match": true
+    },
+    {
+      "path": "src/controls.js",
+      "expected_sha256": "b544388d25c7b9ef8c776075674732361cc1e11ec47f505e9d2e6b75b015bf90",
+      "status": 200,
+      "served_sha256": "b544388d25c7b9ef8c776075674732361cc1e11ec47f505e9d2e6b75b015bf90",
+      "match": true
+    },
+    {
+      "path": "src/visitor-hud.js",
+      "expected_sha256": "c1514ff2487251cefda54b38406b9071c2bb26f4de21e20319b3408900898583",
+      "status": 200,
+      "served_sha256": "c1514ff2487251cefda54b38406b9071c2bb26f4de21e20319b3408900898583",
+      "match": true
+    },
+    {
+      "path": "visitor.css",
+      "expected_sha256": "178d567ab7e5047330eff7309e6b89dd63e80ade58a0005fc2869833eac62224",
+      "status": 200,
+      "served_sha256": "178d567ab7e5047330eff7309e6b89dd63e80ade58a0005fc2869833eac62224",
+      "match": true
+    },
+    {
+      "path": "src/holder-destinations.js",
+      "expected_sha256": "205c741821f4d075358cb8ae649548411d09e93442eea6afbbc289937c857667",
+      "status": 200,
+      "served_sha256": "205c741821f4d075358cb8ae649548411d09e93442eea6afbbc289937c857667",
+      "match": true
+    },
+    {
+      "path": "src/world.js",
+      "expected_sha256": "4630cd4dd9088af1b1fba76c7c884c12df0d3fd900d7ca6f865a40c91b0fe4c3",
+      "status": 200,
+      "served_sha256": "4630cd4dd9088af1b1fba76c7c884c12df0d3fd900d7ca6f865a40c91b0fe4c3",
+      "match": true
+    },
+    {
+      "path": "src/visitor-viewpoint.js",
+      "expected_sha256": "be1413798b916be54ad89f200ebfdfa244d4bbcf0ae571bf5c132033c9cd4b2a",
+      "status": 200,
+      "served_sha256": "be1413798b916be54ad89f200ebfdfa244d4bbcf0ae571bf5c132033c9cd4b2a",
+      "match": true
+    },
+    {
+      "path": "src/identity.js",
+      "expected_sha256": "fd6fb407c0adf635d0d1c384a0eb29fd3a11a25ef609ab33a2fae0f26a7e446a",
+      "status": 200,
+      "served_sha256": "fd6fb407c0adf635d0d1c384a0eb29fd3a11a25ef609ab33a2fae0f26a7e446a",
+      "match": true
+    },
+    {
+      "path": "src/arrival-ui.js",
+      "expected_sha256": "696aedbf028ce277810f5bdb67faba65d49795009dca79de05247495a21c38da",
+      "status": 200,
+      "served_sha256": "696aedbf028ce277810f5bdb67faba65d49795009dca79de05247495a21c38da",
+      "match": true
+    },
+    {
+      "path": "src/arrival-seed.js",
+      "expected_sha256": "4223fd22930463f7b883e7cbdc35d51fd2d103db89e83a0a9a222abea4c46f20",
+      "status": 200,
+      "served_sha256": "4223fd22930463f7b883e7cbdc35d51fd2d103db89e83a0a9a222abea4c46f20",
+      "match": true
+    },
+    {
+      "path": "src/starter-data.js",
+      "expected_sha256": "4adf8612f5332028d554cf5687a264b1931704cda04df5583f81d5e9619196df",
+      "status": 200,
+      "served_sha256": "4adf8612f5332028d554cf5687a264b1931704cda04df5583f81d5e9619196df",
+      "match": true
+    },
+    {
+      "path": "src/ai.js",
+      "expected_sha256": "0dcb5600c214cbfe3bd0ea21ca20cece372ee14bae55f6b21f8470404cc43696",
+      "status": 200,
+      "served_sha256": "0dcb5600c214cbfe3bd0ea21ca20cece372ee14bae55f6b21f8470404cc43696",
+      "match": true
+    },
+    {
+      "path": "src/docent-questions.js",
+      "expected_sha256": "c81f4bbd87369dcee52e4885f4dccac728756eb46ddd786f77d60c6ef561c3ed",
+      "status": 200,
+      "served_sha256": "c81f4bbd87369dcee52e4885f4dccac728756eb46ddd786f77d60c6ef561c3ed",
+      "match": true
+    },
+    {
+      "path": "src/staff.js",
+      "expected_sha256": "f6770ac7ea88c1a1d56b61bb4fc675e7073612e7c8ec69cde5236fda7848a665",
+      "status": 200,
+      "served_sha256": "f6770ac7ea88c1a1d56b61bb4fc675e7073612e7c8ec69cde5236fda7848a665",
+      "match": true
+    },
+    {
+      "path": "src/staff-ui.js",
+      "expected_sha256": "71a1381cc443983958a65677d241f760526103d3a7825962086089432d728dc5",
+      "status": 200,
+      "served_sha256": "71a1381cc443983958a65677d241f760526103d3a7825962086089432d728dc5",
+      "match": true
+    },
+    {
+      "path": "src/discovery-policy.js",
+      "expected_sha256": "a945063996a24b8becc1f60adba77546ff6d435d4c119abdfe8410c96027067c",
+      "status": 200,
+      "served_sha256": "a945063996a24b8becc1f60adba77546ff6d435d4c119abdfe8410c96027067c",
+      "match": true
+    },
+    {
+      "path": "src/community-world.js",
+      "expected_sha256": "b2cd24d81306104de5a73b30602c1043f01bfadaaee6508fd995109a4d031734",
+      "status": 200,
+      "served_sha256": "b2cd24d81306104de5a73b30602c1043f01bfadaaee6508fd995109a4d031734",
+      "match": true
+    },
+    {
+      "path": "src/labels.js",
+      "expected_sha256": "313f21b761fb0248cee445be84a6001c9a3fe964ecde5f079e9d6c7f5351567a",
+      "status": 200,
+      "served_sha256": "313f21b761fb0248cee445be84a6001c9a3fe964ecde5f079e9d6c7f5351567a",
+      "match": true
+    },
+    {
+      "path": "src/arrival-position.js",
+      "expected_sha256": "e66f94dc5972ac7a26a6915853f7674ac975b2d2214685e37b3528e94c5a771d",
+      "status": 200,
+      "served_sha256": "e66f94dc5972ac7a26a6915853f7674ac975b2d2214685e37b3528e94c5a771d",
+      "match": true
+    },
+    {
+      "path": "src/fast-travel.js",
+      "expected_sha256": "ab11396e12ac9e22c289df19c18b5d215569006aa82bcff7b488e70c2339f829",
+      "status": 200,
+      "served_sha256": "ab11396e12ac9e22c289df19c18b5d215569006aa82bcff7b488e70c2339f829",
+      "match": true
+    },
+    {
+      "path": "src/runtime.js",
+      "expected_sha256": "7af8f1afdc372d803a413608bdc748521cd4887808886f794ba8dc2f01a6837d",
+      "status": 200,
+      "served_sha256": "7af8f1afdc372d803a413608bdc748521cd4887808886f794ba8dc2f01a6837d",
+      "match": true
+    },
+    {
+      "path": "src/access-store.js",
+      "expected_sha256": "85414b4eaec09f565e484f2dfbc5804dd6a9fddd3fbc7f146d5e2f4aed8e282b",
+      "status": 200,
+      "served_sha256": "85414b4eaec09f565e484f2dfbc5804dd6a9fddd3fbc7f146d5e2f4aed8e282b",
+      "match": true
+    },
+    {
+      "path": "src/ui.js",
+      "expected_sha256": "17826d7e967d4989e091124fb8389fcac21d5de9582d3d81187bfc2d5e7f6e59",
+      "status": 200,
+      "served_sha256": "17826d7e967d4989e091124fb8389fcac21d5de9582d3d81187bfc2d5e7f6e59",
+      "match": true
+    }
+  ],
+  "all_match": true
+}

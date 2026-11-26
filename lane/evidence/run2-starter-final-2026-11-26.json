@@ -1,0 +1,289 @@
+{
+  "arrivalLine": "Atlas can help with your places and settings from the start — narrow or turn off any of it anytime, in words.",
+  "firstAnswer": "You · keep it gentle, I'm here for birds and bread\n\nAtlas · Done as you asked. Set your Lens to Violence: amount 1, graphicness 1; Sexual content: amount 0, graphicness 0; Language: amount 1, graphicness 1; Disturbing themes: amount 1, graphicness 1; Viewpoint: amount 1, graphicness 1; Sensory: amount 1, graphicness 1. Only these dimensions change. Hard locks and account assurance stay in force. Inspect grants, initiative and receipts for the record. These positions are staged for your starter. Finish arrival to save them to the profile.",
+  "starter": {
+    "holder": "77acf3f3-00f8-4d77-b5fa-a3d2d7b85a3d",
+    "receipts": [
+      {
+        "id": 1,
+        "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "actor": "system",
+        "action": "atlas_starter_granted",
+        "time": "2026-11-26T21:13:22.166Z",
+        "diff": {
+          "holder": "77acf3f3-00f8-4d77-b5fa-a3d2d7b85a3d",
+          "id": "a009be3b-e620-456a-bc00-1e6a7135cdb1",
+          "areas": [
+            "lens",
+            "travel",
+            "discovery",
+            "build",
+            "sources",
+            "standing"
+          ],
+          "scope": "edit",
+          "durationMs": null,
+          "origin": "starter",
+          "givenAt": "arrival",
+          "posture": "Conversational",
+          "attending": false
+        },
+        "hash": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9"
+      },
+      {
+        "id": 2,
+        "prevHash": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "actor": "atlas",
+        "action": "atlas_proposed",
+        "time": "2026-11-26T21:13:26.884Z",
+        "diff": {
+          "holder": "77acf3f3-00f8-4d77-b5fa-a3d2d7b85a3d",
+          "id": "8c39e14f-9f52-40a2-adf6-a9e5131b1e6c",
+          "value": {
+            "kind": "lens",
+            "changes": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "language": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            }
+          },
+          "words": "keep it gentle, I'm here for birds and bread",
+          "basis": "{\"limits\":{\"violence\":{\"amount\":null,\"graphicness\":null},\"sexual\":{\"amount\":null,\"graphicness\":null},\"language\":{\"amount\":null,\"graphicness\":null},\"disturbing\":{\"amount\":null,\"graphicness\":null},\"viewpoint\":{\"amount\":null,\"graphicness\":null},\"sensory\":{\"amount\":null,\"graphicness\":null}},\"hard\":{\"violence\":{\"amount\":null,\"graphicness\":null},\"sexual\":{\"amount\":null,\"graphicness\":null},\"language\":{\"amount\":null,\"graphicness\":null},\"disturbing\":{\"amount\":null,\"graphicness\":null},\"viewpoint\":{\"amount\":null,\"graphicness\":null},\"sensory\":{\"amount\":null,\"graphicness\":null}},\"identity\":{\"display\":\"pseudonym\",\"backing\":\"none\"},\"age\":34,\"accountState\":null}"
+        },
+        "hash": "e8ee1c62f11158970af17ffc41450433a3f430959541c4629839ba0085ce9ad2"
+      },
+      {
+        "id": 3,
+        "prevHash": "e8ee1c62f11158970af17ffc41450433a3f430959541c4629839ba0085ce9ad2",
+        "actor": "77acf3f3-00f8-4d77-b5fa-a3d2d7b85a3d",
+        "action": "atlas_confirmed",
+        "time": "2026-11-26T21:13:27.192Z",
+        "diff": {
+          "holder": "77acf3f3-00f8-4d77-b5fa-a3d2d7b85a3d",
+          "id": "8c39e14f-9f52-40a2-adf6-a9e5131b1e6c",
+          "proposalReceipt": "e8ee1c62f11158970af17ffc41450433a3f430959541c4629839ba0085ce9ad2",
+          "source": "holder request",
+          "words": "keep it gentle, I'm here for birds and bread"
+        },
+        "hash": "492d2d329b293c662ebf2bae894a4e6c5115692e644408db3c629111253b68b5"
+      },
+      {
+        "id": 4,
+        "prevHash": "492d2d329b293c662ebf2bae894a4e6c5115692e644408db3c629111253b68b5",
+        "actor": "atlas",
+        "action": "atlas_applied",
+        "time": "2026-11-26T21:13:27.193Z",
+        "diff": {
+          "holder": "77acf3f3-00f8-4d77-b5fa-a3d2d7b85a3d",
+          "id": "8c39e14f-9f52-40a2-adf6-a9e5131b1e6c",
+          "proposalReceipt": "e8ee1c62f11158970af17ffc41450433a3f430959541c4629839ba0085ce9ad2",
+          "confirmationReceipt": "492d2d329b293c662ebf2bae894a4e6c5115692e644408db3c629111253b68b5",
+          "result": {
+            "stagedForStarter": true
+          }
+        },
+        "hash": "522fac9b59e0bca4377831c84ce659e39691b118f752f83fb9d0405a8782b811"
+      }
+    ],
+    "grants": [
+      {
+        "kind": "grant",
+        "id": "a009be3b-e620-456a-bc00-1e6a7135cdb1",
+        "areas": [
+          "lens",
+          "travel",
+          "discovery",
+          "build",
+          "sources",
+          "standing"
+        ],
+        "scope": "edit",
+        "durationMs": null,
+        "to": {
+          "person": "atlas"
+        },
+        "issuedBy": "system",
+        "origin": "starter",
+        "createdAt": "2026-11-26T21:13:22.166Z",
+        "expires": null,
+        "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "active": true
+      }
+    ],
+    "envelopes": {
+      "lens": {
+        "kind": "envelope",
+        "areas": [
+          "lens"
+        ],
+        "posture": "Conversational",
+        "specification": "Starter at arrival",
+        "origin": "starter",
+        "unasked": "",
+        "alwaysAsk": "Actions that reach outside your own places and settings.",
+        "watch": [],
+        "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "time": "2026-11-26T21:13:22.166Z"
+      },
+      "travel": {
+        "kind": "envelope",
+        "areas": [
+          "travel"
+        ],
+        "posture": "Conversational",
+        "specification": "Starter at arrival",
+        "origin": "starter",
+        "unasked": "",
+        "alwaysAsk": "Actions that reach outside your own places and settings.",
+        "watch": [],
+        "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "time": "2026-11-26T21:13:22.166Z"
+      },
+      "discovery": {
+        "kind": "envelope",
+        "areas": [
+          "discovery"
+        ],
+        "posture": "Conversational",
+        "specification": "Starter at arrival",
+        "origin": "starter",
+        "unasked": "",
+        "alwaysAsk": "Actions that reach outside your own places and settings.",
+        "watch": [],
+        "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "time": "2026-11-26T21:13:22.166Z"
+      },
+      "build": {
+        "kind": "envelope",
+        "areas": [
+          "build"
+        ],
+        "posture": "Conversational",
+        "specification": "Starter at arrival",
+        "origin": "starter",
+        "unasked": "",
+        "alwaysAsk": "Actions that reach outside your own places and settings.",
+        "watch": [],
+        "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "time": "2026-11-26T21:13:22.166Z"
+      },
+      "sources": {
+        "kind": "envelope",
+        "areas": [
+          "sources"
+        ],
+        "posture": "Conversational",
+        "specification": "Starter at arrival",
+        "origin": "starter",
+        "unasked": "",
+        "alwaysAsk": "Actions that reach outside your own places and settings.",
+        "watch": [],
+        "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "time": "2026-11-26T21:13:22.166Z"
+      },
+      "standing": {
+        "kind": "envelope",
+        "areas": [
+          "standing"
+        ],
+        "posture": "Conversational",
+        "specification": "Starter at arrival",
+        "origin": "starter",
+        "unasked": "",
+        "alwaysAsk": "Actions that reach outside your own places and settings.",
+        "watch": [],
+        "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+        "time": "2026-11-26T21:13:22.166Z"
+      }
+    },
+    "proposals": [
+      {
+        "holder": "77acf3f3-00f8-4d77-b5fa-a3d2d7b85a3d",
+        "id": "8c39e14f-9f52-40a2-adf6-a9e5131b1e6c",
+        "value": {
+          "kind": "lens",
+          "changes": {
+            "violence": {
+              "amount": 1,
+              "graphicness": 1
+            },
+            "sexual": {
+              "amount": 0,
+              "graphicness": 0
+            },
+            "language": {
+              "amount": 1,
+              "graphicness": 1
+            },
+            "disturbing": {
+              "amount": 1,
+              "graphicness": 1
+            },
+            "viewpoint": {
+              "amount": 1,
+              "graphicness": 1
+            },
+            "sensory": {
+              "amount": 1,
+              "graphicness": 1
+            }
+          }
+        },
+        "words": "keep it gentle, I'm here for birds and bread",
+        "basis": "{\"limits\":{\"violence\":{\"amount\":null,\"graphicness\":null},\"sexual\":{\"amount\":null,\"graphicness\":null},\"language\":{\"amount\":null,\"graphicness\":null},\"disturbing\":{\"amount\":null,\"graphicness\":null},\"viewpoint\":{\"amount\":null,\"graphicness\":null},\"sensory\":{\"amount\":null,\"graphicness\":null}},\"hard\":{\"violence\":{\"amount\":null,\"graphicness\":null},\"sexual\":{\"amount\":null,\"graphicness\":null},\"language\":{\"amount\":null,\"graphicness\":null},\"disturbing\":{\"amount\":null,\"graphicness\":null},\"viewpoint\":{\"amount\":null,\"graphicness\":null},\"sensory\":{\"amount\":null,\"graphicness\":null}},\"identity\":{\"display\":\"pseudonym\",\"backing\":\"none\"},\"age\":34,\"accountState\":null}",
+        "receipt": "e8ee1c62f11158970af17ffc41450433a3f430959541c4629839ba0085ce9ad2",
+        "status": "applied",
+        "outcome": "522fac9b59e0bca4377831c84ce659e39691b118f752f83fb9d0405a8782b811"
+      }
+    ],
+    "attending": false
+  },
+  "edge": {
+    "html": "<section class=\"source-conversation\" aria-label=\"Ask the Atlas about connected sources\">\n      <div class=\"source-chat-log\" data-source-chat-log role=\"log\" aria-label=\"Conversation\" aria-relevant=\"additions text\">\n        <p class=\"source-message\"><strong>The Atlas</strong> I can review an attached photo, short WAV with speech or text file, connect a simulated Drive or gallery, and place an existing photo or video in your draft. I’ll show proposals for Synthetic shared bird study and ask before acting. To give me permission, say “Give Atlas standing edit access for my sources.”</p>\n          <p class=\"source-message source-message-owner\"><strong>You</strong> publish</p>\n          <p class=\"source-message\"><strong>The Atlas</strong> Here is the preview for publishing the Synthetic shared bird study draft.</p>\n          \n        \n        <div class=\"source-chat-proposal\" data-source-chat-proposal=\"publication\"><h3>Proposal for Synthetic shared bird study</h3><div class=\"source-preview-data\" data-source-publication-preview>\n    \n    <p>No interior view for this profile.</p>\n    <p>0 shown · 0 withheld</p>\n    </div><p>Say <strong>yes</strong> to confirm or <strong>no</strong> to dismiss.</p></div>\n      </div>\n      <form data-source-chat class=\"source-composer\">\n        <label class=\"source-composer-label\" for=\"source-chat-text\">Message the Atlas</label>\n        <input id=\"source-chat-text\" name=\"message\" maxlength=\"1500\" autocomplete=\"off\" placeholder=\"Ask or reply in words\" required>\n        <button type=\"submit\">Send</button>\n        \n        \n      </form>\n    </section>",
+    "before": 0,
+    "after": 1
+  },
+  "narrowed": [
+    {
+      "kind": "grant",
+      "id": "a009be3b-e620-456a-bc00-1e6a7135cdb1",
+      "areas": [
+        "lens"
+      ],
+      "scope": "edit",
+      "durationMs": null,
+      "to": {
+        "person": "atlas"
+      },
+      "issuedBy": "system",
+      "origin": "starter",
+      "createdAt": "2026-11-26T21:13:22.166Z",
+      "expires": null,
+      "receipt": "8cbe4e166591c48177a14077ee63ab33e8039a7936f28d938e09e879f94a32b9",
+      "active": true
+    }
+  ],
+  "narrowedPreservedOnEntry": true,
+  "errors": []
+}
