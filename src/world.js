@@ -5,7 +5,7 @@ import {drawSquare,drawPresence} from './community-world.js';
 import {flushCrossingSurfaces} from './crossing-surfaces.js';
 import {flushGlowBatch} from './glow-batch.js';
 import {drawKit,flushKit} from './kit-world.js';
-import {exhibitPlacement} from './kit-placement.js';
+import {exhibitPlacement,authoredPiecePlacement} from './kit-placement.js';
 import {selectContent,blockNeedsPreview} from './content.js';
 import {sourcedRoom} from './source-catalog.js';
 import {drawBuilderFixtures} from './builder-fixtures.js';
@@ -43,7 +43,7 @@ export class World {
   constructor(kind,lens,reduced=false,diffLens=null,builderView=null){
     this.diffLens=diffLens;this.builderView=builderView;
     this.kind=kind;this.hall=hallRoom(kind);this.lens=lens;this.reduced=reduced;this.scene=new THREE.Scene();this.scene.background=new THREE.Color('#172739');this.scene.fog=new THREE.FogExp2('#263b48',.018);
-    this.labels=[];this.batches=new Map();this.colliders=[];this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;this.portalSurfaces=[];this.groundBands=[];
+    this.labels=[];this.batches=new Map();this.colliders=[];this.solids=[];this.subjectBounds=new Map();this.pickables=[];this.animated=[];this.dynamicResources=[];this.edgeObjects=[];this.granted=new Set();this.trees=0;this.portalSurfaces=[];this.groundBands=[];
     this.scene.add(new THREE.HemisphereLight(0xb5cdec,0x536452,1.3));
     const sun=new THREE.DirectionalLight(0xffdfad,2.2);sun.position.set(-13,23,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-34;sun.shadow.camera.right=34;sun.shadow.camera.top=29;sun.shadow.camera.bottom=-29;sun.shadow.camera.near=1;sun.shadow.camera.far=80;sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;this.scene.add(sun);this.sun=sun;
     this.gate=e=>visibleEdge(e,this.lens);
@@ -73,6 +73,12 @@ export class World {
     if(mat==='wood'||shape==='cone'&&mat==='metal')mat='stone'; // shared rough fixture surface, retaining per-instance colors
     const key=shape+'|'+mat;let batch=this.batches.get(key);if(!batch){batch={shape,mat,items:[]};this.batches.set(key,batch);}
     batch.items.push({x,y,z,sx,sy,sz,color,id,rotation});
+    if(mat!=='ghost'&&(id||['stone','wood','metal','glass','leaf'].includes(mat))){
+      if(!geo[shape].boundingBox)geo[shape].computeBoundingBox();pose.position.set(x,y,z);pose.scale.set(sx,sy,sz);pose.rotation.set(...rotation);pose.updateMatrix();
+      const bounds=geo[shape].boundingBox.clone().applyMatrix4(pose.matrix);
+      if(id){const previous=this.subjectBounds.get(id);if(previous)previous.union(bounds);else this.subjectBounds.set(id,bounds.clone());}
+      if(['stone','wood','metal','glass','leaf'].includes(mat)&&shape!=='ring')this.solids.push(bounds);
+    }
   }
   box(x,y,z,w,h,d,c,mat='stone',id=null,rotation){this.add('box',mat,x,y,z,w,h,d,c,id,rotation);}
   block(x,z,w,d){if(this.placement?.ghost)return;if(this.placement){const p=this.transform(x,0,z),c=Math.abs(Math.cos(this.placement.facing)),s=Math.abs(Math.sin(this.placement.facing)),scale=this.placement.scale;x=p.x;z=p.z;[w,d]=[(c*w+s*d)*scale,(s*w+c*d)*scale];}this.colliders.push({x,z,w:w/2+.24,d:d/2+.24});}
@@ -248,12 +254,23 @@ export class World {
   zone(edge,x,z){
     const b=edge.zone;return !!b&&(!b.x||(x>b.x[0]&&x<b.x[1]))&&(!b.z||(z>b.z[0]&&z<b.z[1]));
   }
+  withinBounds(x,z){
+    if(this.hall){const h=ROOMS[this.hall].layout.interior;return Math.abs(x)<=h.width/2-.4&&Math.abs(z)<=h.depth/2-.4;}
+    return x>=(this.kind==='studio'?-13.5:-13)&&x<=(this.kind==='studio'?34.2:13)&&z>=(this.kind==='studio'?-14.5:-20)&&z<=12;
+  }
   canStand(x,z){
-    if(this.hall){const h=ROOMS[this.hall].layout.interior;if(Math.abs(x)>h.width/2-.4||Math.abs(z)>h.depth/2-.4)return false;}
-    else if(x<(this.kind==='studio'?-13.5:-13)||x>(this.kind==='studio'?34.2:13)||z<(this.kind==='studio'?-14.5:-20)||z>12)return false;
+    if(!this.withinBounds(x,z))return false;
     for(const c of this.colliders)if(Math.abs(x-c.x)<c.w&&Math.abs(z-c.z)<c.d)return false;
     for(const e of this.edgeObjects){if(this.zone(e,x,z)&&(()=>{const r=visibleEdge(e,this.lens);return r.state==='hidden'||r.state==='private'||r.type==='window'||(r.type==='door'&&!this.granted.has(e.id));})())return false;}
     return true;
+  }
+  thingFrame(roomKey,blockId){
+    const original=ROOMS[roomKey];if(!original||!permission(original,this.lens).canLook)return null;
+    const room=sourcedRoom(viewRoom(original,this.lens),this.lens),marker='exhibit:'+roomKey+':'+blockId,bounds=this.subjectBounds.get(marker)?.clone();
+    if(!bounds)return null;
+    const block=selectContent(room,this.lens).blocks.find(b=>b.id===blockId&&!b.filtered);if(!block||blockNeedsPreview(block,room,this.lens,{approved:true}))return null;
+    const style=itemStyle(room,this.lens),parent=exhibitSpace(room,style.scale),piece=parent.components?.find(p=>p.block===blockId)??room.builderFixtures?.find(p=>p.block===blockId)??room.sourcePlacements?.find(p=>p.blockId===blockId);
+    if(!piece)return null;return {...authoredPiecePlacement(parent,piece,block,this.lens),bounds};
   }
   nearest(x,z,yaw=0){let found=null,dist=Infinity;for(const e of this.edgeObjects){if(e.render===false)continue;if(e.result.state==='hidden')continue;const dx=e.position[0]-x,dz=e.position[1]-z,d=Math.hypot(dx,dz);if(d>1.4&&(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)<.1)continue;if(d<(e.interior?7.4:4)&&d<dist){dist=d;found=e;}}return found;}
   context(x,z){

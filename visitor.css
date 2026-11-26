@@ -1,0 +1,11 @@
+#bottom-bar:has(.visitor-controls){min-height:222px}
+.visitor-controls{position:absolute;left:0;bottom:58px;width:clamp(76px,22vw,112px);display:grid;gap:4px;pointer-events:auto}
+.visitor-controls button{font-size:11px;line-height:1.15;padding:7px 6px;min-height:44px;background:#172936ed;border-color:#75958b}
+#visitor-rise{touch-action:none;user-select:none;-webkit-user-select:none}
+#visitor-view-status{font-size:9px;text-align:center;color:#cbe5dd;background:#152b34df;border-radius:5px;padding:3px}
+.thing-context{font-size:11px;color:#bcd0d8}
+.viewpoint-offer{border:1px solid #a7cbb9;padding:14px;border-radius:12px;background:#213a3c}
+.build-mode .visitor-controls,.page-mode .visitor-controls{display:none}
+@media(max-height:500px){#bottom-bar:has(.visitor-controls){min-height:194px}.visitor-controls{gap:2px;bottom:58px}.visitor-controls button{font-size:10px}#visitor-view-status{display:none}}
+
+@media(max-width:380px){#bottom-bar:has(.visitor-controls){min-height:264px}.visitor-controls{bottom:100px}}
