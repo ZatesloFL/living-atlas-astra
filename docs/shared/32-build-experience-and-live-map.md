@@ -105,6 +105,27 @@ entered. Flying and zooming never cross a door, never enter a place, and never
 defeat the Lens — what a visitor's Lens withholds is withheld from every
 height and every magnification. Crossings remain deliberate door acts.
 
+## 6. The Atlas knows its holder — and getting back is critical
+
+Owner, 2026-11-26, from the same testing: "it should know the user the way
+Gus knows a second look account." Asking the Atlas "take me to my private
+home" and "my area where I started" searched Discovery for those literal
+words and failed — honestly, and uselessly. Rulings:
+
+- **Personal references resolve from the holder's own records first.** "My
+  home," "my place," "my rooms," "where I started," "take me back" are facts
+  about the holder — their places, their home root, their arrival, where they
+  are now — held in their own record, the way Gus holds a member's account
+  context. They are never a Discovery search. Discovery is for the world's
+  places; the holder's own context is the first resolution layer for anything
+  self-referential.
+- **Getting back is critical, not polish.** The owner: "that map fix is
+  critical, I get lost and don't know how to get back." §1 (the live map) and
+  §5's "Back to the entrance" are elevated to the top of the movement work,
+  ahead of flight and zoom. The map shows where the holder is, and the way
+  back is always one plain action away — the standard solution every game
+  settled on: a live map with you-are-here, and a return that always works.
+
 ## Not in this brief (defects, filed as fixes)
 
 From the same session, defects against existing briefs, routed as fix orders:
