@@ -8,6 +8,7 @@ Standing direction adopted: [Ask the Atlas, file 31](../docs/shared/31-ask-the-a
 
 - Repo: ZatesloFL/living-atlas-astra
 - Live Pages URL: https://zateslofl.github.io/living-atlas-astra/
+- Current session: [Starter grant and run-2 fixes](reports/2026-11-26-04.md); brief 33 supersedes the no-default-grant term for first entry.
 - Critical navigation: [Addendum 2 navigation recovery](reports/2026-11-26-03.md): live catalog map, You are here, one-action return across panels and Page, and holder-first directions.
 - Current lane A movement: [Visitor movement and Thing cards](reports/2026-11-26-02.md): same-Place flight/zoom, confirmed viewing spots and entrance return. Structural Exhibit hall publication is filed for lane B; physical phone checks remain with Nic.
 - Latest lane A work: [Duet Part 2](reports/2026-11-25-09.md), B1–B4 landed: personal grants/initiative, confirmed Lens proposals, pre-flight in words, and Discovery-backed ask-to-go with visible exact-address refusals. [Part 1 and addendum](reports/2026-11-25-08.md) are complete: A4–A7, Atlas Map, real Discovery provenance, Mara’s figure, holder crossing receipts and setup Lens consistency. Proxy v8 preserves v7 audio and passed seven live Docent calls with zero incomplete rejections.
