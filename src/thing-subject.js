@@ -1,3 +1,4 @@
+import {sourceVisible} from './source-media.js';
 import {ROOMS} from './data.js';
 import {viewRoom} from './audience.js';
 import {sourcedRoom} from './source-catalog.js';
@@ -10,7 +11,7 @@ export function thingSubject(roomKey,blockId,lens){
  const original=ROOMS[roomKey];if(!original||!roomVisible(roomKey,lens)||!permission(original,lens).canLook)return null;
  const room=sourcedRoom(viewRoom(original,lens),lens);if(doorPolicy(room,lens).blocked)return null;
  const block=selectContent(room,lens,contentStore.blocks(roomKey,room.blocks)).blocks.find(b=>b.id===blockId&&!b.filtered);
- return block?{roomKey,room,block}:null;
+ return block&&sourceVisible(block,room,lens)?{roomKey,room,block}:null;
 }
 export function pickedThing(marker,lens){
  if(typeof marker!=='string'||!marker.startsWith('exhibit:'))return null;
@@ -22,4 +23,9 @@ export function pickedThing(marker,lens){
   }
  }
  return null;
+}
+
+export function thingTitle(block){
+ for(const title of [block?.title,block?.exhibit?.settings?.title,...(['image','video','audio','model','heading'].includes(block?.type)?[block?.body]:[])])if(typeof title==='string'&&title.trim())return title;
+ return 'Untitled Thing';
 }

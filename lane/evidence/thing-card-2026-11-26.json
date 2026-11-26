@@ -1,0 +1,22 @@
+{
+  "sourceTap": {
+    "id": "source-source-gallery/source-gallery/item-paper-harbor",
+    "title": "Harbor on Paper",
+    "parentTitle": "Aster Collection Study Gallery",
+    "forksSupplied": false,
+    "xy": [
+      450,
+      508.3966293017218
+    ]
+  },
+  "builderTap": {
+    "id": "kit-c5c5dfe4-18e1-43f0-92d7-41f2659e097d",
+    "xy": [
+      450,
+      344.0961861972592
+    ]
+  },
+  "thinRecord": "Limited record: these details could not be displayed. No content or access has changed.",
+  "diagnostics": [],
+  "errors": []
+}

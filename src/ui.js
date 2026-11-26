@@ -1,5 +1,6 @@
+import {recordDetails,optionalCardFields} from './record-card.js';
 import {recordLabel} from './record-copy.js';
-import {thingSubject} from './thing-subject.js';
+import {thingSubject,thingTitle} from './thing-subject.js';
 import {showAddressFailure} from './atlas-destinations.js';
 import {personalPair,dialLabel,UNSET_HELP,assuranceExplanation} from './lens-state.js';
 import {lensStandingHTML,bindLensStanding} from './standing-controls.js';
@@ -89,27 +90,27 @@ export class UI {
     const source=ROOMS[id],r=source&&viewRoom(source,this.api.state().lens);if(!r)return;
     if(r.visibility==='private'||!permission(r,this.api.state().lens).canLook){if(!permission(r,this.api.state().lens).visible){this.close();return;}this.open('info','Boundary','Private space');this.content.innerHTML=`<p>Private space, something is here.</p><p class="address">${escapeHTML(r.address)}</p><button id="boundary-access">Knock / manage access</button>`;$('boundary-access').onclick=()=>this.api.accessRoom(id);return;}
     if(!roomVisible(id,this.api.state().lens)){this.close();return;}
-    this.open('info',DISTRICTS[r.district].name,r.title);
-    const authors=r.authors??[r.author];
-    this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<span>${escapeHTML(authorName(a))}</span><span class="badge ${a.isAgent?'agent':''}">${escapeHTML(identityBadge(a))}</span>`).join('')}</div>${r.author.isAgent?`<p class="muted">Operated by a verified person: ${r.author.verifiedHuman?'yes':'no'}. Simulated identity.</p>`:''}
-      ${readingCard(r,this.api.state().lens)}${articleHTML(id,this.api.state().lens,{approved:this.api.state().approvedRooms?.includes(id),softApproved:this.softApproved})}
+    this.open('info',DISTRICTS[r.district]?.name??'Place',r.title??'Untitled Place');
+    const {authors,forks}=optionalCardFields(r);
+    this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<span>${escapeHTML(authorName(a))}</span><span class="badge ${a.isAgent?'agent':''}">${escapeHTML(identityBadge(a))}</span>`).join('')||'<span>Author not supplied.</span>'}</div>${r.author?.isAgent?`<p class="muted">Operated by a verified person: ${r.author.verifiedHuman?'yes':'no'}. Simulated identity.</p>`:''}
+      ${recordDetails(()=>readingCard(r,this.api.state().lens))}${recordDetails(()=>articleHTML(id,this.api.state().lens,{approved:this.api.state().approvedRooms?.includes(id),softApproved:this.softApproved}))}
       ${id==='market'&&exceeds(r.measured.sensory,r.content.sensory)?`<p class="reason">Night Market reads louder than it says: Sensory ${scoreText(r.measured.sensory)}, declared ${scoreText(r.content.sensory)}.</p>`:''}
-      <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions.substance]}</div><div class="info-box"><small>Style</small>${escapeHTML(styleLabel(r))}</div></div>
-      <p class="muted">${r.forks.length?`${r.forks.length} seeded fork · `:''}Available now: 3D · this card · Page.<br>Ratings: ${r.district==='history'?'Academic: not reviewed. ':''}Author: sample account · Community: sample · No endorsements on file.</p>
-      ${experienceHTML(id,this.api.state().lens)}<button id="info-staff" class="secondary">Helpers · helpers for this Place</button><button id="info-access" class="secondary">Access & room receipts</button><button id="info-page" class="secondary">Read in Page form</button><button id="info-entrance" ${id===this.api.state().context.room?'':'disabled'}>Back to the entrance</button><button id="info-close" class="primary">Back to the walk</button>`;
+      <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions?.substance]??'Substance permissions not supplied.'}</div><div class="info-box"><small>Style</small>${escapeHTML(styleLabel(r))}</div></div>
+      <p class="muted">${forks?forks.length+' fork records on file.':'Fork records not supplied.'} Available now: 3D · this card · Page.</p>
+      ${recordDetails(()=>experienceHTML(id,this.api.state().lens))}<button id="info-staff" class="secondary">Helpers · helpers for this Place</button><button id="info-access" class="secondary">Access & room receipts</button><button id="info-page" class="secondary">Read in Page form</button><button id="info-close" class="primary">Back to the walk</button>`;
     bindExperience(this.content,id,this.api.state().lens,{peek:(room,layer)=>this.api.peekLayer(room,layer),changed:next=>{this.api.experienceChanged(next);this.info(id,true);},message:text=>this.toast(text)});
-    $('info-staff').onclick=()=>this.api.staff(id);$('info-access').onclick=()=>this.api.accessRoom(id);$('info-entrance').onclick=()=>this.api.entrance();$('info-close').onclick=()=>this.close();$('info-page').onclick=()=>this.api.openPage(id);
+    $('info-staff').onclick=()=>this.api.staff(id);$('info-access').onclick=()=>this.api.accessRoom(id);$('info-close').onclick=()=>this.close();$('info-page').onclick=()=>this.api.openPage(id);
     bindReadingLinks(this.content,ref=>this.api.readings(ref));
     bindArrivalSurfaces(this.content,r,this.api.state().lens,this.api.state().profiles?.arrivalRecords,{related:next=>this.api.readRoom(next)});
     bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:block=>{this.softApproved.add(block);this.info(id,true);}});if(preserve)this.content.scrollTop=oldScroll;
   }
   thing(roomKey,blockId){
     this.softApproved.clear();const subject=thingSubject(roomKey,blockId,this.api.state().lens);if(!subject){this.toast('This Thing is unavailable through your current Lens.');return;}
-    this.thingRoom=roomKey;const {room,block}=subject;this.open('thing','Thing · '+room.title,block.title??block.exhibit?.settings?.title??'Thing');
+    this.thingRoom=roomKey;const {room,block}=subject;this.open('thing','Thing · '+room.title,thingTitle(block));
     const render=this.renderThing=()=>{
       const current=thingSubject(roomKey,blockId,this.api.state().lens);if(!current){this.close();return;}
-      $('sheet-title').textContent=current.block.title??'Thing';
-      this.content.innerHTML=`<p class="thing-context">In ${escapeHTML(current.room.title)} · this card and its readings belong to this Thing.</p>${blockHTML(current.block,current.room,this.api.state().lens,{approved:this.api.state().context.room===roomKey,softApproved:this.softApproved})}<button id="thing-closer" ${this.api.canCloser?.(roomKey,blockId)?'':'disabled'}>See it up close</button><button id="thing-place">Containing Place info</button><button id="thing-back">Back to the walk</button>`;
+      $('sheet-title').textContent=thingTitle(current.block);
+      this.content.innerHTML=`<p class="thing-context">In ${escapeHTML(current.room.title)} · this card and its readings belong to this Thing.</p>${recordDetails(()=>blockHTML(current.block,current.room,this.api.state().lens,{approved:this.api.state().context.room===roomKey,softApproved:this.softApproved}))}<button id="thing-closer" ${this.api.canCloser?.(roomKey,blockId)?'':'disabled'}>See it up close</button><button id="thing-place">Containing Place info</button><button id="thing-back">Back to the walk</button>`;
       bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:id=>{this.softApproved.add(id);render();}});bindReadingLinks(this.content,ref=>this.api.readings(ref));
       $('thing-closer').onclick=()=>this.api.closer(roomKey,blockId);$('thing-place').onclick=()=>this.info(roomKey);$('thing-back').onclick=()=>this.close();
     };render();

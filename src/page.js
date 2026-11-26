@@ -1,7 +1,8 @@
+import {recordDetails} from './record-card.js';
 import {atlasMapModel} from './atlas-map-model.js';
 import {atlasGraphHTML} from './atlas-map-view.js';
 import {resolveHolderDestination} from './holder-destinations.js';
-import {thingSubject} from './thing-subject.js';
+import {thingSubject,thingTitle} from './thing-subject.js';
 import {mountReturnControl} from './navigation-return.js';
 import {FastTravel} from './fast-travel.js';
 import {manualDestination,showAddressFailure} from './atlas-destinations.js';
@@ -60,7 +61,7 @@ export class PageRenderer {
   ui.content.querySelector('#page-map-home').onclick=()=>{const found=resolveHolderDestination('my home',this.lens,{profiles:this.profiles,room:this.room});if(!found.matches.length){ui.toast(found.message);return;}ui.close();this.visit(found.matches[0].room);};
   const bind=(selector,fn)=>ui.content.querySelectorAll(selector).forEach(el=>{el.onclick=()=>fn(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn(el);}};});
   bind('[data-map-node]',el=>{ui.close();this.visit(el.dataset.mapNode);});bind('[data-map-edge]',el=>{ui.close();this.visit(model.edges.find(e=>e.id===el.dataset.mapEdge).to);});
-  bind('[data-map-thing]',el=>{const subject=thingSubject(el.dataset.thingRoom,el.dataset.mapThing,this.lens);if(!subject){ui.toast('This Thing is unavailable through your current Lens.');return;}ui.open('thing','Thing',subject.block.title??'Thing');ui.content.innerHTML=blockHTML(subject.block,subject.room,this.lens,{approved:this.approved.has(subject.roomKey)});bindBlocks(ui.content,{related:id=>{ui.close();this.visit(id);}});bindReadingLinks(ui.content,ref=>this.accessUI?.standingUI.open(ref));});
+  bind('[data-map-thing]',el=>{const subject=thingSubject(el.dataset.thingRoom,el.dataset.mapThing,this.lens);if(!subject){ui.toast('This Thing is unavailable through your current Lens.');return;}ui.open('thing','Thing',thingTitle(subject.block));ui.content.innerHTML=recordDetails(()=>blockHTML(subject.block,subject.room,this.lens,{approved:this.approved.has(subject.roomKey)}));bindBlocks(ui.content,{related:id=>{ui.close();this.visit(id);}});bindReadingLinks(ui.content,ref=>this.accessUI?.standingUI.open(ref));});
   if(preserve)ui.content.scrollTop=scroll;
  }
  returnEntrance(){this.atlasTravel?.cancel({quiet:true});this.atlasUI.ui.close();for(const root of document.querySelectorAll('.access-overlay:not([hidden])'))root.querySelector('[data-dialog-close]')?.click();for(const dialog of this.root.querySelectorAll('dialog[open]'))dialog.close();this.pending=null;this.render();window.scrollTo(0,0);}

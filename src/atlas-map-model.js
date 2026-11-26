@@ -1,3 +1,5 @@
+import {sourceVisible} from './source-media.js';
+import {thingTitle} from './thing-subject.js';
 import {ROOMS,EDGES} from './data.js';
 import {permission,roomTitle,personId} from './permissions.js';
 import {roomEntry,selectContent,contentStore} from './content.js';
@@ -14,9 +16,9 @@ export function atlasMapModel(lens,current,{showOthers=false,columns=2}={}){
   const gate=roomEntry(id,lens,EDGES),visible=gate.state!=='hidden';if(!visible&&!showOthers)continue;
   const room=sourcedRoom(viewRoom(original,lens),lens),things=[];
   if(visible&&rights.canLook)for(const block of selectContent(room,lens,contentStore.blocks(id,room.blocks)).blocks){
-   if(block.filtered)continue;
+   if(block.filtered||!sourceVisible(block,room,lens))continue;
    const placement=room.layout?.interior?.bays?.find(p=>p.block===block.id)??room.layout?.components?.find(p=>p.block===block.id)??room.builderFixtures?.find(p=>p.block===block.id)??room.sourcePlacements?.find(p=>p.blockId===block.id);
-   things.push({id:block.id,title:block.title??block.exhibit?.settings?.title??'Untitled Thing',position:placement?.position??null,elevation:placement?.elevation??null,facing:placement?.facing??null,version:block.recordVersionId??null});
+   things.push({id:block.id,title:thingTitle(block),position:placement?.position??null,elevation:placement?.elevation??null,facing:placement?.facing??null,version:block.recordVersionId??null});
   }
   places.push({id,title:visible?roomTitle(original,lens):'Withheld by your Lens',address:visible?original.address:null,current:id===current,owned:original.ownerId===personId(lens),visible,things,position:room.layout?.slot??null});
  }
