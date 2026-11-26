@@ -4,7 +4,7 @@ import {resolvePublicReference} from './public-references.js';
 export const STARTS=[['generated','From your interview'],['scratch','From scratch'],['reading','Reading garden template']];
 export const WORKSHOP_COPY={
  about:'Second Look helps you set up and run your own AI assistants, with written project briefs, approvals and honest monitoring. This workshop is its front door in the Atlas.',
- account:'One account works in Atlas and Second Look; an account is required for entry. This prototype previews an unverified account with age unknown and fixed conservative ceilings. It has not created or linked an account. Account sign-up, verification and live Second Look backing are not connected here yet.',
+ account:'One account works in Atlas and Second Look; an account is required for entry. This prototype previews an unverified account with fixed conservative ceilings. A supplied age is given, not verified. It has not created or linked an account. Account sign-up, verification and live Second Look backing are not connected here yet.',
  pricing:'Static beta pricing, filed November 8, 2026: personal Standard setup $49; Premium $99. Maintenance is optional from day 61: $7/month for the first agent and $5/month per added agent, or $70/year plus $50/year. No automatic maintenance billing. A Project Pass and a 30-minute Gus Live Pack are $10 each. Purchases and account setup happen in Second Look; this room cannot charge you.',
  staff:'Penny is the workshop’s Docent on Second Look. Penny and Gus are not connected in this prototype room; no Atlas helper is impersonating them.'
 };
