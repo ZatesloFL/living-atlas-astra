@@ -1,0 +1,149 @@
+{
+  "checked_at": "2026-11-26T06:15:24.418450+00:00",
+  "commit": "676dc18837ab0057abbf683a62218ec9f3a988d1",
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "tls_verification": true,
+  "files": [
+    {
+      "path": "index.html",
+      "expected_sha256": "9bb1debdd89c29d5df7c27401e59ec51d23fba4f6a5c1fac32656c6c53642e2b",
+      "status": 200,
+      "served_sha256": "9bb1debdd89c29d5df7c27401e59ec51d23fba4f6a5c1fac32656c6c53642e2b",
+      "match": true
+    },
+    {
+      "path": "src/controls.js",
+      "expected_sha256": "2d75357719c7bd6583b59f9a544e673b149b24d5f68d2fe70280c2f451a6093a",
+      "status": 200,
+      "served_sha256": "2d75357719c7bd6583b59f9a544e673b149b24d5f68d2fe70280c2f451a6093a",
+      "match": true
+    },
+    {
+      "path": "src/world.js",
+      "expected_sha256": "e18c91645593967590ebba9c7b76b558bdcdb6cb3ffcf027e2c7b092c0803b0d",
+      "status": 200,
+      "served_sha256": "e18c91645593967590ebba9c7b76b558bdcdb6cb3ffcf027e2c7b092c0803b0d",
+      "match": true
+    },
+    {
+      "path": "src/visitor-viewpoint.js",
+      "expected_sha256": "82b02e67c802eb805fb626d19c3ccaa565373f81b161b813c2c83cff217b3fb3",
+      "status": 200,
+      "served_sha256": "82b02e67c802eb805fb626d19c3ccaa565373f81b161b813c2c83cff217b3fb3",
+      "match": true
+    },
+    {
+      "path": "src/visitor-hud.js",
+      "expected_sha256": "de0a1150014faed4dbc3dada01def470066c2da81d62b004fd6f9a6d42a4b94e",
+      "status": 200,
+      "served_sha256": "de0a1150014faed4dbc3dada01def470066c2da81d62b004fd6f9a6d42a4b94e",
+      "match": true
+    },
+    {
+      "path": "visitor.css",
+      "expected_sha256": "90a2d4e075c6b3f59b1919e492ecd667861f993e8b40e1f90effebddd6f15d16",
+      "status": 200,
+      "served_sha256": "90a2d4e075c6b3f59b1919e492ecd667861f993e8b40e1f90effebddd6f15d16",
+      "match": true
+    },
+    {
+      "path": "src/runtime.js",
+      "expected_sha256": "1aae31cad0978d7053146b88dd40fcf6c93ea1f4df55748b67d74b1cf2bf75f1",
+      "status": 200,
+      "served_sha256": "1aae31cad0978d7053146b88dd40fcf6c93ea1f4df55748b67d74b1cf2bf75f1",
+      "match": true
+    },
+    {
+      "path": "src/ui.js",
+      "expected_sha256": "b6ed79b51c9e696b43a5cb9763ab3fafbaeb6627b84900afa52e4c516a834344",
+      "status": 200,
+      "served_sha256": "b6ed79b51c9e696b43a5cb9763ab3fafbaeb6627b84900afa52e4c516a834344",
+      "match": true
+    },
+    {
+      "path": "src/thing-subject.js",
+      "expected_sha256": "10257ef7d36f688f92bf27e332861e77077cc0fb57173df5499d961b2e9d149b",
+      "status": 200,
+      "served_sha256": "10257ef7d36f688f92bf27e332861e77077cc0fb57173df5499d961b2e9d149b",
+      "match": true
+    },
+    {
+      "path": "src/atlas-map-model.js",
+      "expected_sha256": "69e464e38e38f8ac3e7368111a78238cb499f23d8127a16ecf28137cc456f17d",
+      "status": 200,
+      "served_sha256": "69e464e38e38f8ac3e7368111a78238cb499f23d8127a16ecf28137cc456f17d",
+      "match": true
+    },
+    {
+      "path": "src/atlas-map-view.js",
+      "expected_sha256": "9f6766f964bcc176183edd26e7e5d0f9b5c31277a91935516fbaab632a3c8d24",
+      "status": 200,
+      "served_sha256": "9f6766f964bcc176183edd26e7e5d0f9b5c31277a91935516fbaab632a3c8d24",
+      "match": true
+    },
+    {
+      "path": "src/holder-destinations.js",
+      "expected_sha256": "0eb997d6e8a615e204874f6da2f067429842d3e7613d4c34458cface719cf8f6",
+      "status": 200,
+      "served_sha256": "0eb997d6e8a615e204874f6da2f067429842d3e7613d4c34458cface719cf8f6",
+      "match": true
+    },
+    {
+      "path": "src/navigation-return.js",
+      "expected_sha256": "6f19bf9b883e622316ee1a59c5102c62f13f76c2edff7e04df36970cdbabaeca",
+      "status": 200,
+      "served_sha256": "6f19bf9b883e622316ee1a59c5102c62f13f76c2edff7e04df36970cdbabaeca",
+      "match": true
+    },
+    {
+      "path": "navigation-return.css",
+      "expected_sha256": "534630223589433591793629b2037b7aacff14966564ab7b9b2f7a9e0d918f46",
+      "status": 200,
+      "served_sha256": "534630223589433591793629b2037b7aacff14966564ab7b9b2f7a9e0d918f46",
+      "match": true
+    },
+    {
+      "path": "src/visit-return.js",
+      "expected_sha256": "0892a4fb57696d3a91562f45939f8e1ad0244e9aff3c13cf800300a240c60f16",
+      "status": 200,
+      "served_sha256": "0892a4fb57696d3a91562f45939f8e1ad0244e9aff3c13cf800300a240c60f16",
+      "match": true
+    },
+    {
+      "path": "src/page.js",
+      "expected_sha256": "f92e615fd0e34358863704ecb582876b24cfe5140324dc2a378690e8ee6fac3d",
+      "status": 200,
+      "served_sha256": "f92e615fd0e34358863704ecb582876b24cfe5140324dc2a378690e8ee6fac3d",
+      "match": true
+    },
+    {
+      "path": "src/atlas-ui.js",
+      "expected_sha256": "20b47fdf12e4ed528b1506731170022a0a800ff202fcdc2b2755606aed46f39a",
+      "status": 200,
+      "served_sha256": "20b47fdf12e4ed528b1506731170022a0a800ff202fcdc2b2755606aed46f39a",
+      "match": true
+    },
+    {
+      "path": "src/atlas-records.js",
+      "expected_sha256": "e5e48c67eb6c556a385c399a28d458277a4a9ca9cb6c95a7e213cd735c44b20e",
+      "status": 200,
+      "served_sha256": "e5e48c67eb6c556a385c399a28d458277a4a9ca9cb6c95a7e213cd735c44b20e",
+      "match": true
+    },
+    {
+      "path": "src/record-card.js",
+      "expected_sha256": "e5879aafaa6ad667a864cbaa4fb159abba1f7a95c2b7725cc91cbef06ad6c54a",
+      "status": 200,
+      "served_sha256": "e5879aafaa6ad667a864cbaa4fb159abba1f7a95c2b7725cc91cbef06ad6c54a",
+      "match": true
+    },
+    {
+      "path": "src/arrival-seed.js",
+      "expected_sha256": "740ce454cc703d25d72c450b4290a125db1dae35281a2d91a97e8a6ab38a05c1",
+      "status": 200,
+      "served_sha256": "740ce454cc703d25d72c450b4290a125db1dae35281a2d91a97e8a6ab38a05c1",
+      "match": true
+    }
+  ],
+  "all_match": true
+}
