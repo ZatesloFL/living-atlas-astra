@@ -15,6 +15,8 @@ const locationPattern = /\s+(?:on|to|at|near|in|by)\s+(?:the\s+)?(left|right|fro
 const positions = {left:[-2,0,0], right:[2,0,0], front:[0,0,2], back:[0,0,-2], center:[0,0,0], entrance:[0,0,2]};
 const numberWords = ['zero','one','two','three'];
 const visualKinds = new Set(['mapping','placement','publication']);
+const shortReceipt = id => id?.split(':').at(-1).slice(0,8);
+const receiptCode = id => id.match(/.{1,10}/g).map(esc).join('<wbr>');
 const grantRequest = input => /^(?:give|grant|allow|let)\s+(?:the\s+)?atlas\b.*\b(?:sources?|build)\b/i.test(input);
 
 function grantWords(value) {
@@ -55,11 +57,13 @@ function placementPreview(visual) {
     ${drawing([{x,z}], `${visual.title}, proposed ${visual.location}`)}</div>`;
 }
 
-function reviewPreview({checks,budget}) {
+function reviewPreview({checks,budget,audience}) {
   if (!checks) return '';
   const list = entries => entries?.length ? `<ul>${entries.map(entry=>`<li>${esc(entry.title ?? entry.label ?? entry.reason ?? entry)}</li>`).join('')}</ul>` : '';
-  return `<div class="source-preview-data" data-source-publication-preview><p>${esc(checks.description)}</p>
-    <p>${checks.shown?.length ?? 0} shown · ${checks.withheld?.length ?? 0} withheld</p>${list(checks.reasons)}
+  return `<div class="source-preview-data" data-source-publication-preview>
+    ${audience ? `<p><strong>${esc(audience.headline)}</strong></p><p>Publishes in <strong>${esc(audience.where)}</strong>.</p><p>${esc(audience.description)}</p>` : ''}
+    ${checks.canEnter ? `<p>${esc(checks.description)}</p>` : '<p>No interior view for this profile.</p>'}
+    <p>${audience?.label?`${esc(audience.label)} · `:''}${checks.shown?.length ?? 0} shown · ${checks.withheld?.length ?? 0} withheld</p>${list(checks.reasons)}
     ${budget?.over?.length ? `<p>Placement budget exceeded.</p>${list(budget.over.map(entry=>`${entry.key}: ${entry.actual} of ${entry.limit}`))}` : ''}</div>`;
 }
 
@@ -90,8 +94,8 @@ export class SourceConversationUI {
     }
   }
 
-  respond(text) {
-    if (text) this.messages.push({text, owner:false});
+  respond(text,receipts=[]) {
+    if (text) this.messages.push({text,receipts,owner:false});
   }
 
   render() {
@@ -103,7 +107,8 @@ export class SourceConversationUI {
       proposal?.kind === 'publication' && this.visual ? reviewPreview(this.visual) : '';
     return `<section class="source-conversation" aria-label="Ask the Atlas about connected sources">
       <div class="source-chat-log" data-source-chat-log role="log" aria-label="Conversation" aria-relevant="additions text">
-        ${this.messages.map(({text,owner})=>`<p class="source-message${owner?' source-message-owner':''}"><strong>${owner?'You':'The Atlas'}</strong> ${esc(text)}</p>`).join('')}
+        ${this.messages.map(({text,owner,receipts})=>`<p class="source-message${owner?' source-message-owner':''}"><strong>${owner?'You':'The Atlas'}</strong> ${esc(text)}</p>
+          ${receipts?.length ? `<details class="source-details" data-conversation-receipts><summary>Receipts</summary>${receipts.map(([label,id])=>`<p>${esc(label)} <code>${receiptCode(id)}</code></p>`).join('')}</details>` : ''}`).join('')}
         ${grant ? `<div class="source-chat-proposal" data-source-chat-proposal="grant"><h3>Grant proposal</h3><p>${esc(grantWords(grant.value))}</p><p>Say <strong>yes</strong> to grant access or <strong>no</strong> to dismiss.</p></div>` : ''}
         ${proposal ? `<div class="source-chat-proposal" data-source-chat-proposal="${proposal.kind}"><h3>Proposal for ${esc(this.host.context.room.title)}</h3>${details}<p>Say <strong>yes</strong> to confirm or <strong>no</strong> to dismiss.</p></div>` : ''}
       </div>
@@ -200,10 +205,13 @@ export class SourceConversationUI {
           if (visualKinds.has(proposal.kind)) await this.host.emit('source-preview-clear');
           this.visual = null;
         }
-        this.respond(`Grant confirmed. Receipt ${confirmed.receipt}.${proposal ? ' Ask again to review the source action under this grant.' : ''}`);
+        this.respond(`Grant confirmed. Receipt ${shortReceipt(confirmed.receipt)}.${proposal ? ' Ask again to review the source action under this grant.' : ''}`,[['Atlas Receipt',confirmed.receipt]]);
         return;
       }
-      this.respond(proposal ? await this.confirm() : this.attachment ? 'Give me a description or say “skip” so I can prepare a declaration.' : 'There is no proposal to confirm.');
+      if (proposal) {
+        const {text,receipts}=await this.confirm();
+        this.respond(text,receipts);
+      } else this.respond(this.attachment ? 'Give me a description or say “skip” so I can prepare a declaration.' : 'There is no proposal to confirm.');
       return;
     }
     if (grant) {
@@ -397,6 +405,7 @@ export class SourceConversationUI {
     const outcome = result?.item ? `Declaration confirmed. ${result.item.filename} is published to this Place.` :
       result?.source ? `${result.source.label} is attached and its mapping is approved.` :
       result?.receipt ? 'Draft published.' : 'Source placed in your draft.';
-    return `${outcome} Confirmation Receipt ${confirmationReceipt}. Atlas Receipt ${receipt}.${applied ? ` Applied Receipt ${applied}.` : ''}`;
+    return {text:`${outcome} Receipt ${shortReceipt(applied??receipt)}.`,
+      receipts:[['Confirmation Receipt',confirmationReceipt],['Atlas Receipt',receipt],...(applied?[['Applied Receipt',applied]]:[])]};
   }
 }

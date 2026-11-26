@@ -1,5 +1,7 @@
 import {connectedSources} from './connected-sources.js';
 import {videoReference} from './source-media.js';
+import {isStarterArchive} from './arrival-archive.js';
+import {ROOMS} from './data.js';
 import {AXES, DIMENSIONS, validPair} from './scores.js';
 import {uploadAccept, uploadLimitLabel} from './upload-client.js';
 import {PHOTO_DESCRIPTION_LIMIT, PHOTO_SCORE_MODEL, uploadScoreBasis, validPhotoObservation, validPhotoRecordId} from './upload-scores.js';
@@ -84,12 +86,13 @@ function uploadUsage(result) {
 }
 
 export class SourcesUI {
-  constructor({sources = connectedSources, uploads, proposeScores, onChange, records, storage} = {}) {
+  constructor({sources = connectedSources, uploads, proposeScores, onChange, records, arrivalRecords, storage} = {}) {
     this.sources = sources;
     this.uploads = uploads;
     this.proposeScores = proposeScores;
     this.onChange = onChange;
     this.records = records;
+    this.arrivalRecords = arrivalRecords;
     this.proposals = {};
     this.openSources = new Set();
     try {
@@ -176,6 +179,13 @@ export class SourcesUI {
     this.endConversation();
     if (context.actorId !== this.context?.actorId) this.hosted = null;
     this.context = context;
+    this.verifiedArrivalRecords = null;
+    const archive = this.arrivalRecords?.();
+    if (archive) void Promise.resolve(archive.ready).then(ready => {
+      if (!ready || this.context !== context || !dialog.open) return;
+      this.verifiedArrivalRecords = archive;
+      if (this.tab === 'inspector' && !this.busy) this.render();
+    }, () => {});
     this.tab = 'conversation';
     this.conversation = new SourceConversationUI(this);
     this.conversation.begin(context.room,context.lens);
@@ -354,16 +364,38 @@ export class SourcesUI {
     } else {
       const views = this.sources.list(this.context.placeId, this.actor)
         .map(source => this.sources.view(source.id, {...this.actor,includeExcluded:true})).filter(Boolean);
-      this.content.innerHTML = `${this.renderSources(views)}${this.renderUploads()}${this.renderOperator()}`;
+      this.content.innerHTML = `${this.renderArrivalSources()}${this.renderSources(views)}${this.renderUploads()}${this.renderOperator()}`;
     }
     this.content.scrollTop = scroll;
+  }
+
+  renderArrivalSources() {
+    const context = ownerContext(this.context);
+    const records = this.verifiedArrivalRecords;
+    if (!context?.room.arrivalSeed || !records) return '';
+    const {actorId, placeId} = context;
+    const rootId = records.starter(actorId)?.projection?.rootPlaceId;
+    if (!rootId) return '';
+    const driveId = rootId + '/drive';
+    if (placeId !== rootId && placeId !== driveId) return '';
+    const drive = ROOMS[driveId];
+    if (!isStarterArchive(drive) || drive.ownerId !== actorId || drive.parentPlaceId !== rootId) return '';
+    const references = records.data.archive.filter(source => source?.holderId === actorId);
+    if (!references.length) return '';
+    return `<section class="source-panel" data-arrival-sources aria-labelledby="arrival-source-title">
+      <h3 id="arrival-source-title">${placeId === rootId ? 'Saved for your Drive room' : 'Saved during arrival'}</h3>
+      <ul class="source-items">${references.map(source => `<li data-arrival-source-ref="${esc(source.id)}">
+        <strong>${esc(source.url)}</strong>
+        <small>${esc(source.collection)} · ${source.state === 'not connected' ? 'Not connected' : esc(source.state)}</small>
+      </li>`).join('')}</ul>
+    </section>`;
   }
 
   renderSources(views) {
     return `<section class="source-panel" aria-labelledby="source-feeds-title">
       <h3 id="source-feeds-title">Sources for this Place</h3>
       <div class="source-actions">${command('add-gallery', 'Connect mock gallery')}${command('add-drive', 'Connect mock Drive')}</div>
-      ${views.length ? views.map(view => this.renderSource(view)).join('') : '<p class="source-caption">No sources are attached.</p>'}
+      ${views.length ? views.map(view => this.renderSource(view)).join('') : '<p class="source-caption">No feeds are connected to this Place.</p>'}
       <details class="source-details"><summary>Add a video reference</summary>
         <form data-form="video">
           <label>Video link<input name="url" type="url" inputmode="url" required placeholder="https://www.youtube.com/watch?v=…"></label>

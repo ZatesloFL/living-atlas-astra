@@ -1,14 +1,17 @@
-import {ROOMS} from './data.js';
+import {EDGES,ROOMS} from './data.js';
 import {roomVisible} from './rules.js';
-import {permission, personId} from './permissions.js';
+import {permission,personId,scopeRank} from './permissions.js';
 import {viewRoom} from './audience.js';
+import {containingPlaces} from './admission.js';
+import {declaredStandingRules,stewardGrants} from './standing-policy.js';
 import {esc} from './block-renderer.js';
 import {ai} from './ai.js';
 import {SourcesUI} from './sources-ui.js';
 import {GALLERY_PLACE, recordUploadInventory} from './source-catalog.js';
 import {uploadClient} from './source-session.js';
 import {proposeUploadScores} from './upload-scores.js';
-import {contentStore} from './content.js';
+import {contentStore,roomEntry} from './content.js';
+import {withBuilderRoom} from './build-projection.js';
 import {requireSourceScope} from './source-conversation.js';
 import {AXES,DIMENSIONS,scores,scoreText} from './scores.js';
 import {BUILDER_PIECES,describeBuilderBehavior} from './builder-pieces.js';
@@ -30,6 +33,23 @@ const title = piece => piece?.block?.title ?? piece?.settings?.title ?? BUILDER_
 const click = (label,action,value,extra = '') =>
   `<button type="button" data-builder-action="${action}"${value === undefined ? '' : ` data-value="${esc(value)}"`} ${extra}>${esc(label)}</button>`;
 const option = (label,value,selected) => `<option value="${esc(value)}"${selected ? ' selected' : ''}>${esc(label)}</option>`;
+const shortReceipt = id => id?.split(':').at(-1).slice(0,8);
+const receiptCode = id => id.match(/.{1,10}/g).map(esc).join('<wbr>');
+
+function mayAdmitOutsideProfiles(room,lens,known,now) {
+  if (declaredStandingRules(room,lens).some(rule=>rule.effect==='admit')) return true;
+  const groups=lens.access?.groups??[];
+  const stamps=(lens.access?.grants??room.grants??[]).filter(grant=>grant.room===room.id&&!grant.revokedAt&&
+    (!grant.expires||Date.parse(grant.expires)>now)&&(!grant.createdAt||Date.parse(grant.createdAt)<=now));
+  return stamps.some(grant=>{
+    if (grant.denied||scopeRank(grant.scope)<0) return false;
+    if (grant.delegation?.length && !grant.delegation.every(id=>stewardGrants(lens.access?.standingState,room.id,now).some(steward=>steward.id===id&&steward.active))) return false;
+    if (grant.to?.person) return !known.has(grant.to.person);
+    const group=groups.find(item=>item.id===grant.to?.group);
+    return !!group && scopeRank(group.maxScope??grant.scope)>=0 &&
+      (group.kind==='credential'||group.members?.some(id=>!known.has(id)));
+  });
+}
 
 function loadStyleSheet() {
   if (document.querySelector('[data-builder-style]')) return;
@@ -103,6 +123,7 @@ export class BuildUI {
     this.track = [];
     this.sources = new SourcesUI({
       records:this.atlasRecords,
+      arrivalRecords:()=>this.profiles.arrivalRecords,
       uploads: uploadClient,
       proposeScores: input => proposeUploadScores(ai,input),
       onChange:event=>this.sourceEvent(event)
@@ -156,7 +177,7 @@ export class BuildUI {
       const budget=this.builder.budget(roomKey,lens);
       if(!budget.valid)throw new Error('The draft exceeds its room budget. Review the Inspector.');
       const assessment=await this.builder.preview(roomKey,lens,this.selectedLens());
-      return {...assessment,budget};
+      return {...assessment,budget,audience:this.publicationAudience(draft)};
     }
     if(type==='source-publish-confirmed'){
       const {previewReceiptId}=await this.atlasRecords.verifyExtension(lens,{
@@ -260,8 +281,7 @@ export class BuildUI {
     if (choice) {
       this.openPlace(choice.roomKey);
     } else {
-      // The existing audience inspector remains available on the Place being visited.
-      this.panel = 'audience';
+      this.panel = places.length ? 'outline' : 'audience';
       this.render();
     }
   }
@@ -275,7 +295,7 @@ export class BuildUI {
       this.previewState = null;
       this.sourcePreview = null;
       this.proposal = draft.proposals?.findLast(proposal=>proposal.status==='pending')??null;
-      this.left = this.profiles.profiles.some(profile=>profile.id==='seed-visitor')?'seed-visitor':this.profiles.activeId;
+      this.left = this.otherProfile();
       this.track = [];
       this.placementKind = null;
       this.status('');
@@ -328,12 +348,12 @@ export class BuildUI {
     this.root.dataset.camera = this.camera;
     const name = this.draft?.title ?? ROOMS[this.entry?.roomKey]?.title ?? 'Places you can edit';
     this.header.innerHTML = `<div class="builder-ribbon"><div class="builder-title">
-      <h2>${this.previewState ? 'Visitor preview' : 'Build'}</h2>
+      <h2>${this.previewState ? (this.previewState.blocked?'Audience preview unavailable':'Audience preview') : 'Build'}</h2>
       <p>${esc(name)}${this.draft?.dirty && !this.previewState ? ' · Draft' : ''}</p></div>
       ${click('Back to visiting','exit',undefined,'class="builder-exit"')}</div>
-      ${this.draft ? `<nav class="builder-camera" aria-label="Build camera">${cameras.map(([key,label])=>
+      ${this.draft ? `<nav class="builder-camera" aria-label="Build camera">${(this.previewState?.blocked?[]:cameras).map(([key,label])=>
         click(label,'camera',key,`aria-pressed="${this.camera===key}"`)).join('')}
-        ${this.previewState ? click('Return to draft','return-draft') : click('Review & publish','review',undefined,'class="builder-primary"')}
+        ${this.previewState ? click('Return to sketch','return-draft') : click('Review & publish','review',undefined,'class="builder-primary"')}
       </nav>` : ''}`;
     const available = this.draft ? panels : panels.filter(([id])=>['outline','audience','sources'].includes(id));
     this.tabs.innerHTML = available.map(([key,label])=>click(label,'panel',key,`aria-pressed="${this.panel===key}" aria-controls="builder-panel"`)).join('');
@@ -460,37 +480,87 @@ export class BuildUI {
       </select></label>
       ${pieces.length ? `<ul class="builder-outline">${pieces.map(piece=>`<li>${click(title(piece),'select',piece.id,`aria-pressed="${piece.id===this.selectedId}"`)}<small>${esc(BUILDER_PIECES[piece.kind]?.label??piece.kind)}</small></li>`).join('')}</ul>`:''}
       ${this.draft ? `<div class="builder-actions">${click('Undo','undo',undefined,this.draft.canUndo?'':'disabled')}${click('Redo','redo',undefined,this.draft.canRedo?'':'disabled')}</div>${this.renderBudget()}` : ''}
-      ${history?.length ? `<details class="builder-record"><summary>Published versions and Receipts</summary>
-        <ul class="builder-outline">${history.map(revision=>`<li><span>${esc(revision.receipt?.time ?? revision.revisionId)}</span>
+      ${history?.length ? `<details class="builder-record" data-publication-record><summary>Published versions and Receipts</summary>
+        <ul class="builder-outline">${history.map(revision=>`<li><div><p>${esc(revision.receipt?.time ?? revision.revisionId)}</p>${revision.receipt?.id?`<code>${receiptCode(revision.receipt.id)}</code>`:''}</div>
           ${click('Restore as draft','restore',revision.revisionId)}</li>`).join('')}</ul></details>` : ''}`;
   }
 
-  readReport(assessment) {
-    const checks = assessment?.checks;
+  otherProfile() {
+    const holder=personId(this.lens);
+    const visitors=this.profiles.profiles.filter(profile=>profile.id!==holder);
+    return visitors.find(profile=>profile.id==='seed-visitor')?.id ?? visitors[0]?.id ?? null;
+  }
+
+  profileLabel(id) {
+    return id===personId(this.lens) ? 'Your view' : this.profiles.profiles.find(profile=>profile.id===id)?.name ?? 'Selected visitor';
+  }
+
+  publicationAudience(draft=this.draft) {
+    const {roomKey}=draft;
+    const room=ROOMS[roomKey];
+    const path=containingPlaces(roomKey,ROOMS) ?? [roomKey];
+    const restricted=path.filter(key=>permission(ROOMS[key],this.lens).visibility!=='public');
+    const selected=this.left??this.otherProfile()??personId(this.lens);
+    const staged=this.builder.roomFor(roomKey,this.lens,draft);
+    const checksFor=lens=>this.builder.inspect(roomKey,staged,lens);
+    const visitors=this.profiles.profiles.filter(profile=>profile.id!==personId(this.lens)).map(profile=>{
+      const lens=this.selectedLens(profile.id);
+      const checks=checksFor(lens);
+      const entry=withBuilderRoom(roomKey,staged,()=>roomEntry(roomKey,lens,EDGES));
+      return {...checks,id:profile.id,name:profile.name,canLook:entry.state!=='hidden'&&entry.state!=='private'&&entry.rights?.canLook&&!entry.admission?.blocked};
+    });
+    const readable=visitors.filter(visitor=>visitor.canEnter||visitor.canLook);
+    const known=new Set([personId(this.lens),...this.profiles.profiles.map(profile=>profile.id)]);
+    const now=Date.now();
+    const mayHaveOthers=restricted.length>0&&restricted.every(key=>mayAdmitOutsideProfiles(ROOMS[key],this.lens,known,now));
+    const accessRooms=[roomKey,...restricted.filter(key=>key!==roomKey&&permission(ROOMS[key],this.lens).owner)];
+    const outsideControl=restricted.filter(key=>!permission(ROOMS[key],this.lens).owner).map(key=>ROOMS[key].title);
+    const canMakePublic=restricted.length>0&&!outsideControl.length&&restricted.every(key=>ROOMS[key].visibility!=='private');
+    const privateOnly=restricted.length>0&&!readable.length&&!mayHaveOthers;
+    const headline=privateOnly?'Only you — this place is private':restricted.length?'Access to this private Place':'Visitors who meet this Place’s door terms';
+    const describe=visitor=>visitor.name+(visitor.canEnter?'':' (look only)');
+    const list=new Intl.ListFormat('en',{type:'conjunction'});
+    const privateDescription=[readable.length?`Current access includes ${list.format(readable.map(describe))}.`:'',
+      mayHaveOthers?'Other people may qualify under existing grants or standing rules.':''].filter(Boolean).join(' ');
+    const description=privateOnly?'Publish to keep this work in your own Place.':restricted.length ? privateDescription :
+      'Each visitor’s Lens and this Place’s door terms determine which Things that visitor sees.';
+    return {headline,description,privateOnly,restricted:restricted.length,canMakePublic,outsideControl:list.format(outsideControl),where:room.title,accessRooms,label:this.profileLabel(selected),visitors,
+      checks:visitors.find(visitor=>visitor.id===selected)??checksFor(this.selectedLens(selected))};
+  }
+
+  accessActions(audience) {
+    if(!this.ui.api.accessRoom)return '';
+    return `<p>${audience.restricted?'Grant a person Enter access in the private Places along this path.':'Manage access to set who can enter.'}</p>
+      ${audience.canMakePublic ? `<p>To allow a public audience, choose <strong>Public</strong> under Visibility and select <strong>Save visibility</strong>${audience.restricted>1?' in each private Place along this path':''}.</p>` : ''}
+      ${audience.outsideControl ? `<p>Ask the owner of ${esc(audience.outsideControl)} to widen access there.</p>` : ''}
+      <div class="builder-actions">${audience.accessRooms.map((room,index)=>click(index?`Access to ${ROOMS[room].title}`:'Manage access','manage-access',room)).join('')}</div>`;
+  }
+
+  readReport(checks,{label,empty=''}={}) {
     if (!checks) return '';
-    return `<section class="builder-crossing" aria-label="Visitor check">
-      <strong>${checks.canEnter ? 'Visitor can enter' : 'Visitor cannot enter'}</strong>
-      ${checks.description ? `<p>${esc(checks.description)}</p>` : ''}
-      ${Array.isArray(checks.reasons) && checks.reasons.length ? `<ul>${checks.reasons.map(reason=>`<li>${esc(reason)}</li>`).join('')}</ul>` : ''}
-      ${Array.isArray(checks.shown) && Array.isArray(checks.withheld) ? `<p>${checks.shown.length} shown · ${checks.withheld.length} withheld</p>` : ''}
-    </section>`;
+    return `<div data-audience-counts>
+      ${empty ? `<p>${esc(empty)}</p>` : checks.description ? `<p>${esc(checks.description)}</p>` : ''}
+      ${Array.isArray(checks.shown) && Array.isArray(checks.withheld) ? `<p>${label?`${esc(label)} · `:''}${checks.shown.length} shown · ${checks.withheld.length} withheld</p>` : ''}
+    </div>`;
   }
 
   renderAudience() {
     const names = this.profiles.profiles;
     const selected = this.left ?? this.profiles.activeId;
+    const report=this.previewState;
+    const owner=personId(this.lens);
     return `<header class="builder-panel-head"><h3>Preview the audience</h3>${click('Hide panel','hide-panel')}</header>
-      <span class="builder-note">Preview as · left view</span>
-      <div class="builder-actions">${names.map(profile=>`<button type="button" data-builder-action="preview-profile" data-value="${esc(profile.id)}" data-preview-profile="${esc(profile.id)}" aria-pressed="${profile.id===selected}">${esc(profile.name)}</button>`).join('')}</div>
+      <span class="builder-note">Choose a view</span>
+      <div class="builder-actions">${names.map(profile=>`<button type="button" data-builder-action="preview-profile" data-value="${esc(profile.id)}" data-preview-profile="${esc(profile.id)}" aria-pressed="${profile.id===selected}">${esc(this.draft&&profile.id===owner?'Your view':profile.name)}</button>`).join('')}</div>
       <label>Compare with<select id="compare-profile">${names.map(profile=>option(profile.name,profile.id,profile.id===this.right)).join('')}</select></label>
       <label class="builder-check"><input type="checkbox" id="split-compare" ${this.split?'checked':''}> Split compare · swipe divider</label>
       <label class="builder-check"><input type="checkbox" id="lens-diff" ${this.diff?'checked':''}> Lens diff · show visible differences</label>
       <p class="builder-note">Preview uses the visitor’s Lens and door terms without changing the saved profile or recording a visit.</p>
-      ${this.readReport(this.previewState?.assessment)}
+      ${report ? `<section class="builder-crossing" aria-label="Audience result" data-audience-result>${this.readReport(report.assessment.checks,{label:this.profileLabel(selected),empty:report.message})}${report.comparisonMessage?`<p>${esc(report.comparisonMessage)}</p>`:''}</section>` : ''}
       <div id="lens-diff-list"></div>
       <div class="builder-actions">
-        <button type="button" id="build-view" data-builder-action="view-preview" class="builder-primary">View scene</button>
-        <button type="button" id="build-exit" data-builder-action="${this.draft?'return-draft':'exit'}">${this.draft?'Return to draft':'Exit preview'}</button>
+        <button type="button" id="build-view" data-builder-action="view-preview" class="builder-primary" ${report?.blocked?'disabled':''}>View scene</button>
+        <button type="button" id="build-exit" data-builder-action="${this.draft?'return-draft':'exit'}">${this.draft?'Return to sketch':'Exit preview'}</button>
       </div>`;
   }
 
@@ -504,12 +574,20 @@ export class BuildUI {
   renderReview() {
     const changes = changesIn(this.draft);
     const budget = this.builder.budget(this.draft.roomKey,this.lens);
+    const audience = this.publicationAudience();
     return `<header class="builder-panel-head"><h3>Review publication</h3>${click('Back to draft','panel','outline')}</header>
+      <section class="builder-crossing" aria-labelledby="publication-audience-title" data-publication-audience>
+        <h4 id="publication-audience-title">${esc(audience.headline)}</h4>
+        <p>Publishes in <strong>${esc(audience.where)}</strong>.</p><p>${esc(audience.description)}</p>
+        ${this.readReport(audience.checks,{label:audience.label,empty:!audience.checks.canEnter?'No interior view for this profile.':''})}
+        <div class="builder-actions">${click('Show what others see','show-others',undefined,audience.visitors.length?'':'disabled')}${click('Show my view','show-own-view')}</div>
+        ${audience.visitors.length?'':'<p>No other local profile is available to preview.</p>'}
+        ${this.accessActions(audience)}
+      </section>
       ${changes.length ? `<ul class="builder-review-list">${changes.map(({label,piece,details})=>`<li>
         ${this.reviewImage(piece)}
         <span class="builder-review-kind">${esc(BUILDER_PIECES[piece.kind]?.label??piece.kind)}</span>
         <strong>${esc(label)} · ${esc(title(piece))}</strong>${details?`<p>${esc(details)}</p>`:''}</li>`).join('')}</ul>` : '<p>No changes from the published version.</p>'}
-      ${this.readReport(this.assessment)}
       ${this.renderBudget()}
       ${click('Publish this draft','publish',undefined,`class="builder-primary"${!budget?.valid||!this.draft.dirty?' disabled':''}`)}
     `;
@@ -600,6 +678,10 @@ export class BuildUI {
     if (action==='hide-panel') {this.panel=null;this.render();return;}
     if (action==='panel') {
       if (!['audience','outline','sources'].includes(value) && !this.draft) return;
+      if (this.previewState && value!=='audience') {
+        this.previewState=null;
+        this.renderStage();
+      }
       this.panel=this.panel===value ? null : value;
       this.render();
       return;
@@ -626,12 +708,23 @@ export class BuildUI {
       return;
     }
     if (action==='gallery') {this.exit();this.ui.api.travel(GALLERY_PLACE);return;}
+    if (action==='manage-access') {
+      if (ROOMS[value] && permission(ROOMS[value],this.lens).owner) this.ui.api.accessRoom?.(value);
+      return;
+    }
+    if (action==='show-others' || action==='show-own-view') {
+      const profile=action==='show-own-view'?personId(this.lens):this.otherProfile();
+      if (!profile) return;
+      this.left=profile;
+      this.preview();
+      return;
+    }
     if (action==='preview-profile') {this.left=value;this.preview();return;}
     if (action==='view-preview') {this.preview(true);return;}
     if (action==='return-draft') {this.returnToDraft();return;}
     if (action==='review') {
       this.run(async()=>{
-        this.assessment=await this.builder.preview(this.draft.roomKey,this.lens,this.selectedLens());
+        await this.builder.preview(this.draft.roomKey,this.lens,this.selectedLens());
         this.panel='review';
         this.status('');
       });
@@ -642,7 +735,7 @@ export class BuildUI {
         const {draft,receipt}=await this.builder.publish(this.draft.roomKey,this.lens);
         this.applyDraft(draft);
         this.panel='outline';
-        this.status(receipt?.id ? 'Published · Receipt '+receipt.id : 'Published.');
+        this.status(receipt?.id ? 'Published · Receipt '+shortReceipt(receipt.id) : 'Published.');
         this.renderStage();
       });
       return;
@@ -742,14 +835,33 @@ export class BuildUI {
       return;
     }
     this.run(async()=>{
-      const left=this.selectedLens(),right=this.selectedLens(this.right);
-      const assessment=await this.builder.preview(this.draft.roomKey,this.lens,left);
-      this.previewState={left,right,split:this.split,diff:this.diff,fraction:this.fraction,assessment};
-      this.placementKind=null;
-      this.status('');
-      if (viewScene) this.panel=null;
-      this.renderStage();
+      const assessment=await this.builder.preview(this.draft.roomKey,this.lens,this.selectedLens());
+      this.setAudiencePreview(assessment,viewScene);
     });
+  }
+
+  setAudiencePreview(assessment,viewScene) {
+    const audience=this.publicationAudience();
+    const left=this.selectedLens(),right=this.selectedLens(this.right);
+    const blocked=!audience.checks.canEnter;
+    const compareAllowed=audience.visitors.find(visitor=>visitor.id===this.right)?.canEnter ??
+      (this.right===personId(this.lens)&&this.builder.inspect(this.draft.roomKey,this.builder.roomFor(this.draft.roomKey,this.lens),right).canEnter);
+    const comparisonMessage=(this.split||this.diff)&&(!compareAllowed||blocked)?'Both selected views need entry access before they can be compared.':'';
+    const message=!blocked?'':audience.privateOnly&&this.left!==personId(this.lens)?'Others see nothing because this Place is private.':
+      audience.checks.canLook?'This profile can look at the Place. Its access does not include an interior view.':
+      'This profile has no interior view under the current door terms and Lens.';
+    this.previewState={left,right,blocked,message,comparisonMessage,split:this.split&&!comparisonMessage,diff:this.diff&&!comparisonMessage,
+      fraction:this.fraction,assessment:{...assessment,checks:audience.checks}};
+    this.placementKind=null;
+    this.status('');
+    this.panel=viewScene&&!blocked?null:'audience';
+    this.renderStage();
+  }
+
+  accessChanged() {
+    if (!this.active || !this.draft) return;
+    if (this.previewState) this.setAudiencePreview(this.previewState.assessment,this.panel===null);
+    if (this.panel==='review'||this.panel==='audience') this.render();
   }
 
   returnToDraft() {

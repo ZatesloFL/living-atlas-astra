@@ -185,6 +185,9 @@ export function drawBuilderFixtures(world,room,roomKey,blocks){
         world.block(0,0,1.8,.55);
         break;
       case 'sign':
+        // Furnishing size follows its own scale. A magnified Place shell
+        // moves the anchor without turning a reading sign into a billboard.
+        if(!world.hall)world.placement.scale/=Math.max(1,room.layout.scale??1);
         box(0,SIGN_BOARD.y/2,0,.14,SIGN_BOARD.y,.14,'#54666c');
         box(0,SIGN_BOARD.y,0,SIGN_BOARD.width,SIGN_BOARD.height,SIGN_BOARD.depth,'#c6b48a','wood');
         queueSign(world,piece,block,marker);

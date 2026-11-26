@@ -73,13 +73,13 @@ const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = r
 
     await dock.getByRole('button',{name:'Preview the audience',exact:true}).click();
     await dock.getByRole('button',{name:'View scene',exact:true}).click();
-    await dock.getByRole('heading',{name:'Visitor preview'}).waitFor();
-    await dock.getByRole('button',{name:'Return to draft',exact:true}).click();
+    await dock.getByRole('heading',{name:'Audience preview',exact:true}).waitFor();
+    await dock.getByRole('button',{name:'Return to sketch',exact:true}).click();
     await dock.getByRole('button',{name:'Review & publish'}).click();
     await dock.getByRole('heading',{name:'Review publication'}).waitFor();
     assert.ok(await dock.getByText(/Added · Bench/).isVisible());
     await dock.getByRole('button',{name:'Publish this draft'}).click();
-    await dock.getByText(/Published · Receipt builder:/).waitFor();
+    await dock.getByText(/^Published · Receipt [a-f0-9]{8}$/).waitFor();
     const declaration=await page.evaluate(async id=>{
       const {verifyChain}=await import('./src/ledger.js');
       const {BUILDER_STORAGE}=await import('./src/builder.js');

@@ -1,5 +1,5 @@
 /* Build sits on the scene. Only its tool regions take pointer events. */
-.build-mode #hud-shell,.build-mode #bottom-bar,.build-mode #scene-title,.build-mode #walk-hint,.build-mode #aim { display:none!important; }
+.build-mode #hud-shell,.build-mode #bottom-bar,.build-mode #scene-title,.build-mode #walk-hint,.build-mode #aim,.build-mode #navigation-return { display:none!important; }
 .builder-visit-draft { padding:8px 12px;border:1px solid #88ada9;border-radius:9px;background:#1b3442e8;color:#defaf5;text-align:center;font-size:12px; }
 .builder-hud {
   --builder-panel: #132333;
