@@ -1,4 +1,5 @@
 import {recordLabel} from './record-copy.js';
+import {thingSubject} from './thing-subject.js';
 import {showAddressFailure} from './atlas-destinations.js';
 import {personalPair,dialLabel,UNSET_HELP,assuranceExplanation} from './lens-state.js';
 import {lensStandingHTML,bindLensStanding} from './standing-controls.js';
@@ -13,7 +14,7 @@ import {styleLabel} from './item-style.js';
 import {experienceHTML,bindExperience,layerSettings,bindLayerSettings} from './experience-ui.js';
 import {permission,roomTitle} from './permissions.js';
 import {graphEdges,graphRoute} from './navigation.js';
-import {articleHTML,bindBlocks} from './block-renderer.js';
+import {articleHTML,blockHTML,bindBlocks} from './block-renderer.js';
 import {contentStore,roomEntry} from './content.js';
 import {identityBadge,authorName,accessSettings,appliedPreset} from './identity.js';
 import {positions,mapTitles,layoutAtlasLabels} from './atlas-layout.js';
@@ -27,7 +28,7 @@ const atlasLabels=layoutAtlasLabels();
 const internal=[{id:'map-workbench',from:'studio',to:'workbench',type:'seamless'},{id:'map-family',from:'studio',to:'family',type:'door'}];
 export class UI {
   constructor(api){
-    this.api=api;this.mode=null;this.sheet=$('sheet');this.content=$('sheet-content');this.lastFocus=null;this.showOthers=false;this.softApproved=new Set();contentStore.subscribe(id=>{if(this.mode==='info'&&this.infoId===id)this.info(id,true);});
+    this.api=api;this.mode=null;this.sheet=$('sheet');this.content=$('sheet-content');this.lastFocus=null;this.showOthers=false;this.softApproved=new Set();contentStore.subscribe(id=>{if(this.mode==='info'&&this.infoId===id)this.info(id,true);else if(this.mode==='thing'&&this.thingRoom===id)this.renderThing?.();});
     $('sheet-close').onclick=()=>this.close();$('veil').onclick=()=>this.close();
     $('lens-button').onclick=()=>this.api.askAtlas?this.api.askAtlas():this.lens();$('atlas-button').onclick=()=>this.atlas();$('location').onclick=()=>this.api.discover('board');
     $('build-button').onclick=()=>this.api.openBuild();
@@ -94,12 +95,23 @@ export class UI {
       ${id==='market'&&exceeds(r.measured.sensory,r.content.sensory)?`<p class="reason">Night Market reads louder than it says: Sensory ${scoreText(r.measured.sensory)}, declared ${scoreText(r.content.sensory)}.</p>`:''}
       <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions.substance]}</div><div class="info-box"><small>Style</small>${escapeHTML(styleLabel(r))}</div></div>
       <p class="muted">${r.forks.length?`${r.forks.length} seeded fork · `:''}Available now: 3D · this card · Page.<br>Ratings: ${r.district==='history'?'Academic: not reviewed. ':''}Author: sample account · Community: sample · No endorsements on file.</p>
-      ${experienceHTML(id,this.api.state().lens)}<button id="info-staff" class="secondary">Helpers · helpers for this Place</button><button id="info-access" class="secondary">Access & room receipts</button><button id="info-page" class="secondary">Read in Page form</button><button id="info-close" class="primary">Back to the walk</button>`;
+      ${experienceHTML(id,this.api.state().lens)}<button id="info-staff" class="secondary">Helpers · helpers for this Place</button><button id="info-access" class="secondary">Access & room receipts</button><button id="info-page" class="secondary">Read in Page form</button><button id="info-entrance" ${id===this.api.state().context.room?'':'disabled'}>Back to the entrance</button><button id="info-close" class="primary">Back to the walk</button>`;
     bindExperience(this.content,id,this.api.state().lens,{peek:(room,layer)=>this.api.peekLayer(room,layer),changed:next=>{this.api.experienceChanged(next);this.info(id,true);},message:text=>this.toast(text)});
-    $('info-staff').onclick=()=>this.api.staff(id);$('info-access').onclick=()=>this.api.accessRoom(id);$('info-close').onclick=()=>this.close();$('info-page').onclick=()=>this.api.openPage(id);
+    $('info-staff').onclick=()=>this.api.staff(id);$('info-access').onclick=()=>this.api.accessRoom(id);$('info-entrance').onclick=()=>this.api.entrance();$('info-close').onclick=()=>this.close();$('info-page').onclick=()=>this.api.openPage(id);
     bindReadingLinks(this.content,ref=>this.api.readings(ref));
     bindArrivalSurfaces(this.content,r,this.api.state().lens,this.api.state().profiles?.arrivalRecords,{related:next=>this.api.readRoom(next)});
     bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:block=>{this.softApproved.add(block);this.info(id,true);}});if(preserve)this.content.scrollTop=oldScroll;
+  }
+  thing(roomKey,blockId){
+    this.softApproved.clear();const subject=thingSubject(roomKey,blockId,this.api.state().lens);if(!subject){this.toast('This Thing is unavailable through your current Lens.');return;}
+    this.thingRoom=roomKey;const {room,block}=subject;this.open('thing','Thing · '+room.title,block.title??block.exhibit?.settings?.title??'Thing');
+    const render=this.renderThing=()=>{
+      const current=thingSubject(roomKey,blockId,this.api.state().lens);if(!current){this.close();return;}
+      $('sheet-title').textContent=current.block.title??'Thing';
+      this.content.innerHTML=`<p class="thing-context">In ${escapeHTML(current.room.title)} · this card and its readings belong to this Thing.</p>${blockHTML(current.block,current.room,this.api.state().lens,{approved:this.api.state().context.room===roomKey,softApproved:this.softApproved})}<button id="thing-closer" ${this.api.canCloser?.(roomKey,blockId)?'':'disabled'}>See it up close</button><button id="thing-place">Containing Place info</button><button id="thing-back">Back to the walk</button>`;
+      bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:id=>{this.softApproved.add(id);render();}});bindReadingLinks(this.content,ref=>this.api.readings(ref));
+      $('thing-closer').onclick=()=>this.api.closer(roomKey,blockId);$('thing-place').onclick=()=>this.info(roomKey);$('thing-back').onclick=()=>this.close();
+    };render();
   }
   entrance(id){
     const edge=hallEntry(id),result=visibleEdge(edge,this.api.state().lens),room=ROOMS[id];if(result.state==='hidden')return;
