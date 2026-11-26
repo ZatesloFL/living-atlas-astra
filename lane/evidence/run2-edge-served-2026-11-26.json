@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-11-26T21:15:54.498883+00:00",
+  "commit": "2a20e023ed4cef4a95cc83d92d33a6d6c59b237c",
+  "build": {
+    "commit": "2a20e023ed4cef4a95cc83d92d33a6d6c59b237c"
+  },
+  "path": "src/atlas-action-policy.js",
+  "expected_sha256": "d8ddc7a42c3fc6e911ad14420a847ff43beff02412507d75f2130f09de46a688",
+  "served_sha256": "d8ddc7a42c3fc6e911ad14420a847ff43beff02412507d75f2130f09de46a688",
+  "match": true,
+  "tls_verification": true
+}
