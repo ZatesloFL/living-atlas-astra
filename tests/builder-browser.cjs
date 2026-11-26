@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const {chromium} = require(process.env.ATLAS_PLAYWRIGHT_MODULE || 'playwright-core');
 const completeArrival = require('./arrival-setup.cjs');
-const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = require('./atlas-build-browser-controls.cjs');
+const {enterPlaceByAddress, atlasState, grantBuildAndSources, revokeStarterForGrantCheck, setPosture} = require('./atlas-build-browser-controls.cjs');
 
 (async()=>{
   const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,
@@ -16,6 +16,7 @@ const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = r
     await page.locator('#setup-form [name=age]').fill('30');
     await completeArrival(page,{square:false});
     await page.waitForFunction(()=>atlasStatus().room.startsWith('home/'));
+    await revokeStarterForGrantCheck(page);
     const home=await page.evaluate(()=>atlasStatus().room);
     await page.locator('#build-button').click();
     const dock=page.locator('#builder-hud');
@@ -30,12 +31,12 @@ const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = r
     };
     await askBuild('Place a bench');
     await dock.locator('.builder-status').filter({hasText:/active suggest grant for build/i}).waitFor();
-    assert.equal((await atlasState(page)).grants.length,0);
+    assert.equal((await atlasState(page)).grants.filter(g=>g.active).length,0);
     assert.equal(await dock.locator('.builder-proposal').count(),0);
     await dock.getByRole('button',{name:'Back to visiting',exact:true}).click();
 
     const grant = await grantBuildAndSources(page);
-    await askAndConfirm(page,'Be Quiet for Build');
+    await setPosture(page,'Build','Quiet');
     assert.equal((await atlasState(page)).envelopes.build?.posture,'Quiet');
     await page.locator('#sheet-close').click();
     await page.locator('#build-button').click();
@@ -53,7 +54,7 @@ const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = r
       return {draft:__atlas.build.draft.pieces[0].id,live:ROOMS[id].blocks.map(block=>block.id)};
     },home);
     assert.ok(!ids.live.includes(ids.draft));
-    console.log('PASS place and tune bench in draft before Visit sees it',ids.draft);
+    console.log('PASS place and tune a draft bench without changing the published Place',ids.draft);
 
     await dock.locator('[data-builder-action=panel][data-value=ask]').click();
     await askBuild('Move the bench left');
@@ -68,10 +69,11 @@ const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = r
     assert.equal(proposed?.actor,'atlas');
     assert.equal(confirmed?.actor,atlas.holder);
     assert.ok(atlas.receipts.some(r=>r.action==='atlas_applied'&&r.diff.confirmationReceipt===confirmed.hash));
-    assert.deepEqual(atlas.grants.map(g=>g.id),[grant.id]);
+    assert.deepEqual(atlas.grants.filter(g=>g.active).map(g=>g.id),[grant.id]);
     console.log('PASS explicit Build request under the persistent grant in Quiet posture',{grant:grant.id,proposal:proposed.hash,confirmation:confirmed.hash});
 
     await dock.getByRole('button',{name:'Preview the audience',exact:true}).click();
+    await dock.getByRole('button',{name:'Your view',exact:true}).click();
     await dock.getByRole('button',{name:'View scene',exact:true}).click();
     await dock.getByRole('heading',{name:'Audience preview',exact:true}).waitFor();
     await dock.getByRole('button',{name:'Return to sketch',exact:true}).click();
@@ -104,7 +106,7 @@ const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = r
     await page.reload();
     await page.waitForFunction(id=>window.atlasStatus?.().room===id,home);
     assert.ok(await drawn());
-    assert.deepEqual((await atlasState(page)).grants.map(g=>g.id),[grant.id]);
+    assert.deepEqual((await atlasState(page)).grants.filter(g=>g.active).map(g=>g.id),[grant.id]);
     assert.deepEqual(errors,[]);
     assert.deepEqual(calls,[]);
     if(process.env.ATLAS_EXPECT_STAMP)assert.equal(declaration.build,process.env.ATLAS_EXPECT_STAMP);

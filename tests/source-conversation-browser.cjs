@@ -4,7 +4,7 @@ const {readFile} = require('node:fs/promises');
 const {extname, resolve, sep} = require('node:path');
 const {chromium} = require(process.env.ATLAS_PLAYWRIGHT_MODULE || 'playwright-core');
 const completeArrival = require('./arrival-setup.cjs');
-const {enterPlaceByAddress, atlasState, askAndConfirm, grantBuildAndSources} = require('./atlas-build-browser-controls.cjs');
+const {enterPlaceByAddress, atlasState, askAtlas, grantBuildAndSources, revokeStarterForGrantCheck, setPosture} = require('./atlas-build-browser-controls.cjs');
 
 const origin = 'https://zateslofl.github.io';
 const assetPrefix = '/living-atlas-astra/';
@@ -154,6 +154,7 @@ async function mappedPlace(page, id) {
     await page.locator('#setup-form [name=age]').fill('30');
     await completeArrival(page, {square: false});
     await page.waitForFunction(() => atlasStatus().room.startsWith('home/'));
+    await revokeStarterForGrantCheck(page);
     const {driveId, owner} = await page.evaluate(() => ({driveId: atlasStatus().room + '/drive', owner: __atlas.state().lens.profileId}));
     await enterPlaceByAddress(page, driveId);
     await page.locator('#build-button').click();
@@ -181,12 +182,12 @@ async function mappedPlace(page, id) {
     await openSources();
     await say('Connect my mock Drive in indexed mode');
     await log.getByText(/active suggest grant for sources/i).last().waitFor();
-    assert.equal((await atlasState(page)).grants.length, 0);
+    assert.equal((await atlasState(page)).grants.filter(record => record.active).length, 0);
     assert.deepEqual((await mappedPlace(page, driveId)).sourcePlacements ?? [], []);
     await closeSources();
     await builder.getByRole('button', {name: 'Back to visiting', exact: true}).click();
     const grant = await grantBuildAndSources(page);
-    await askAndConfirm(page, 'Be Conversational for Sources');
+    await setPosture(page, 'Sources', 'Conversational');
     assert.equal((await atlasState(page)).envelopes.sources?.posture, 'Conversational');
     await page.locator('#sheet-close').click();
     await page.locator('#build-button').click();
@@ -201,7 +202,7 @@ async function mappedPlace(page, id) {
     await builder.getByRole('button', {name: 'Keep in draft', exact: true}).click();
     await waitReceipt(page, 'place-piece', 'applied', 'build');
     await openSources();
-    assert.deepEqual((await atlasState(page)).grants.map(record => record.id), [grant.id]);
+    assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(record => record.id), [grant.id]);
 
     // Declare without opening the dial form. A fixture serves the original,
     // records an owner-edited dial, and returns the real client's Receipt shape.
@@ -319,7 +320,7 @@ async function mappedPlace(page, id) {
     }, recordsKey);
     assert.equal(journal.valid, true);
     assert.equal(journal.legacy, null);
-    assert.deepEqual((await atlasState(page)).grants.map(record => record.id), [grant.id]);
+    assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(record => record.id), [grant.id]);
     const pairs = [];
     for (const [area, action, grants] of [
       ['build', 'place-piece', {build: grant.id}],
@@ -350,7 +351,7 @@ async function mappedPlace(page, id) {
     }
 
     await openSources();
-    assert.deepEqual((await atlasState(page)).grants.map(record => record.id), [grant.id]);
+    assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(record => record.id), [grant.id]);
     await say('Connect my mock gallery in indexed mode');
     await dialog.locator('[data-source-mapping-preview]').filter({hasText: /Mock gallery/}).waitFor();
     const pending = (await atlasState(page)).proposals.findLast(p => p.value.action === 'connect-and-map' && p.status === 'proposal');
@@ -362,7 +363,11 @@ async function mappedPlace(page, id) {
     try {
       await other.goto(origin + assetPrefix + '?page&test');
       await other.locator('#page-ask-atlas').click();
-      await askAndConfirm(other, 'Revoke the Atlas grant for Sources');
+      await askAtlas(other, 'Revoke the Atlas grant for Sources');
+      await other.waitForFunction(() => {
+        const page = window.__atlasPage;
+        return page && !page.atlasUI.records.state(page.lens).grants.some(record => record.active && record.areas.includes('sources'));
+      });
     } finally {await other.close();}
     const narrowed = (await atlasState(page)).grants.find(record => record.id === grant.id);
     assert.equal(narrowed?.active, true);
@@ -379,7 +384,7 @@ async function mappedPlace(page, id) {
     const restored = await mappedPlace(page, driveId);
     assert.equal(restored.kitPieces.find(piece => piece.id === draft.id)?.ref.thingId, block.id);
     assert.deepEqual(restored.sourcePlacements.map(piece => piece.blockId), approved.map(piece => piece.blockId));
-    assert.deepEqual((await atlasState(page)).grants.map(({id, areas}) => ({id, areas})), [{id: grant.id, areas: ['build']}]);
+    assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(({id, areas}) => ({id, areas})), [{id: grant.id, areas: ['build']}]);
     assert.deepEqual(errors, []);
     assert.deepEqual(evidence.errors, []);
     for (const action of ['request', 'upload', 'publish']) assert.equal(evidence.requests.filter(call => call.action === action).length, 1);

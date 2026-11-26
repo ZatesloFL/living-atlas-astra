@@ -26,9 +26,27 @@ async function atlasState(page) {
   return page.evaluate(() => __atlas.atlas.records.state(__atlas.state().lens));
 }
 
-async function askAndConfirm(page, words, beforeConfirm = async () => {}) {
+async function askAtlas(page, words) {
   await page.locator('#atlas-ask').fill(words);
   await page.locator('#atlas-ask-form button').click();
+}
+
+async function revokeStarterForGrantCheck(page) {
+  if (!(await atlasState(page)).grants.some(record => record.active && record.origin === 'starter')) return;
+  await openAskAtlas(page);
+  await askAtlas(page, 'Turn off the Atlas');
+  await page.waitForFunction(() => !__atlas.atlas.records.state(__atlas.state().lens).grants.some(record => record.active));
+  await page.locator('#sheet-close').click();
+}
+
+async function setPosture(page, area, posture) {
+  await askAtlas(page, `Be ${posture} for ${area}`);
+  await page.waitForFunction(({area, posture}) => __atlas.atlas.records.state(__atlas.state().lens).envelopes[area]?.posture === posture,
+    {area: area.toLowerCase(), posture});
+}
+
+async function askAndConfirm(page, words, beforeConfirm = async () => {}) {
+  await askAtlas(page, words);
   await page.locator('#atlas-confirm').waitFor();
   const proposal = await page.evaluate(() => (window.__atlas?.atlas ?? window.__atlasPage?.atlasUI).pending);
   await beforeConfirm(proposal);
@@ -40,7 +58,7 @@ async function askAndConfirm(page, words, beforeConfirm = async () => {}) {
 async function grantBuildAndSources(page) {
   await openAskAtlas(page);
   const grantId = await askAndConfirm(page, 'Give Atlas standing edit access for my Build and Sources', async () => {
-    assert.equal((await atlasState(page)).grants.length, 0, 'The edit grant is only a proposal before the owner confirms');
+    assert.equal((await atlasState(page)).grants.filter(record => record.active).length, 0, 'The edit grant is only a proposal before the owner confirms');
   });
   const state = await atlasState(page);
   const grant = state.grants.find(record => record.id === grantId);
@@ -52,4 +70,4 @@ async function grantBuildAndSources(page) {
   return grant;
 }
 
-module.exports = {enterPlaceByAddress, openAskAtlas, atlasState, askAndConfirm, grantBuildAndSources};
+module.exports = {enterPlaceByAddress, openAskAtlas, atlasState, askAtlas, grantBuildAndSources, revokeStarterForGrantCheck, setPosture};
