@@ -1,0 +1,18 @@
+{
+  "revision": "22c2fdc02bfbf96324da5876dbbed78505e71e17",
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "sha256": {
+    "src/diagnostics.js": "2d733cd66ceffe290409d82d5dd143c0d23a52f4ef6e8aeabb6f6f792e7d478e",
+    "index.html": "9bb1debdd89c29d5df7c27401e59ec51d23fba4f6a5c1fac32656c6c53642e2b",
+    "builder.css": "596e26da886d041e289290342b9d909cd1da263437a0f55eda1f6e1f588ab3c6",
+    "src/build-ui.js": "bee422a06256b2a6425c0fd8e280b347ed6ed13f6c641fcae6aa60b81d8da9e0",
+    "src/builder-fixtures.js": "948967605f78abee2bd6c3e75a90e106bf6b01f1a8c4d1b658c07d891c31c17f",
+    "src/builder-pieces.js": "6611a00a73e47ea984ab553be2b0f207917565dc8d05a51f8bb2416b41ce67f7",
+    "src/builder-stage.js": "112a57398be94adf0963d66529bda421a3ccdeb0205ff7723305c2a37ee8ff7e",
+    "src/builder.js": "02d03d72f74577971cd96629c32525b50e03f0e7f12e9498b6d7070e8bc47cb4",
+    "src/runtime.js": "c52bfe20b3133557db4eeb38d052ceae0fffda439b7003cf89ce7da03b0546c3",
+    "src/source-conversation-ui.js": "9dc5a67fad7038bca540dcac857a716146f505c54db74545c3cb214cb200573c",
+    "src/sources-ui.js": "e2920663e536e9c06fcf8aa8de9cfe824f6fac176dd37cf75afd176bb66ec789",
+    "src/world.js": "e96de4a14a63497a0e73d52047a5e7a4b393910398fc8386728bf55570cd1a6d"
+  }
+}

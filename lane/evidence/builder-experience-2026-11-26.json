@@ -1,0 +1,108 @@
+{
+  "arrivalSource": {
+    "place": "starter Home",
+    "state": "https://drive.google.com/drive/folders/synthetic-builder-experience\nInbox · Not connected",
+    "url": "https://drive.google.com/drive/folders/synthetic-builder-experience"
+  },
+  "ownerDraft": {
+    "marked": "Trail NoticeDraft · READ THING",
+    "thingTitle": "Trail Notice",
+    "signFace": {
+      "id": "exhibit:home/9bf6b29e-11f4-4f7b-85dc-678bd62e28a9:kit-33e1cd11-e4cf-4150-8e2d-d21ed900ee3c",
+      "text": "BLUE GATE",
+      "lines": [
+        "BLUE",
+        "GATE"
+      ],
+      "center": [
+        0,
+        1.1,
+        3.2840000000000003
+      ]
+    },
+    "spot": {
+      "position": [
+        0,
+        1.88,
+        4.180000000000001
+      ],
+      "yaw": 0,
+      "pitch": -0.8714323476781957
+    },
+    "pixels": {
+      "board": {
+        "center": [
+          262,
+          410.28927524770666
+        ],
+        "clip": {
+          "x": 0,
+          "y": 231,
+          "width": 524,
+          "height": 357
+        },
+        "withinViewport": false
+      },
+      "ink": {
+        "center": [
+          263.75349587917583,
+          433.92224631830595
+        ],
+        "clip": {
+          "x": 112,
+          "y": 361,
+          "width": 301,
+          "height": 144
+        },
+        "withinViewport": true
+      }
+    }
+  },
+  "headline": "Only you — this place is private",
+  "publicationLocation": "Synthetic Builder experience owner’s space",
+  "receipt": {
+    "status": "Published · Receipt 5d21097c",
+    "id": "builder:5d21097c2adbcc9b0125079f7ec5ff82c21d5147a3c34c2be3866140a6e7b080",
+    "time": "2026-11-26T20:38:23.862Z",
+    "chain": true
+  },
+  "ownerAfterPublish": {
+    "room": "home/9bf6b29e-11f4-4f7b-85dc-678bd62e28a9",
+    "signFace": {
+      "id": "exhibit:home/9bf6b29e-11f4-4f7b-85dc-678bd62e28a9:kit-33e1cd11-e4cf-4150-8e2d-d21ed900ee3c",
+      "text": "BLUE GATE",
+      "lines": [
+        "BLUE",
+        "GATE"
+      ],
+      "center": [
+        0,
+        1.1,
+        3.2840000000000003
+      ]
+    },
+    "markedDraft": false
+  },
+  "lurkerAfterPublish": {
+    "profile": "seed-visitor",
+    "backing": "none",
+    "display": "anonymous",
+    "room": "square",
+    "foundThing": false,
+    "message": "No accessible room at that address. I tried “home/9bf6b29e-11f4-4f7b-85dc-678bd62e28a9” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+  },
+  "adultAfterPublish": {
+    "profile": "seed-verified",
+    "backing": "verified",
+    "display": "real",
+    "room": "square",
+    "foundThing": false,
+    "message": "No accessible room at that address. I tried “home/9bf6b29e-11f4-4f7b-85dc-678bd62e28a9” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+  },
+  "selectedLens": {
+    "verifiedAdult": "sign drawn",
+    "unverifiedVisitor": "entered preview; sign withheld",
+    "proposedSensoryAmount": 2
+  },
+  "build": "22c2fdc02bfbf96324da5876dbbed78505e71e17"
+}
