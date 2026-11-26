@@ -1,0 +1,62 @@
+[
+  {
+    "id": "306929c2-2145-49a4-a19b-e7d878473d16",
+    "time": "2026-11-26 21:02:10.017+00",
+    "job": "guide",
+    "model": "anthropic/claude-haiku-5-5",
+    "agent": "docent-silver",
+    "input_tokens": 893,
+    "output_tokens": 185,
+    "reasoning_tokens": 140,
+    "cost_microusd": 182,
+    "cost_basis": "measured",
+    "validation_passed": true,
+    "result": "accepted",
+    "failure_class": null
+  },
+  {
+    "id": "5d09a193-ec92-4e6f-9f89-d0d1ba93aee3",
+    "time": "2026-11-26 21:02:31.815+00",
+    "job": "guide",
+    "model": "anthropic/claude-haiku-5-5",
+    "agent": "docent-silver",
+    "input_tokens": 508,
+    "output_tokens": 234,
+    "reasoning_tokens": 190,
+    "cost_microusd": 168,
+    "cost_basis": "measured",
+    "validation_passed": true,
+    "result": "accepted",
+    "failure_class": null
+  },
+  {
+    "id": "0fc97fce-8493-4b2a-a33b-ece1c917844b",
+    "time": "2026-11-26 21:02:54.799+00",
+    "job": "guide",
+    "model": "anthropic/claude-haiku-5-5",
+    "agent": "docent-silver",
+    "input_tokens": 873,
+    "output_tokens": 488,
+    "reasoning_tokens": 430,
+    "cost_microusd": 332,
+    "cost_basis": "measured",
+    "validation_passed": true,
+    "result": "accepted",
+    "failure_class": null
+  },
+  {
+    "id": "f8c2266e-40cc-4d6c-a15b-6a68cd02bdda",
+    "time": "2026-11-26 21:03:16.853+00",
+    "job": "guide",
+    "model": "anthropic/claude-haiku-5-5",
+    "agent": "docent-silver",
+    "input_tokens": 514,
+    "output_tokens": 55,
+    "reasoning_tokens": 43,
+    "cost_microusd": 79,
+    "cost_basis": "measured",
+    "validation_passed": true,
+    "result": "accepted",
+    "failure_class": null
+  }
+]

@@ -132,3 +132,15 @@ test('seven real v8 hall captures replay exact quoted answers and the unsupporte
 
 // Historical wire captures remain immutable; only the client provenance adds an honest abstention label.
 function currentEvidenceLabel(captured){const result=structuredClone(captured);if(result.proposal.text==="I don't know from the blocks available in this view.")result.receiptData.answerEvidence='none';return result;}
+
+test('Run-2 real proxy captures keep exact source validation and distinguish an unsupported question from a grounded answer',async()=>{
+ const {readFile}=await import('node:fs/promises'),{allowedBlocks}=await import('../supabase/functions/ai-proxy/protocol.js');
+ const capture=JSON.parse(await readFile(new URL('./fixtures/docent-proxy-live-run2.json',import.meta.url),'utf8'));assert.equal(capture.passed,true);assert.equal(capture.captures.length,4);
+ for(const [index,wire] of capture.captures.entries()){
+  const c={place:{key:'boycott'},action:'answer',question:wire.request.context.question,blocks:allowedBlocks(wire.request.context),lens:{...wire.request.context.lens,ageBand:wire.request.context.lens.audience}};
+  const client=createAI({transport:transport(async url=>url.endsWith('/session')?session():Response.json(wire.response))});const result=await client.request(request(c));
+  assert.deepEqual(result,wire.clientResult);assert.equal(provenanceLabel(result.receiptData,result.proposal),wire.label);assert.equal(wire.httpStatus,200);
+  if(index<2)assert(result.proposal.citations.length);else assert.equal(result.proposal.text,"I don't know from the blocks available in this view.");
+  if(index===2){assert(wire.response.proposal.citations.length,'real server quote retained exactly in the capture');assert.equal(result.receiptData.answerEvidence,'coverage-not-established');}
+ }
+});
