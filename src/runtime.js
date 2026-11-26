@@ -125,6 +125,7 @@ function updateContext(){
   }
 }
 function rememberEntrance(force=false){
+ if(lens.preview)return;
  const key=personId(lens)+'|'+kind+'|'+context.room;
  if(force||enteredView?.key!==key)enteredView={key,room:context.room,scene:kind,position:controls.position.toArray(),yaw:controls.smoothYaw};
 }
@@ -136,8 +137,9 @@ function moveWithin(scope,spot,{returning=false}={}){
 }
 function entranceRecord(){return enteredView?{...structuredClone(enteredView),holder:enteredView.key.split('|')[0]}:null;}
 function returnEntrance(){
+ if(previewState||buildUI?.active)buildUI.exit();
  if(!enteredView||enteredView.key!==personId(lens)+'|'+kind+'|'+context.room)return;
- travel?.cancel({quiet:true});if(previewState||buildUI?.active)buildUI.exit();
+ travel?.cancel({quiet:true});document.querySelector('#startup-diagnostics:not([hidden]) [data-close]')?.click();
  if(page&&!page.root.hidden){page.returnEntrance();return;}
  for(const d of document.querySelectorAll('dialog[open]'))d.close();
  for(const root of document.querySelectorAll('.access-overlay:not([hidden])'))root.querySelector('[data-dialog-close]')?.click();

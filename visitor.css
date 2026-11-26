@@ -8,4 +8,4 @@
 .build-mode .visitor-controls,.page-mode .visitor-controls{display:none}
 @media(max-height:500px){#bottom-bar:has(.visitor-controls){min-height:210px}.visitor-controls{gap:2px;bottom:106px}.visitor-controls button{font-size:10px}#visitor-view-status{display:none}}
 
-@media(max-width:380px){#bottom-bar:has(.visitor-controls){min-height:264px}.visitor-controls{bottom:148px}}
+@media(max-width:380px){#bottom-bar:has(.visitor-controls){min-height:276px}.visitor-controls{bottom:160px}}

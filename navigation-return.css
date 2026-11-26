@@ -3,5 +3,5 @@
 .navigation-return.floating{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:58px;max-width:112px}
 #sheet .navigation-return{order:1}#sheet-close{order:2}
 #map-here{position:sticky;top:0;padding:12px;background:#1d423c;z-index:1;border-radius:10px;color:#e5fff4}
-@media(max-width:380px){.navigation-return.floating{bottom:100px}.navigation-return{min-width:100px;max-width:135px}}
 @media(max-height:500px){.navigation-return.floating{bottom:58px}}
+@media(max-width:380px){.navigation-return.floating{bottom:112px}.navigation-return{min-width:100px;max-width:135px}}

@@ -1,5 +1,5 @@
 import {ROOMS} from './data.js';
-import {permission} from './permissions.js';
+import {permission,personId} from './permissions.js';
 import {roomVisible} from './rules.js';
 
 export const VISITOR_EYE=1.88,DEFAULT_CEILING=8;
@@ -8,10 +8,12 @@ export function viewpointCeiling(room){
  return Math.max(VISITOR_EYE,Number.isFinite(height)?height-.25:DEFAULT_CEILING-.25);
 }
 export function inEnteredPlace(world,scope,x,z){
- if(!scope||scope.scene!==world.kind||!Number.isFinite(x)||!Number.isFinite(z)||!world.withinBounds(x,z))return false;
+ if(!scope||scope.holder&&scope.holder!==personId(world.lens)||scope.scene!==world.kind||!Number.isFinite(x)||!Number.isFinite(z)||!world.withinBounds(x,z))return false;
  const room=ROOMS[scope.room];if(!room||!permission(room,world.lens).canEnter||!roomVisible(scope.room,world.lens))return false;
  if(world.hall)return world.hall===scope.room;
  // Physical zones still exist when their contents are hidden by the Lens.
+ // Some embedded Places do not drive the location label; their boundaries still bind.
+ if(world.edgeObjects.some(e=>!(e.contextPriority>=0)&&e.zone&&e.to!==scope.room&&world.zone(e,x,z)))return false;
  const zone=[...world.edgeObjects].filter(e=>e.contextPriority>=0).sort((a,b)=>a.contextPriority-b.contextPriority).find(e=>world.zone(e,x,z));
  if(zone&&zone.to!==scope.room)return false;
  for(const r of Object.values(ROOMS)){
