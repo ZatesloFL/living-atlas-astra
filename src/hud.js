@@ -20,7 +20,7 @@ export class HUD {
   for(const {node} of this.sources){const hidden=node!==winner;if(node.classList.contains('hud-suppressed')!==hidden)node.classList.toggle('hud-suppressed',hidden);}
   this.measure();
  }
- notify(text,{duration=3200,action,label}={}){if(this.queue.some(n=>n.text===text))return;this.queue.push({text,duration,action,label});if(this.queue.length===1)this.present();}
+ notify(text,{duration=3200,action,label,key,immediate=false}={}){if(key)this.queue=this.queue.filter(n=>n.key!==key);if(this.queue.some(n=>n.text===text))return;const item={text,duration,action,label,key};if(immediate){this.queue.unshift(item);this.present();}else {this.queue.push(item);if(this.queue.length===1)this.present();}}
  present(){clearTimeout(this.timer);const item=this.queue[0],root=document.getElementById('toast');root.replaceChildren();if(item){const text=document.createElement('span');text.textContent=item.text;root.append(text);if(item.action){const button=document.createElement('button');button.textContent=item.label??'Continue';button.onclick=()=>{item.action();this.next();};root.append(button);}this.timer=setTimeout(()=>this.next(),item.duration);}this.sync();}
  next(){if(document.body.matches('.panel-open,.page-mode,.diagnostics-open')){this.timer=setTimeout(()=>this.next(),500);return;}this.queue.shift();this.present();}
  measure(){

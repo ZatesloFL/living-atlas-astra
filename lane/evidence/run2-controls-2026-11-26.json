@@ -1,0 +1,10 @@
+{
+  "tapRise": 0.37474999999999925,
+  "discreteKeys": true,
+  "inputFailure": "That input could not be used. Try again; your place is still open.",
+  "zoomFloor": "This is normal magnification. Walk back for a wider view.",
+  "ceiling": "This Place’s ceiling is 8.0 metres high.",
+  "boundary": "There is a wall or object here. Move around it or use a door.",
+  "visibleHelp": true,
+  "errors": []
+}

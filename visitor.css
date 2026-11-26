@@ -2,10 +2,15 @@
 .visitor-controls{position:absolute;left:0;bottom:106px;width:clamp(76px,22vw,112px);display:grid;gap:4px;pointer-events:auto}
 .visitor-controls button{font-size:11px;line-height:1.15;padding:7px 6px;min-height:44px;background:#172936ed;border-color:#75958b}
 #visitor-rise{touch-action:none;user-select:none;-webkit-user-select:none}
-#visitor-view-status{font-size:9px;text-align:center;color:#cbe5dd;background:#152b34df;border-radius:5px;padding:3px}
+#visitor-view-status{font-size:12px;text-align:center;color:#cbe5dd;background:#152b34df;border-radius:5px;padding:3px}
 .thing-context{font-size:11px;color:#bcd0d8}
 .viewpoint-offer{border:1px solid #a7cbb9;padding:14px;border-radius:12px;background:#213a3c}
 .build-mode .visitor-controls,.page-mode .visitor-controls{display:none}
 @media(max-height:500px){#bottom-bar:has(.visitor-controls){min-height:210px}.visitor-controls{gap:2px;bottom:106px}.visitor-controls button{font-size:10px}#visitor-view-status{display:none}}
 
 @media(max-width:380px){#bottom-bar:has(.visitor-controls){min-height:276px}.visitor-controls{bottom:160px}}
+
+.visitor-help{position:absolute;right:0;bottom:66px;width:clamp(100px,27vw,180px);pointer-events:auto;color:#e4f3ed;font-size:12px}
+.visitor-help summary{list-style:none;cursor:pointer;border:1px solid #75958b;border-radius:9px;background:#172936ed;padding:12px 8px;min-height:44px;box-sizing:border-box;text-align:center}
+.visitor-help p{position:absolute;right:0;bottom:100%;width:min(320px,calc(100vw - 40px));padding:16px;border:1px solid #75958b;border-radius:10px;background:#172936;color:#e4f3ed;font-size:14px;line-height:1.5;box-sizing:border-box;max-height:55vh;overflow:auto}
+.build-mode .visitor-help,.page-mode .visitor-help{display:none}
