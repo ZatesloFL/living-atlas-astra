@@ -73,7 +73,7 @@ test('Free text reaches the unchanged server protocol as a single question, with
   const request=JSON.parse(opts.body);sent.push(request);
   if(url.endsWith('/session'))return Response.json({session:'a'.repeat(64),holder:'b'.repeat(64),expiresAt:new Date(Date.now()+60000).toISOString()});
   const prepared=prepare(request);assert.equal(request.context.question,context.question);assert(!JSON.stringify(request).includes(context.blocks[0].body));assert(prepared.blocks.some(b=>b.id==='lead'));assert(new TextEncoder().encode(prepared.prompt).length+500<=6000);
-  const block=prepared.blocks.find(b=>b.id==='lead');return Response.json({agentId:actor.id,model:'synthetic/evidence-fixture',proposal:validateAnswer({excerpts:[{blockId:block.id,quote:block.body.slice(0,120)}]},prepared.blocks),receiptData:{receiptId:crypto.randomUUID()}});
+  const block=prepared.blocks.find(b=>b.id==='lead');return Response.json({agentId:actor.id,model:'synthetic/evidence-fixture',proposal:validateAnswer({excerpts:[{blockId:block.id,quote:block.body.match(/[^\n]*segregated bus service[^\n]*/)[0]}]},prepared.blocks),receiptData:{receiptId:crypto.randomUUID()}});
  }})});
  const result=await client.request({job:'guide',agentId:actor.id,context});assert.equal(provenanceLabel(result.receiptData,result.proposal),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');assert.equal(sent.length,2);assert(docentBlockIds(context).length<=3);assert(sent[1].context.visibleBlockIds.every(id=>context.visibleThings.includes(id)));assert.equal(sent[1].context.catalogRevision,AI_CATALOG_REVISION);
 });

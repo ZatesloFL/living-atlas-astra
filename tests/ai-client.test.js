@@ -3,10 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ai,createAI,PROPOSAL_SCHEMA,provenanceLabel} from '../src/ai.js';
 import {createProxyTransport,createBrowserTransport,AI_PROXY_ENDPOINT,docentBlockIds} from '../src/ai-proxy.js';
-const context=()=>({place:{key:'boycott'},action:'answer',question:'overview',blocks:[{id:'lead',type:'text',body:'Sample source text.'}],lens:{limits:{violence:1},hard:{violence:2},ageBand:'teen'}});
+const context=()=>({place:{key:'boycott'},action:'answer',question:'overview',blocks:[{id:'lead',type:'text',body:'A sample exhibition about public transport.'}],lens:{limits:{violence:1},hard:{violence:2},ageBand:'teen'}});
 const request=c=>({job:'guide',agentId:'docent-silver',schema:PROPOSAL_SCHEMA,context:c??context()});
 const session=()=>Response.json({session:'a'.repeat(64),holder:'b'.repeat(64),expiresAt:new Date(Date.now()+1800000).toISOString()});
-const good=()=>Response.json({proposal:{kind:'answer',room:'boycott',reason:'Permitted sample excerpts',text:'Sample source text.',citations:['lead']},agentId:'docent-silver',model:'anthropic/mock',receiptData:{receiptId:crypto.randomUUID()}});
+const good=()=>Response.json({proposal:{kind:'answer',room:'boycott',reason:'Permitted sample excerpts',text:'A sample exhibition about public transport.',citations:['lead']},agentId:'docent-silver',model:'anthropic/mock',receiptData:{receiptId:crypto.randomUUID()}});
 const transport=fetchImpl=>createProxyTransport({endpoint:'https://example.test/functions/v1/ai-proxy',fetchImpl});
 test('unconfigured ai.request stays simulated, with no network or account; unknown free questions abstain',async()=>{
  assert.equal(ai.provider,'simulated');assert.equal((await ai.request(request())).model,'simulated-v1');
@@ -92,8 +92,14 @@ test('real deployed proxy captures replay through client evidence and provenance
    expected.context.visibleBlockIds=docentBlockIds(c);assert.deepEqual(sent,expected);return Response.json(capture.response);
   }})});
   const result=await client.request(request(c));
-  assert.equal(calls,1);assert.deepEqual(result,currentEvidenceLabel(capture.clientResult));
-  assert.equal(provenanceLabel(result.receiptData,result.proposal),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');
+  assert.equal(calls,1);
+  if(question==='overview'){
+   // Preserve the old capture exactly: its location-only quote is now withheld.
+   assert.equal(capture.response.proposal.text,'Tallahassee, Florida');
+   assert.equal(result.proposal.text,"I don't know from the blocks available in this view.");
+   assert.equal(result.receiptData.receiptId,capture.response.receiptData.receiptId);
+   assert.equal(provenanceLabel(result.receiptData,result.proposal),'Live response · answer withheld');
+  }else{assert.deepEqual(result,currentEvidenceLabel(capture.clientResult));assert.equal(provenanceLabel(result.receiptData,result.proposal),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');}
  }
 });
 

@@ -1,4 +1,5 @@
 import {placeOverview,evidenceText} from './place-evidence.js';
+import {docentGrantEvidence} from './docent-grant-evidence.js';
 import {helperIdentitySource} from './account-state.js';
 import {queryIndex} from './discovery-index.js';
 import {discoveryEvidence,validateIndexAnswer} from './discovery-answer.js';
@@ -64,7 +65,7 @@ export class Staff {
  check(actor,place,action,lens){if(lens.preview)throw new Error('Exit Preview as before a receipted helper crossing.');if(!actor.declaredCapabilities.includes(action))throw new Error('Capability gap: this helper did not declare '+action+'. A new owner-approved grant is needed.');if(!actor.places.includes(place)||!ROOMS[place]||!reachable(place,this.store.lens(lens))||doorPolicy(ROOMS[place],this.store.lens(lens)).blocked)throw new Error('This Place is outside the helper or visitor’s allowed path.');
   const agentLens={...lens,profileId:actor.id,playAs:'visitor',isAgent:true,identity:actor.identity,access:this.store.data},p=permission(ROOMS[place],agentLens);if(doorPolicy(ROOMS[place],agentLens).standing.blocked)throw new Error('This helper does not meet the Place’s declared standing rules.');if(!p.grant||p.grant.to?.person!==actor.id||p.denied||scopeRank(p.scope)<scopeRank(['answer','tour'].includes(action)?'look':'suggest'))throw new Error('Grant missing, expired or revoked. This crossing needs the owner.');return p.grant;
  }
- context(actor,place,action,lens,extra={}){lens=this.store.lens(lens);const grant=this.check(actor,place,action,lens),room=viewRoom({...ROOMS[place],key:place},this.store.lens(lens));const blocks=selectContent(room,lens,[...(room.blocks??[]),placeOverview(room)].filter(Boolean)).blocks.filter(b=>!b.filtered&&!blockAccess(b,room,lens).soft).map(b=>({id:b.id,type:b.type,title:b.title,body:evidenceText(b),sources:(b.sources??[]).map(s=>({label:s.label,status:s.status??'to verify'}))}));
+ context(actor,place,action,lens,extra={}){lens=this.store.lens(lens);const grant=this.check(actor,place,action,lens),room=viewRoom({...ROOMS[place],key:place},this.store.lens(lens));const blocks=selectContent(room,lens,[...(room.blocks??[]),placeOverview(room),...(place==='boycott'?[docentGrantEvidence(actor,grant,room)]:[])].filter(Boolean)).blocks.filter(b=>!b.filtered&&!blockAccess(b,room,lens).soft).map(b=>({id:b.id,type:b.type,title:b.title,body:evidenceText(b),sources:(b.sources??[]).map(s=>({label:s.label,status:s.status??'to verify'}))}));
   // A tour is an authored Path, with a grant held by the local helper at
   // every stop. Splitting identities preserves that coverage, not a global
   // helper's ability to read or act in other Places.

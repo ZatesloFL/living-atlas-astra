@@ -1,3 +1,4 @@
+import {boycottQuestionKind} from './boycott-question-policy.js';
 import {DIMENSIONS,asPair,asHard} from './scores.js';
 // Public function endpoint only. Provider credentials never enter this client.
 import {HELPER_NAMES} from './staff-data.js';
@@ -7,6 +8,8 @@ const ORIGIN='https://zateslofl.github.io';
 export const AI_PROXY_ENDPOINT='https://ftnxmuenqfqkodizyekk.supabase.co/functions/v1/ai-proxy';
 const unavailable=(code,retry=60)=>Object.assign(new Error(code),{code,retry});
 export function docentBlockIds(context){
+ const kind=boycottQuestionKind(context.question);
+ if(kind==='capabilities')return context.blocks.some(b=>b.id==='helper-grant')?['helper-grant']:[];
  if(!Object.hasOwn(PRESET_QUESTIONS,context.question))return typedQuestionBlockIds(context);
  // Narrow to authored Things relevant to the selected question. Sending the
  // entire article exceeds the approved input envelope; never raise that cap.

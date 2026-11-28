@@ -1,3 +1,4 @@
+import {boycottQuestionKind,boycottEvidenceMatches,boycottQuoteAnswers} from './boycott-question-policy.js';
 import {PLACE_OVERVIEW_ID} from './place-evidence.js';
 export const QUESTION_LIMIT=600;
 export const DONT_KNOW="I don't know from the blocks available in this view.";
@@ -14,6 +15,9 @@ const stem=s=>s.length>4?s.replace(/(?:ing|ed|es|s)$/,'').replace(/e$/,''):s;
 // It does not infer success: the answer remains an exact, provisional excerpt.
 export const asksOutcome=question=>/^(?:did (?:it|the boycott|the campaign) (?:actually )?work|was (?:it|the boycott) successful|what (?:changed|were the outcomes|was the outcome))[?.!]*$/i.test(question.trim());
 export function rankedQuestionBlocks(context){
+ const kind=context.place?.key==='boycott'?boycottQuestionKind(context.question):null;
+ if(kind)return context.blocks.flatMap((block,index)=>boycottEvidenceMatches(kind,block)?[{block,index,score:1,terms:1}]:[]);
+
  if(asksOutcome(context.question))return context.blocks.flatMap((block,index)=>block.id==='outcomes'?[{block,index,score:1,terms:1}]:[]);
 
  const terms=[...new Set(words(context.question).filter(w=>!stop.has(w)).map(stem))];
@@ -36,7 +40,8 @@ export function typedQuestionBlockIds(context){
  const ids=[];
  // The current Place's own words are always available, even when an overview
  // question has no keyword in an exhibit body. Other selection stays exact.
- const overview=context.blocks.find(block=>block.id===PLACE_OVERVIEW_ID);
+ const kind=context.place?.key==='boycott'?boycottQuestionKind(context.question):null;
+ const overview=(!kind||kind==='overview')&&context.blocks.find(block=>block.id===PLACE_OVERVIEW_ID);
  for(const {block} of [...(overview?[{block:overview}]:[]),...rankedQuestionBlocks(context).filter(({block})=>block!==overview)]){
   const size=new TextEncoder().encode(JSON.stringify({body:block.body,sources:block.sources??[]})).length+100;
   if(size>remaining)continue;ids.push(block.id);remaining-=size;if(ids.length===3)break;
@@ -44,8 +49,17 @@ export function typedQuestionBlockIds(context){
  return ids;
 }
 
+export function partialOutcomePassage(context){
+ if(!asksOutcome(context.question)||context.blocks.some(b=>boycottEvidenceMatches('outcome',b)))return null;
+ // Older/thinner records can describe pressure without establishing success.
+ // Keep that distinction even when the live model quite properly abstains.
+ return localQuestionAnswer({...context,place:null});
+}
+
 export function quotedQuestionCoverage(context,proposal){
  if(proposal.text===DONT_KNOW)return false;
+ const kind=context.place?.key==='boycott'?boycottQuestionKind(context.question):null;
+ if(kind)return proposal.text.split('\n\n').every(quote=>context.blocks.some(block=>proposal.citations.includes(block.id)&&block.body?.includes(quote)&&boycottQuoteAnswers(kind,quote,block.id)));
  if(Object.hasOwn(PRESET_QUESTIONS,context.question))return true;
  // A Place overview is an explicit evidence kind, not keyword fuzziness.
  if(/^what (?:is|are) (?:this|the) (?:place|hall|exhibition|exhibit)(?: about)?[?.!]*$/i.test(context.question.trim()))return proposal.citations.includes(PLACE_OVERVIEW_ID);
