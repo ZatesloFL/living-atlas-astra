@@ -55,7 +55,7 @@ export class AtlasUI {
   if(result.proposal.kind==='index'){
    this.records.require(this.lens(),'discovery','look');
    const answer=indexQuestionAnswer(result.proposal,this.api.discovery(),{from:this.api.room?.()??'square'});
-   await this.records.lookup(this.lens(),{requested:result.proposal.query,rule:answer.rule,matches:answer.matches});
+   await this.records.indexAnswer(this.lens(),result.proposal,answer);
    this.messages.push({who:'atlas',text:answer.text});
   }
   else if(result.proposal.kind==='destination'){
@@ -111,6 +111,7 @@ export function receiptSummary(receipt,state){
  case 'atlas_grant_narrowed':return 'You narrowed this grant to '+d.changes.scope+' for '+areas(d.changes.areas)+'.';
  case 'atlas_attendance_changed':return 'You turned attending '+(d.enabled?'On':'Off')+'.';
  case 'atlas_holder_located':return 'Looked in your own records for '+d.kind+'. '+d.places.length+' Place(s) found.';
+ case 'atlas_index_answered':return 'Answered from visible '+d.topic+' records using '+d.rule+'.';
  case 'atlas_searched':return 'Searched Discovery for “'+d.requested+'” using '+d.rule+'. '+d.places.length+' Place(s) found.';
  default:return 'Recorded action: '+receipt.action.replaceAll('_',' ')+'.';
  }

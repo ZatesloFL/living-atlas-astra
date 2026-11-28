@@ -22,3 +22,8 @@ test('starting curator selections do not claim the holder chose them',async()=>{
  const view={...lens,discovery:discoveryDefaults()},cards=queryIndex(view,{board:'noticeboard'}).results;assert(cards.length);assert(cards.every(c=>!c.why.includes('You chose')));assert(cards.some(c=>c.why.includes('starting board selection')));
  view.discovery.curatorChoice='holder';assert(queryIndex(view,{board:'noticeboard'}).results.some(c=>c.why.includes('You selected these board settings')));
 });
+test('successive record answers survive serialization with a valid receipt chain',async()=>{
+ const {AtlasRecords}=await import('../src/atlas-records.js'),{verifyChain}=await import('../src/ledger.js'),memory=new Map(),records=new AtlasRecords(()=>({getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)}));
+ await records.ensureStarter(lens);for(const topic of ['news','clubs','people']){await records.indexAnswer(lens,{topic,query:'Synthetic question'}, {rule:'Visible records'});assert.equal((await verifyChain(records.state(lens).receipts)).valid,true);}
+ assert.equal(records.state(lens).receipts.filter(r=>r.action==='atlas_index_answered').length,3);
+});
