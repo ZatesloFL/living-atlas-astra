@@ -6,7 +6,7 @@ import {AXES, DIMENSIONS, validPair} from './scores.js';
 import {uploadAccept, uploadLimitLabel} from './upload-client.js';
 import {PHOTO_DESCRIPTION_LIMIT, PHOTO_SCORE_MODEL, uploadScoreBasis, validPhotoObservation, validPhotoRecordId} from './upload-scores.js';
 import {SourceConversationUI, confirmedSourceScores} from './source-conversation-ui.js';
-import {requireSourceScope} from './source-conversation.js';
+import {requireSourceScope,sourceAssessmentEdge} from './source-conversation.js';
 
 const proposalKey = 'living-atlas.upload-proposals.v1';
 const modeLabels = {live: 'Live reference', indexed: 'Fed by the source', snapshot: 'Snapshot'};
@@ -92,6 +92,8 @@ export class SourcesUI {
     this.proposeScores = proposeScores;
     this.onChange = onChange;
     this.records = records;
+    this.assessmentApprovals = new WeakMap();
+    this.localTextFiles = new Map();
     this.arrivalRecords = arrivalRecords;
     this.proposals = {};
     this.openSources = new Set();
@@ -204,6 +206,8 @@ export class SourcesUI {
   }
 
   endConversation() {
+    this.assessmentController?.abort();
+    this.localTextFiles.clear();
     const previous = this.conversation;
     this.conversation = null;
     void previous?.end().catch(() => { /* The session cannot authorize further actions. */ });
@@ -296,17 +300,44 @@ export class SourcesUI {
     try { this.storage?.setItem(proposalKey, JSON.stringify(this.proposals)); } catch { /* This tab retains the pending declaration. */ }
   }
 
-  async score(item, file, description = '') {
-    await requireSourceScope(this.records,this.context.lens);
+  approveAssessment(item,file) {
+    if (!sourceAssessmentEdge(item,file)) return undefined;
+    const approval = {};
+    this.assessmentApprovals.set(approval,{context:this.context,itemId:item.id,contentType:item.contentType,file});
+    return approval;
+  }
+
+  async score(item,file,description='',{approval} = {}) {
+    const context = this.context;
+    const permitted = this.assessmentApprovals.get(approval);
+    this.assessmentApprovals.delete(approval);
+    await requireSourceScope(this.records,context.lens);
+    const current = this.hostedItem(item.id);
+    if (this.context!==context || current?.state!=='uploaded' || current.contentType!==item.contentType ||
+        current.placeId!==context.placeId) throw new Error('This upload is no longer available for review.');
+    if (sourceAssessmentEdge(item,file) && (permitted?.context!==context || permitted.itemId!==item.id ||
+        permitted.contentType!==item.contentType || permitted.file!==file)) throw new Error('Confirm this metered review before it starts.');
     if (!this.proposeScores) throw new Error('The proposal is unavailable. Your upload is still unpublished.');
     const basis = uploadScoreBasis(item.contentType);
-    const bytes = basis === 'text' && !file ? await this.uploads.media(item.id,'original') : file;
-    const proposal = await this.proposeScores({file:bytes, item, description, room: this.context.room, lens: this.context.lens});
-    if (!pairsValid(proposal?.scores)) throw new Error('The proposal is missing one or more dials. Your upload is still unpublished.');
-    if (basis !== 'text' && (!hasLiveReview(proposal)||proposal.basis!==basis)) {
-      throw new Error('A live proposal and its Receipts are required. Your upload is still unpublished.');
+    if (!basis) throw new Error('Use a photo, text file, or short PCM WAV with speech for review.');
+    const controller = new AbortController();
+    this.assessmentController?.abort();
+    this.assessmentController = controller;
+    const {signal} = controller;
+    try {
+      const bytes = basis==='text'&&!file ? await this.uploads.media(item.id,'original',{signal}) : file;
+      if (basis==='text'&&!file) await requireSourceScope(this.records,context.lens);
+      signal.throwIfAborted();
+      const proposal = await this.proposeScores({file:bytes,item:current,description,room:context.room,lens:context.lens,signal});
+      signal.throwIfAborted();
+      if (!pairsValid(proposal?.scores)) throw new Error('The proposal is missing one or more dials. Your upload is still unpublished.');
+      if (basis!=='text'&&(!hasLiveReview(proposal)||proposal.basis!==basis)) {
+        throw new Error('A live proposal and its Receipts are required. Your upload is still unpublished.');
+      }
+      this.saveProposal(item.id,proposal);
+    } finally {
+      if (this.assessmentController===controller) this.assessmentController=null;
     }
-    this.saveProposal(item.id, proposal);
   }
 
   proposalFor(item) {
@@ -504,9 +535,8 @@ export class SourcesUI {
       ${command('refresh-uploads', 'Refresh storage usage')}
       <form data-form="upload" class="source-upload-form">
         <label>Choose a photo, text or audio file<input type="file" name="file" accept="${uploadAccept}" required></label>
-        <label>Photo or audio description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="3"></textarea></label>
-        <p class="source-caption">${uploadLimitLabel} per file. Live assessment sends the photo or audio to the Atlas’s AI providers. Descriptions are used for comparison. Photo assessment supports up to 7 MiB and 8,000 pixels per side. For audio, use a short PCM WAV with speech. Text scoring uses a local sample.</p>
-        <button type="submit">Upload and request scores</button>
+        <p class="source-caption">Uploads use your Atlas storage allotment. Each file can be up to ${uploadLimitLabel} and stays unpublished until you confirm its declaration.</p>
+        <button type="submit">Upload to Atlas storage</button>
       </form>
       ${this.pendingFile ? command('retry-upload', 'Retry upload: ' + this.pendingFile.file.name) : ''}
       ${items.length ? `<ul class="source-items">${items.map(item => this.renderUpload(item)).join('')}</ul>` : ''}
@@ -516,6 +546,7 @@ export class SourcesUI {
   renderUpload(item) {
     const proposal = this.proposalFor(item);
     const basis = uploadScoreBasis(item.contentType);
+    const reviewEdge=sourceAssessmentEdge(item,this.localTextFiles.get(item.id));
     const date = createdDate(item.uploadedAt);
     const readable = ['uploaded','published'].includes(item.state);
     const deletable = ['reserved','uploaded','published','deleting'].includes(item.state);
@@ -543,7 +574,8 @@ export class SourcesUI {
         </form>` : basis ? `
         <form data-form="score" data-item-id="${esc(item.id)}">
           ${basis !== 'text' ? `<label>${basis==='image'?'Photo':'Audio'} description <span>(optional)</span><textarea name="description" maxlength="${PHOTO_DESCRIPTION_LIMIT}" rows="2"></textarea></label>` : ''}
-          <button type="submit">${basis !== 'text' ? 'Ask the Atlas to propose a declaration' : 'Request score proposal'}</button>
+          ${reviewEdge ? `<p class="source-caption" data-assessment-disclosure>${esc(reviewEdge)}</p>` : ''}
+          <button type="submit">${basis==='image'?'Run metered photo review':basis==='audio-transcript'?'Run metered audio review':reviewEdge?'Retrieve and review text':'Review text locally'}</button>
         </form>` : '<p class="source-caption">Live assessment requires a short PCM WAV with speech. This upload remains unpublished.</p>') : ''}
       ${deletable ? `<details class="source-details"><summary>${deleteLabel}</summary>
         <p>Deletes the stored file and preview. The Thing’s record retains a Receipt of the deletion.</p>
@@ -576,9 +608,8 @@ export class SourcesUI {
     if (item.state !== 'uploaded') return 'Upload received.';
     const basis = uploadScoreBasis(item.contentType);
     if (!basis) return 'Audio uploaded. This copy stays unpublished. Live assessment requires a short PCM WAV with speech.';
-    try { await this.score(item,basis === 'text' ? pending.file : undefined,pending.description); }
-    catch (error) { throw new Error(`Upload received and unpublished. ${error.message}`); }
-    return 'Upload received. Review the proposed dials and confirm the declaration.';
+    if(basis==='text')this.localTextFiles.set(item.id,pending.file);
+    return 'Upload received. Review this copy when you’re ready. It is still unpublished.';
   }
 
   handleCommand(button) {
@@ -729,7 +760,7 @@ export class SourcesUI {
         return 'Video reference added. Atlas stores no video bytes.';
       }
       if (action === 'upload') {
-        this.pendingFile = {file: values.get('file'), description: values.get('description').trim(), id: crypto.randomUUID()};
+        this.pendingFile = {file: values.get('file'), id: crypto.randomUUID()};
         return this.uploadPending();
       }
       if (action === 'score') {
@@ -737,7 +768,10 @@ export class SourcesUI {
         if (!item || item.placeId !== this.context.placeId) throw new Error('This upload is unavailable.');
         const basis = uploadScoreBasis(item.contentType);
         if (!basis) throw new Error('Live assessment requires a short PCM WAV with speech. This upload remains unpublished.');
-        await this.score(item,undefined,values.get('description')?.trim() ?? '');
+        const file=this.localTextFiles.get(item.id);
+        const approval=this.approveAssessment(item,file);
+        await this.score(item,file,values.get('description')?.trim() ?? '',{approval});
+        this.localTextFiles.delete(item.id);
         await this.refreshUploads();
         return 'Review both dials for each dimension, then confirm your declaration.';
       }

@@ -85,7 +85,7 @@ test('Owner review exposes the image observation and conflict, and rejects old s
   ui.context={actorId:'owner'};
   ui.saveProposal(uploadId,{scores:scores(),provenance:'Simulated · description only.'});
   assert.doesNotMatch(ui.renderUpload(item),/Confirm declaration and publish/);
-  assert.match(ui.renderUpload(item),/Ask the Atlas to propose a declaration/);
+  assert.match(ui.renderUpload(item),/metered AI budget.*\n.*Run metered photo review/);
 
   ui.saveProposal(uploadId,{
     basis:'image',scores:dials,model,provenance:'Live · proposed from the uploaded image.',

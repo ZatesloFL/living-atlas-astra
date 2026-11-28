@@ -1,7 +1,7 @@
 import {AXES, DIMENSIONS} from './scores.js';
 import {AREA_LABELS, atlasIntent} from './atlas-intents.js';
 import {connectionPlanFingerprint} from './connected-sources.js';
-import {SourceConversation, SOURCE_GRANT_COMMAND} from './source-conversation.js';
+import {SourceConversation, SOURCE_GRANT_COMMAND, sourceAssessmentEdge} from './source-conversation.js';
 import {uploadLimitLabel} from './upload-client.js';
 import {PHOTO_DESCRIPTION_LIMIT, uploadScoreBasis} from './upload-scores.js';
 
@@ -78,13 +78,15 @@ export class SourceConversationUI {
     this.messages = [];
     this.attachment = null;
     this.pendingTransfer = null;
+    this.pendingAssessment = null;
     this.visual = null;
-    this.respond(`${capabilities} I’ll show proposals for ${room.title} and ask before acting. To give me permission, say “${SOURCE_GRANT_COMMAND}.”`);
+    this.respond(`${capabilities} Ask me what to do in ${room.title}. I’ll check with you before connecting a source, sharing changes or running a metered review.`);
   }
 
   async end() {
     this.attachment = null;
     this.pendingTransfer = null;
+    this.pendingAssessment = null;
     const hadPreview = !!this.visual;
     this.visual = null;
     try {
@@ -101,6 +103,7 @@ export class SourceConversationUI {
   render() {
     const grant = this.conversation.grantProposal;
     const proposal = grant ? null : this.conversation.pending;
+    const boundary = proposal && this.conversation.boundary();
     const details = proposal?.kind === 'declaration' ? this.renderDeclaration(proposal) :
       proposal?.kind === 'mapping' && this.visual ? mappingPreview(this.visual) :
       proposal?.kind === 'placement' && this.visual ? placementPreview(this.visual) :
@@ -110,7 +113,9 @@ export class SourceConversationUI {
         ${this.messages.map(({text,owner,receipts})=>`<p class="source-message${owner?' source-message-owner':''}"><strong>${owner?'You':'The Atlas'}</strong> ${esc(text)}</p>
           ${receipts?.length ? `<details class="source-details" data-conversation-receipts><summary>Receipts</summary>${receipts.map(([label,id])=>`<p>${esc(label)} <code>${receiptCode(id)}</code></p>`).join('')}</details>` : ''}`).join('')}
         ${grant ? `<div class="source-chat-proposal" data-source-chat-proposal="grant"><h3>Grant proposal</h3><p>${esc(grantWords(grant.value))}</p><p>Say <strong>yes</strong> to grant access or <strong>no</strong> to dismiss.</p></div>` : ''}
-        ${proposal ? `<div class="source-chat-proposal" data-source-chat-proposal="${proposal.kind}"><h3>Proposal for ${esc(this.host.context.room.title)}</h3>${details}<p>Say <strong>yes</strong> to confirm or <strong>no</strong> to dismiss.</p></div>` : ''}
+        ${proposal ? `<div class="source-chat-proposal" data-source-chat-proposal="${proposal.kind}"><h3>Proposal for ${esc(this.host.context.room.title)}</h3>${boundary?.ask?`<p>${esc(boundary.reason)}</p>`:''}${details}<p>Say <strong>yes</strong> to confirm or <strong>no</strong> to dismiss.</p></div>` : ''}
+        ${!grant&&this.pendingTransfer&&!this.pendingTransfer.approved ? `<div class="source-chat-proposal" data-source-chat-proposal="transfer"><h3>Upload to Atlas storage?</h3><p>${esc(this.pendingTransfer.file.name)} will use your storage allotment and stay unpublished.</p><p>Say <strong>yes</strong> to upload or <strong>no</strong> to dismiss.</p></div>` : ''}
+        ${!grant&&this.pendingAssessment ? `<div class="source-chat-proposal" data-source-chat-proposal="assessment"><h3>Review ${esc(this.pendingAssessment.item.filename)}?</h3><p>${esc(this.pendingAssessment.reason)}</p><p>Say <strong>yes</strong> to start or <strong>no</strong> to dismiss.</p></div>` : ''}
       </div>
       <form data-source-chat class="source-composer">
         <label class="source-composer-label" for="source-chat-text">Message the Atlas</label>
@@ -138,14 +143,14 @@ export class SourceConversationUI {
   async attach(file) {
     if (this.conversation.pending || this.conversation.grantProposal || this.attachment || this.pendingTransfer) throw new Error('Finish or dismiss the current review before attaching another file.');
     await this.conversation.requireScope();
-    this.pendingTransfer = {file,id:crypto.randomUUID()};
-    return this.uploadAttachment();
+    this.pendingTransfer = {file,id:crypto.randomUUID(),approved:false};
   }
 
   async uploadAttachment() {
     await this.conversation.requireScope();
     const host = this.host;
     const {file,id} = this.pendingTransfer;
+    if (!this.pendingTransfer.approved) throw new Error('Confirm before uploading to Atlas storage.');
     let item;
     try {
       item = host.updateHostedItem(await host.uploads.upload({file,id,placeId:host.context.placeId}));
@@ -169,16 +174,26 @@ export class SourceConversationUI {
       return;
     }
     this.attachment = {item,file:basis==='text'?file:null};
-    if (basis === 'text') return this.review('');
+    if (basis === 'text') return this.requestReview('');
     this.respond(basis === 'image'
-      ? `Describe what is in ${item.filename}, or say “skip.” The Atlas sends its photo bytes to its AI provider for live assessment and uses your description for comparison. The photo limit for assessment is 7 MiB and 8,000 pixels per side.`
-      : `Describe what can be heard in ${item.filename}, or say “skip.” The Atlas sends this WAV to its AI provider to transcribe and assess its speech and uses your description for comparison. Audio assessment supports PCM WAV up to 30 seconds.`);
+      ? `Describe what is in ${item.filename}, or say “skip.” Photos can be up to 7 MiB and 8,000 pixels per side.`
+      : `Describe what can be heard in ${item.filename}, or say “skip.” Audio review supports PCM WAV up to 30 seconds.`);
   }
 
-  async review(description) {
-    const {item,file} = this.attachment;
+  async requestReview(description) {
+    const {item,file}=this.attachment;
+    const reason=sourceAssessmentEdge(item,file);
+    if (reason) {
+      await this.conversation.requireScope();
+      this.pendingAssessment={item,file,description,reason};
+      return;
+    }
+    return this.review({item,file,description});
+  }
+
+  async review({item,file,description},approval) {
     const host = this.host;
-    await host.score(item,file,description);
+    await host.score(item,file,description,{approval});
     this.attachment = null;
     const review = host.proposalFor(item);
     await this.conversation.propose('declaration', {
@@ -211,6 +226,14 @@ export class SourceConversationUI {
       if (proposal) {
         const {text,receipts}=await this.confirm();
         this.respond(text,receipts);
+      } else if (this.pendingTransfer && !this.pendingTransfer.approved) {
+        this.pendingTransfer.approved=true;
+        return this.uploadAttachment();
+      } else if (this.pendingAssessment) {
+        const review=this.pendingAssessment;
+        this.pendingAssessment=null;
+        const approval=this.host.approveAssessment(review.item,review.file);
+        return this.review(review,approval);
       } else this.respond(this.attachment ? 'Give me a description or say “skip” so I can prepare a declaration.' : 'There is no proposal to confirm.');
       return;
     }
@@ -225,19 +248,23 @@ export class SourceConversationUI {
       return;
     }
     if (this.pendingTransfer) {
-      if (/^retry(?: upload)?$/.test(words)) return this.uploadAttachment();
-      this.respond('Say “retry upload” to continue this transfer or “cancel” to dismiss it.');
+      if (this.pendingTransfer.approved && /^retry(?: upload)?$/.test(words)) return this.uploadAttachment();
+      this.respond(this.pendingTransfer.approved?'Say “retry upload” to continue this transfer or “cancel” to dismiss it.':'Say “yes” to upload or “no” to dismiss.');
       return;
     }
-    if (this.attachment) return this.review(words === 'skip' ? '' : value);
+    if (this.pendingAssessment) {
+      this.respond('Say “yes” to start this review or “no” to dismiss.');
+      return;
+    }
+    if (this.attachment) return this.requestReview(words === 'skip' ? '' : value);
     if (/^connect\b/.test(words) || /^attach\b.*\b(?:drive|gallery)\b/.test(words)) return this.connect(words);
     if (/^(attach|upload)\b/.test(words)) {
-      this.respond(this.host.uploadAvailable ? `Choose a photo, text file or audio file. The upload limit is ${uploadLimitLabel} per file. Videos use YouTube or Vimeo links.` : 'Hosted uploads are unavailable in this session.');
+      this.respond(this.host.uploadAvailable ? `Choose a photo, text file or audio file up to ${uploadLimitLabel}. I’ll ask before storing it. Videos use YouTube or Vimeo links.` : 'Hosted uploads are unavailable in this session.');
       if (this.host.uploadAvailable) this.host.fileInput.click();
       return;
     }
-    if (/^(place|hang|put|add)\b/.test(words)) return this.place(commandText(value));
-    if (/^(publish|review (?:and )?publish)\b/.test(words)) return this.publication();
+    if (/^(place|hang|put|add)\s+/.test(words)) return this.place(commandText(value),value);
+    if (/^(?:review and )?publish (?:(?:my|this|the) )?draft$/.test(words)) return this.publication(value);
     if (/^(review|score)\s+/.test(words)) {
       await this.conversation.requireScope();
       const target = words.replace(/^(review|score)\s+/, '');
@@ -301,7 +328,7 @@ export class SourceConversationUI {
     return null;
   }
 
-  async place(input) {
+  async place(input,words) {
     await this.conversation.requireScope('suggest','placement');
     const host = this.host;
     const phrase = short(input).replace(/^(?:place|hang|put|add)\s+/i,'');
@@ -326,26 +353,30 @@ export class SourceConversationUI {
     if (!staged?.piece?.transform?.position) throw new Error('Open the Place in Build to preview a placement.');
     const snapped = staged.piece.transform.position;
     const visual = {title:match.title,location:location ? `near the ${location}` : 'open position in the draft',position:snapped};
-    await this.proposeVisual('placement',{reference:match.reference,position:snapped},'Place an existing source item in the draft',visual);
+    if (await this.proposeVisual('placement',{reference:match.reference,position:snapped},'Place an existing source item in the draft',visual,words)) return;
     this.respond(`Here is where I propose placing ${match.title} in the ${host.context.room.title} draft.`);
   }
 
-  async publication() {
+  async publication(words) {
     await this.conversation.requireScope('suggest','publication');
     const review = await this.host.emit('source-publish-preview');
     if (!review?.receipt?.id) throw new Error('Open this Place in Build to review its draft before publishing.');
-    await this.proposeVisual('publication',{previewReceiptId:review.receipt.id},'Publish the reviewed Place draft',review);
+    if (await this.proposeVisual('publication',{previewReceiptId:review.receipt.id},'Publish the reviewed Place draft',review,words)) return;
     this.respond(`Here is the preview for publishing the ${this.host.context.room.title} draft.`);
   }
 
-  async proposeVisual(kind,data,summary,visual) {
+  async proposeVisual(kind,data,summary,visual,words) {
     try {
-      await this.conversation.propose(kind,data,summary);
+      await this.conversation.propose(kind,data,summary,{words});
       this.visual = visual;
     } catch (error) {
       await this.host.emit('source-preview-clear');
       throw error;
     }
+    if (!words || this.conversation.boundary().ask) return false;
+    const {text,receipts}=await this.confirm({fromRequest:true});
+    this.respond(text,receipts);
+    return true;
   }
 
   async dismiss() {
@@ -362,14 +393,16 @@ export class SourceConversationUI {
       this.respond('Proposal dismissed.');
     } else if (this.attachment) {
       this.attachment = null;
+      this.pendingAssessment = null;
       this.respond('Review stopped. The uploaded copy is still unpublished.');
     } else if (this.pendingTransfer) {
+      const approved=this.pendingTransfer.approved;
       this.pendingTransfer = null;
-      this.respond('Transfer dismissed. Check the Source inspector for any pending upload.');
+      this.respond(approved?'Transfer dismissed. Check the Source inspector for any pending upload.':'Upload dismissed. The file stayed on this device.');
     } else this.respond('There is no open proposal to dismiss.');
   }
 
-  async confirm() {
+  async confirm({fromRequest=false} = {}) {
     const host = this.host;
     const proposal = this.conversation.pending;
     let confirmed;
@@ -392,7 +425,7 @@ export class SourceConversationUI {
         }
         const event = kind === 'placement' ? 'source-placed' : 'source-publish-confirmed';
         return host.emit(event,{...data,proposalReceipt,confirmationReceipt});
-      });
+      },{fromRequest});
     } finally {
       if (!this.conversation.pending && this.visual && visualKinds.has(proposal.kind)) {
         this.visual = null;

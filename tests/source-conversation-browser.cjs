@@ -3,8 +3,7 @@ const {createHash} = require('node:crypto');
 const {readFile} = require('node:fs/promises');
 const {extname, resolve, sep} = require('node:path');
 const {chromium} = require(process.env.ATLAS_PLAYWRIGHT_MODULE || 'playwright-core');
-const completeArrival = require('./arrival-setup.cjs');
-const {enterPlaceByAddress, atlasState, askAtlas, grantBuildAndSources, revokeStarterForGrantCheck, setPosture} = require('./atlas-build-browser-controls.cjs');
+const {enterPlaceByAddress, atlasState, askAtlas} = require('./atlas-build-browser-controls.cjs');
 
 const origin = 'https://zateslofl.github.io';
 const assetPrefix = '/living-atlas-astra/';
@@ -152,9 +151,23 @@ async function mappedPlace(page, id) {
     await page.goto(origin + assetPrefix + '?safe&test');
     await page.locator('#setup-form [name=name]').fill('Synthetic conversation owner');
     await page.locator('#setup-form [name=age]').fill('30');
-    await completeArrival(page, {square: false});
+    await page.locator('#setup-form button[type=submit]').click();
+    assert.match(await page.locator('[data-starter-grant]').innerText(), /Atlas can help.*from the start.*narrow or turn off/i);
+    await page.locator('#arrival-interview-next').click();
+    await page.locator('#arrival-lens-next').click();
+    await page.locator('[name=arrival-start][value=scratch]').check();
+    await page.locator('#arrival-create').click();
     await page.waitForFunction(() => atlasStatus().room.startsWith('home/'));
-    await revokeStarterForGrantCheck(page);
+    const starter = await atlasState(page);
+    assert.equal(starter.grants.length, 1);
+    const [grant] = starter.grants;
+    assert.equal(grant.origin, 'starter');
+    assert.equal(grant.issuedBy, 'system');
+    assert.equal(grant.scope, 'edit');
+    assert.equal(grant.active, true);
+    assert.equal(grant.expires, null);
+    assert.equal(starter.envelopes.sources?.posture, 'Conversational');
+    assert.ok(!starter.receipts.some(r => r.action === 'atlas_proposed' && r.diff.value?.kind === 'grant'));
     const {driveId, owner} = await page.evaluate(() => ({driveId: atlasStatus().room + '/drive', owner: __atlas.state().lens.profileId}));
     await enterPlaceByAddress(page, driveId);
     await page.locator('#build-button').click();
@@ -179,40 +192,58 @@ async function mappedPlace(page, id) {
       assert.equal(await builder.locator('[data-builder-form=piece]').isVisible(), false);
     };
 
-    await openSources();
-    await say('Connect my mock Drive in indexed mode');
-    await log.getByText(/active suggest grant for sources/i).last().waitFor();
-    assert.equal((await atlasState(page)).grants.filter(record => record.active).length, 0);
-    assert.deepEqual((await mappedPlace(page, driveId)).sourcePlacements ?? [], []);
-    await closeSources();
-    await builder.getByRole('button', {name: 'Back to visiting', exact: true}).click();
-    const grant = await grantBuildAndSources(page);
-    await setPosture(page, 'Sources', 'Conversational');
-    assert.equal((await atlasState(page)).envelopes.sources?.posture, 'Conversational');
-    await page.locator('#sheet-close').click();
-    await page.locator('#build-button').click();
-
-    // A Build proposal followed by Sources work proves both surfaces use the
-    // same persistent Atlas grant and receipt chain for this profile.
+    // The starter grants both surfaces access from the first request.
     const askTab = builder.locator('[data-builder-action=panel][data-value=ask]');
     if (await askTab.getAttribute('aria-pressed') !== 'true') await askTab.click();
     await builder.locator('#builder-question').fill('Place a lantern');
     await builder.locator('[data-builder-form=ask] button[type=submit]').click();
-    await waitReceipt(page, 'place-piece', 'proposed', 'build');
-    await builder.getByRole('button', {name: 'Keep in draft', exact: true}).click();
     await waitReceipt(page, 'place-piece', 'applied', 'build');
+    assert.equal(await builder.getByRole('button', {name: 'Keep in draft', exact: true}).count(), 0);
+    assert.ok(await page.evaluate(() => __atlas.build.draft.pieces.some(piece => piece.kind === 'lantern')));
     await openSources();
     assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(record => record.id), [grant.id]);
+    console.log('PASS the disclosed starter grant lets the first private Build request apply in words');
 
     // Declare without opening the dial form. A fixture serves the original,
     // records an owner-edited dial, and returns the real client's Receipt shape.
     await forbidInspector();
+    const effectCount = action => evidence.requests.filter(call => call.action === action).length;
+    const transferPrompt = dialog.locator('[data-source-chat-proposal=transfer]');
+    const costPrompt = dialog.locator('[data-source-chat-proposal=assessment]');
     const choosingFile = page.waitForEvent('filechooser');
-    await composer.getByRole('button', {name: 'Attach file'}).click();
+    await composer.getByRole('button', {name: 'Attach file', exact: true}).click();
     await (await choosingFile).setFiles({name: fileName, mimeType: 'image/png', buffer: photo});
-    await log.getByText(/describ|description/i).last().waitFor();
+    await transferPrompt.getByRole('heading', {name: 'Upload to Atlas storage?'}).waitFor();
+    assert.match(await transferPrompt.innerText(), /allotment/i);
+    assert.equal(effectCount('upload'), 0);
+    assert.equal(effectCount('request'), 0);
+    await say('yes');
+    const attachmentPrompt = log.getByText('Describe what is in ' + fileName, {exact: false});
+    await attachmentPrompt.first().waitFor();
+    assert.equal(effectCount('upload'), 1);
+    assert.equal(effectCount('request'), 0);
+    await say('skip');
+    await costPrompt.waitFor();
+    assert.match(await costPrompt.innerText(), /photo.*AI provider.*metered AI budget/is);
+    assert.equal(effectCount('request'), 0, 'Skipping a description does not authorize provider use');
+    await say('no');
+    await costPrompt.waitFor({state: 'hidden'});
+    await log.getByText(/review stopped.*still unpublished/i).waitFor();
+    assert.equal(effectCount('request'), 0);
+    assert.equal(effectCount('publish'), 0);
+    assert.equal([...evidence.uploads.values()][0].item.state, 'uploaded');
+    assert.equal((await atlasState(page)).proposals.filter(p => p.value.action === 'declare-upload').length, 0);
+
+    await say('Review ' + fileName);
+    await attachmentPrompt.nth(1).waitFor();
     await say(description);
+    await costPrompt.waitFor();
+    assert.equal(effectCount('request'), 0, 'Providing a description does not authorize provider use');
+    assert.equal(effectCount('publish'), 0);
+    await say('yes');
     await log.getByText(observation, {exact: false}).waitFor();
+    assert.equal(effectCount('request'), 1);
+    assert.equal(effectCount('publish'), 0, 'Cost approval does not confirm the suggested dials');
     assert.match(await log.innerText(), /disagree/i);
     for (const [dimension, pair] of Object.entries(dials)) {
       for (const [axis, value] of Object.entries(pair)) {
@@ -221,7 +252,7 @@ async function mappedPlace(page, id) {
     }
     await waitReceipt(page, 'declare-upload', 'proposed');
     await forbidInspector();
-    assert.equal(evidence.requests.filter(call => call.action === 'publish').length, 0);
+    assert.equal(effectCount('publish'), 0);
     await say('Set violence amount to 2');
     await log.locator('[data-proposed-dial="violence.amount"]').filter({hasText: /^2$/}).waitFor();
     await say('yes');
@@ -244,6 +275,9 @@ async function mappedPlace(page, id) {
     assert.match(await mapPreview.innerText(), /reference/i);
     assert.match(await mapPreview.innerText(), /alcove/i);
     assert.match(await log.innerText(), /indexed/i);
+    const mappingPrompt = dialog.locator('[data-source-chat-proposal=mapping]');
+    assert.match(await mappingPrompt.innerText(), /connect this external source/i);
+    assert.match(await mappingPrompt.innerText(), /say\s+yes\s+to confirm/i);
     const drawCount = await page.evaluate(roomId => {
       const drawn = new Set();
       __atlas.buildScene().traverse(object => {
@@ -263,21 +297,12 @@ async function mappedPlace(page, id) {
 
     // Place and publish using only words, then reveal both existing inspectors.
     await say('Place ' + fileName + ' on the left');
-    await waitReceipt(page, 'place-source', 'proposed');
-    const placementPreview = dialog.locator('[data-source-placement-preview]');
-    await placementPreview.waitFor();
-    assert.match(await placementPreview.innerText(), /Window study\.png/i);
-    assert.ok(!(await page.evaluate(() => __atlas.build.draft.pieces.some(piece => piece.kind === 'hosted-photo'))));
-    await page.waitForFunction(() => __atlas.buildScene()?.getObjectByName('Hosted photo preview')?.userData.sourceStatus === 'ready');
-    await say('yes');
     await waitReceipt(page, 'place-source', 'applied');
+    await page.waitForFunction(() => __atlas.buildScene()?.getObjectByName('Hosted photo preview')?.userData.sourceStatus === 'ready');
     const draft = await page.evaluate(() => __atlas.build.draft.pieces.find(piece => piece.kind === 'hosted-photo'));
     assert.ok(draft?.transform.position[0] < 0);
     assert.ok(!(await mappedPlace(page, driveId)).kitPieces.some(piece => piece.id === draft.id));
     await say('Publish draft');
-    await waitReceipt(page, 'publish-draft', 'proposed');
-    await forbidInspector();
-    await say('yes');
     await waitReceipt(page, 'publish-draft', 'applied');
     const published = await mappedPlace(page, driveId);
     const block = published.blocks.find(block => block.source?.itemId === hosted.id);
@@ -285,7 +310,7 @@ async function mappedPlace(page, id) {
     assert.ok(published.builderFixtures.some(fixture => fixture.id === draft.id && fixture.block === block.id),
       'Published placement resolves the same hosted photo');
     await forbidInspector();
-    console.log('PASS place and publish by conversation: proposed placement stayed in the private draft until publication');
+    console.log('PASS the named source placement and private publication apply on their spoken requests');
 
     await dialog.locator('[data-sources-tab=inspector]').click();
     const photoRecord = dialog.locator('[data-upload-id="' + hosted.id + '"]');
@@ -322,12 +347,12 @@ async function mappedPlace(page, id) {
     assert.equal(journal.legacy, null);
     assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(record => record.id), [grant.id]);
     const pairs = [];
-    for (const [area, action, grants] of [
-      ['build', 'place-piece', {build: grant.id}],
-      ['sources', 'declare-upload', {sources: grant.id}],
-      ['sources', 'connect-and-map', {sources: grant.id}],
-      ['sources', 'place-source', {sources: grant.id, build: grant.id}],
-      ['sources', 'publish-draft', {sources: grant.id, build: grant.id}],
+    for (const [area, action, grants, authorization] of [
+      ['build', 'place-piece', {build: grant.id}, 'holder request'],
+      ['sources', 'declare-upload', {sources: grant.id}, 'confirmation'],
+      ['sources', 'connect-and-map', {sources: grant.id}, 'confirmation'],
+      ['sources', 'place-source', {sources: grant.id, build: grant.id}, 'holder request'],
+      ['sources', 'publish-draft', {sources: grant.id, build: grant.id}, 'holder request'],
     ]) {
       const proposals = journal.receipts.filter(r => r.action === 'atlas_proposed' &&
         r.diff.value?.kind === 'extension' && r.diff.value.area === area && r.diff.value.action === action);
@@ -340,6 +365,7 @@ async function mappedPlace(page, id) {
       assert.equal(propose.diff.value.placeId, driveId);
       assert.deepEqual(propose.diff.basis.grants, grants);
       assert.equal(confirm.actor, owner);
+      assert.equal(confirm.diff.source, authorization, action);
       assert.ok(propose.id < confirm.id && propose.hash !== confirm.hash, action);
       const outcome = journal.receipts.find(r => r.action === 'atlas_applied' && r.diff.confirmationReceipt === confirm.hash);
       assert.ok(outcome?.id > confirm.id, action);
@@ -371,7 +397,8 @@ async function mappedPlace(page, id) {
     } finally {await other.close();}
     const narrowed = (await atlasState(page)).grants.find(record => record.id === grant.id);
     assert.equal(narrowed?.active, true);
-    assert.deepEqual(narrowed?.areas, ['build']);
+    const remainingAreas = grant.areas.filter(area => area !== 'sources');
+    assert.deepEqual(narrowed?.areas, remainingAreas);
     await say('yes');
     await log.getByText(/active edit grant for sources|sources grant changed/i).last().waitFor();
     const denied = await atlasState(page);
@@ -384,7 +411,7 @@ async function mappedPlace(page, id) {
     const restored = await mappedPlace(page, driveId);
     assert.equal(restored.kitPieces.find(piece => piece.id === draft.id)?.ref.thingId, block.id);
     assert.deepEqual(restored.sourcePlacements.map(piece => piece.blockId), approved.map(piece => piece.blockId));
-    assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(({id, areas}) => ({id, areas})), [{id: grant.id, areas: ['build']}]);
+    assert.deepEqual((await atlasState(page)).grants.filter(record => record.active).map(({id, areas}) => ({id, areas})), [{id: grant.id, areas: remainingAreas}]);
     assert.deepEqual(errors, []);
     assert.deepEqual(evidence.errors, []);
     for (const action of ['request', 'upload', 'publish']) assert.equal(evidence.requests.filter(call => call.action === action).length, 1);

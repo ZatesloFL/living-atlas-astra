@@ -1,10 +1,20 @@
 import {personId} from './permissions.js';
+import {atlasActionBoundary} from './atlas-action-policy.js';
+import {uploadScoreBasis} from './upload-scores.js';
 
 export const SOURCE_CONVERSATION_KEY = 'living-atlas.source-conversation.v1';
 export const SOURCE_GRANT_COMMAND = 'Give Atlas standing edit access for my sources';
 const actions = {declaration:'declare-upload',mapping:'connect-and-map',placement:'place-source',publication:'publish-draft'};
 const requested = {requested:true};
 const needsBuild = kind => kind === 'placement' || kind === 'publication';
+
+export function sourceAssessmentEdge(item,file) {
+  const basis=uploadScoreBasis(item.contentType);
+  if (basis==='image') return 'Send this photo and your optional description to the Atlas’s AI provider? Live assessment can use the Atlas’s metered AI budget.';
+  if (basis==='audio-transcript') return 'Send this WAV for transcription, then send the transcript and your optional description for assessment? Both steps can use the Atlas’s metered AI budget.';
+  if (basis==='text'&&!file) return 'Retrieve the hosted text for a local review? This uses metered storage transfer. The text stays in your browser during scoring.';
+  return null;
+}
 
 export async function requireSourceScope(records,lens,scope = 'suggest',kind) {
   if (!records) throw new Error('Ask the Atlas is unavailable here. You can use the Source inspector.');
@@ -44,12 +54,16 @@ export class SourceConversation {
     return requireSourceScope(this.records,lens,scope,kind);
   }
 
-  async propose(kind,data,summary,{supersedes} = {}) {
+  async propose(kind,data,summary,{supersedes,words=summary} = {}) {
     if (!Object.hasOwn(actions,kind)) throw new Error('Choose an action for this Place’s sources.');
     if (this.pending && !supersedes) throw new Error('Confirm or dismiss the open proposal first.');
     const {lens,placeId} = this.current();
-    const proposal = await this.records.proposeExtension(lens,{area:'sources',action:actions[kind],placeId,payload:data},summary,{...requested,supersedes});
-    return this.pending = {id:proposal.id,kind,data:structuredClone(data),summary,receipt:proposal.receipt};
+    const proposal = await this.records.proposeExtension(lens,{area:'sources',action:actions[kind],placeId,payload:data},words,{...requested,supersedes});
+    return this.pending = {id:proposal.id,kind,data:structuredClone(data),summary,receipt:proposal.receipt,value:proposal.value};
+  }
+
+  boundary() {
+    return this.pending ? atlasActionBoundary(this.pending.value,this.current().lens) : null;
   }
 
   amend(data,summary) {
@@ -58,14 +72,15 @@ export class SourceConversation {
     return this.propose(prior.kind,data,summary ?? prior.summary,{supersedes:prior.id});
   }
 
-  async confirm(apply) {
+  async confirm(apply,{fromRequest=false} = {}) {
     const proposal = this.pending;
     if (!proposal) throw new Error('There is no proposal to confirm.');
     await this.requireScope('edit',proposal.kind);
     const {lens,placeId} = this.current();
     let result,confirmationReceipt;
     try {
-      const confirmed = await this.records.confirm(lens,proposal.id,async (value,refs) => {
+      const confirm=fromRequest?'confirmRequested':'confirm';
+      const confirmed = await this.records[confirm](lens,proposal.id,async (value,refs) => {
         confirmationReceipt = refs.confirmationReceipt;
         if (!this.context || value.area !== 'sources' || value.action !== actions[proposal.kind] || value.placeId !== placeId) {
           throw new Error('The proposal is outside this Place’s active conversation.');
