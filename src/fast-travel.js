@@ -1,3 +1,4 @@
+import {arrivalWords} from './trip-words.js';
 import {spatialRoute,spatialArrival} from './interior-space.js';
 import {ROOMS,EDGES} from './data.js';
 import {permission,roomTitle,personId} from './permissions.js';
@@ -64,7 +65,7 @@ export class FastTravel {
    if(this.api.prepareArrival)landing=this.api.prepareArrival(landing,route,s.confirmed);
    const committed=await this.store.commitTravel(uses,lens,{cancelled,invites:[...s.invites],arrival:landing,commit:()=>this.api.land(landing,route,s.confirmed)});if(!committed||cancelled())return;
    if(waystation){s.atWaystation=true;this.waits.set(s.profile,s);}else this.waits.delete(s.profile);
-   this.session=null;this.fade.querySelector('button').hidden=true;this.fade.classList.remove('shown');await sleep(this.api.reduced()?180:350);this.fade.hidden=true;this.api.arrived(landing.room);this.active=false;this.refresh();this.ui.toast(waystation?'At the waystation. Your request can be reviewed in Test → owner.':'Arrived at '+roomTitle(ROOMS[landing.room],this.lens()));
+   this.session=null;this.fade.querySelector('button').hidden=true;this.fade.classList.remove('shown');await sleep(this.api.reduced()?180:350);this.fade.hidden=true;this.api.arrived(landing.room,landing);this.active=false;this.refresh();this.ui.toast(waystation?'At the waystation. Your request can be reviewed in Test → owner.':arrivalWords(landing,this.lens()));
   }catch(error){if(cancelled())return;s.auto=false;this.active=false;this.fade.hidden=true;this.fade.classList.remove('shown');this.render();this.showError(error);}
  }
 }

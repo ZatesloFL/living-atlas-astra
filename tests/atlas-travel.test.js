@@ -27,3 +27,7 @@ test('an agreed door carries through an active visit past thirteen minutes; leav
  ROOMS[key].minAge=14;assert.equal(travelPlan('square',key,f.access.lens(f.lens)).ready,false);ROOMS[key].minAge=13;
  await f.access.transitionVisit('square',lens);assert.equal(travelPlan('square',key,f.access.lens(f.lens)).ready,false);
 });
+test('arrival words distinguish the hall door in its parent from an inside crossing',async()=>{
+ const {arrivalWords}=await import('../src/trip-words.js'),{spatialArrival}=await import('../src/interior-space.js');const lens={...structuredClone(PRESETS.Teen),age:34,identity:{display:'pseudonym',backing:'none'}};
+ assert.match(arrivalWords(spatialArrival('boycott','door'),lens),/At the door to.*in .*not been entered/);assert.match(arrivalWords(spatialArrival('boycott','inside'),lens),/Arrived inside.*crossing is recorded/);
+});

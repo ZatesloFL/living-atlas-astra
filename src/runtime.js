@@ -341,7 +341,7 @@ function refreshPublishedRoom(roomKey){
  refreshBuiltScene(roomKey);
  contentStore.emit(roomKey);
 }
-travel=new FastTravel(ui,access,{authorize:s=>{if(s.atlasTrip)atlasUI.records.require(lens,'travel','edit');},attendance:()=>atlasUI.attendance(),hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),prepareArrival,land:landArrival,arrived:id=>{atlasUI.arrived(id);access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
+travel=new FastTravel(ui,access,{authorize:s=>{if(s.atlasTrip)atlasUI.records.require(lens,'travel','edit');},attendance:()=>atlasUI.attendance(),hud,lens:()=>lens,room:()=>context.room,space:()=>kind,controls:()=>controls,reduced:()=>reducedQuery.matches,access:id=>accessUI.open(id),prepareArrival,land:landArrival,arrived:(id,arrival)=>{atlasUI.arrived(id,arrival);access.recent(id,lens);lens=currentLens();rebuild(kind,{keepDoors:true});updateContext();}});
 function arrivalWorld(arrival,route,confirmed){
  const next=visitWorld(arrival.scene);retainDoors(next);for(const e of EDGES)if(e.scene===arrival.scene&&confirmed.has(e.id))next.granted.add(e.id);
  for(const e of route)if(e.scene===arrival.scene&&(confirmed.has(e.id)||!doorAgreement(e,lens).required))next.granted.add(e.originalId??e.id);
