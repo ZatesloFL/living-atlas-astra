@@ -1,0 +1,426 @@
+{
+  "url": "http://127.0.0.1:8012/",
+  "archivedSourceCommit": "60ba1aa",
+  "harness": "tests/structural-hall-browser.cjs",
+  "native": {
+    "build": "local (unstamped)",
+    "home": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511",
+    "owner": "ec898767-a6cf-4f6e-9576-26a9c82ec511",
+    "piece": "kit-59590899-4f02-482f-b8a5-92f727f36351",
+    "hall": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+    "path": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351/door",
+    "publicationReceipt": "builder:d5a92e5b34a7f65d579cebe95eb80814b6e2e670d4febe59bd6a3fa4bc4555b5",
+    "interiorPublicationReceipt": "builder:45a7acf2051b0d6a3d31f9bfaa6b69cd2bbfc87ae6d9493a76425282d3bb1d35",
+    "crossing": {
+      "outside": {
+        "room": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511",
+        "scene": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511",
+        "position": {
+          "x": 8,
+          "z": -2.1000000000000005
+        },
+        "drawCalls": 9
+      },
+      "arrived": {
+        "room": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+        "scene": "hall:builder-home-sec898767-da6cf-d4f6e-d9576-d26a9c82ec511-shall-dkit-d59590899-d4f02-d482f-db8a5-d92f727f36351",
+        "position": {
+          "x": 0,
+          "z": 8.4
+        },
+        "drawCalls": 3,
+        "inside": "Synthetic Lantern Hall",
+        "arrivalIsStandable": true,
+        "wallsBlockAnOutsidePosition": true,
+        "receipts": [
+          "d0bdfb5b2f190b962bf987cbcbd0a450e15e38fc47f2aa7bdfcbcc214d833299"
+        ]
+      },
+      "path": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351/door",
+      "card": {
+        "title": "Synthetic Lantern Hall",
+        "address": "tlh/home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+        "overview": "Exhibit hall",
+        "readings": {
+          "placeId": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+          "audienceVersion": null,
+          "thingId": null
+        }
+      },
+      "viewpoint": {
+        "parent": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511",
+        "hall": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+        "facing": 0,
+        "start": {
+          "x": 8,
+          "y": 1.88,
+          "z": -2.1000000000000005
+        },
+        "risen": {
+          "x": 8,
+          "y": 7.75,
+          "z": -2.1000000000000005
+        },
+        "zoomFov": 39.478403518398245,
+        "attempted": {
+          "x": 8,
+          "y": 7.75,
+          "z": -4.499986023614454
+        },
+        "outerSide": 0.3000139763855465,
+        "noCrossingOrGrant": true
+      }
+    },
+    "subject": {
+      "ref": {
+        "placeId": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+        "audienceVersion": null,
+        "thingId": "kit-0d78f5aa-a0e9-403a-98be-e3adfe7b09d9"
+      },
+      "marker": "exhibit:home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351:kit-0d78f5aa-a0e9-403a-98be-e3adfe7b09d9"
+    },
+    "retest": {
+      "sign": {
+        "ref": {
+          "placeId": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+          "audienceVersion": null,
+          "thingId": "kit-0d78f5aa-a0e9-403a-98be-e3adfe7b09d9"
+        },
+        "text": "READING ROOM THIS WAY",
+        "face": {
+          "point": [
+            -2,
+            1.1,
+            0.084
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "width": 1.090000033378601,
+          "height": 0.5999999642372131
+        },
+        "spot": {
+          "position": [
+            -2,
+            1.88,
+            2.374292151447752
+          ],
+          "yaw": 0,
+          "pitch": -0.32824747660647113,
+          "aim": [
+            -2,
+            1.1,
+            0.084
+          ]
+        },
+        "actual": {
+          "x": -2,
+          "y": 1.88,
+          "z": 2.374292151447752
+        },
+        "alignment": 1.0000000000000002,
+        "cardRef": {
+          "placeId": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+          "audienceVersion": null,
+          "thingId": "kit-0d78f5aa-a0e9-403a-98be-e3adfe7b09d9"
+        }
+      },
+      "lens": {
+        "thing": {
+          "placeId": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+          "thingId": "kit-5ccd1bab-9822-407b-909c-049a91b2e200"
+        },
+        "visibleBefore": 3,
+        "withheldAtGround": 0
+      },
+      "movement": {
+        "hall": "home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351",
+        "scene": "hall:builder-home-sec898767-da6cf-d4f6e-d9576-d26a9c82ec511-shall-dkit-d59590899-d4f02-d482f-db8a5-d92f727f36351",
+        "bounds": {
+          "width": 18,
+          "depth": 24
+        },
+        "height": 4.8,
+        "ceilingLine": "This Place\u2019s ceiling is 4.8 metres high.",
+        "entry": {
+          "x": 0,
+          "y": 1.88,
+          "z": 8.4
+        },
+        "risen": {
+          "x": 0,
+          "y": 4.55,
+          "z": 8.4
+        },
+        "zoom": {
+          "position": {
+            "x": 0,
+            "y": 4.55,
+            "z": 8.4
+          },
+          "fov": 33.95396676976208
+        },
+        "exit": {
+          "x": 0,
+          "y": 3.2167499999999944,
+          "z": 11.4185846023923
+        },
+        "left": {
+          "x": -8.599927214389044,
+          "y": 3.1297500000000036,
+          "z": 8.4
+        },
+        "right": {
+          "x": 8.599082338836634,
+          "y": 3.1297500000000036,
+          "z": 8.4
+        },
+        "landed": {
+          "x": 8.446920936241666,
+          "y": 1.88,
+          "z": 8.030448186995486
+        },
+        "withheldAboveAndZoomed": 0,
+        "crossingReceiptsBefore": [
+          "053ef4a74c1364d6116384bcb3a9d921a8347bc2ec1772cd7ddc509c31195eb2",
+          "c89edfdc4f2384200414a2fe2ce0010b304a78cca75cdf0a48452784c21d47a3",
+          "f8ab6aea5018cc445e0d7383131295cfbdacb8387659cc29147af0be28a1032a",
+          "ddc8571bd1e545a1da89a8aa573bc9c96185f753281f49f36426db5e896c6136",
+          "d0bdfb5b2f190b962bf987cbcbd0a450e15e38fc47f2aa7bdfcbcc214d833299",
+          "fc88cb479f724ee587e106fa1f00c500bfb92d96cb86aa0900138a9d17c9ffc5"
+        ],
+        "crossingReceiptsAfter": [
+          "053ef4a74c1364d6116384bcb3a9d921a8347bc2ec1772cd7ddc509c31195eb2",
+          "c89edfdc4f2384200414a2fe2ce0010b304a78cca75cdf0a48452784c21d47a3",
+          "f8ab6aea5018cc445e0d7383131295cfbdacb8387659cc29147af0be28a1032a",
+          "ddc8571bd1e545a1da89a8aa573bc9c96185f753281f49f36426db5e896c6136",
+          "d0bdfb5b2f190b962bf987cbcbd0a450e15e38fc47f2aa7bdfcbcc214d833299",
+          "fc88cb479f724ee587e106fa1f00c500bfb92d96cb86aa0900138a9d17c9ffc5"
+        ],
+        "grantsUnchanged": true
+      }
+    },
+    "refused": [
+      {
+        "profile": "seed-visitor",
+        "roomBeforeRequest": "square",
+        "message": "No accessible room at that address. I tried \u201ctlh/home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351\u201d as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+      },
+      {
+        "profile": "seed-verified",
+        "roomBeforeRequest": "square",
+        "message": "No accessible room at that address. I tried \u201ctlh/home/ec898767-a6cf-4f6e-9576-26a9c82ec511/hall-kit-59590899-4f02-482f-b8a5-92f727f36351\u201d as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+      }
+    ],
+    "liveCalls": 0,
+    "errors": []
+  },
+  "legacy": {
+    "build": "local (unstamped)",
+    "legacyBuild": "local (unstamped)",
+    "home": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+    "piece": "kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+    "hall": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+    "path": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0/door",
+    "originalPublicationReceipt": "builder:3a4f6d1ad5d39bca4ff01bf4d46b21e72d24870f49b25716aff17aeb2ac3ae7a",
+    "publicationReceipts": [
+      {
+        "id": "builder:3a4f6d1ad5d39bca4ff01bf4d46b21e72d24870f49b25716aff17aeb2ac3ae7a",
+        "place": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+        "time": "2026-11-28T05:15:21.876Z",
+        "things": [
+          {
+            "placeId": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+            "thingId": "kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+            "versionId": "kit-6c7793e2-30b1-4973-8f2b-03b34f6134e7/kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0"
+          }
+        ]
+      },
+      {
+        "id": "builder:4580b2e3bcda9a4dac5e6eb610b7a3a6fba0ee84d1f78a673e5ae3271fe01ff1",
+        "place": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+        "time": "2026-11-28T05:15:26.791Z",
+        "things": [
+          {
+            "placeId": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+            "thingId": "kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+            "versionId": "kit-6c7793e2-30b1-4973-8f2b-03b34f6134e7/kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0"
+          }
+        ]
+      }
+    ],
+    "structure": {
+      "parentPlaceId": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+      "pieceId": "kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+      "recoveredFrom": {
+        "thing": {
+          "placeId": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+          "thingId": "kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+          "versionId": "kit-6c7793e2-30b1-4973-8f2b-03b34f6134e7/kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0"
+        },
+        "publicationReceiptRef": "builder:3a4f6d1ad5d39bca4ff01bf4d46b21e72d24870f49b25716aff17aeb2ac3ae7a",
+        "placementReceiptRef": "builder:4580b2e3bcda9a4dac5e6eb610b7a3a6fba0ee84d1f78a673e5ae3271fe01ff1"
+      },
+      "recoveredVersionId": "kit-6c7793e2-30b1-4973-8f2b-03b34f6134e7/kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0"
+    },
+    "crossing": {
+      "outside": {
+        "room": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+        "scene": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+        "position": {
+          "x": 8,
+          "z": -0.5
+        },
+        "drawCalls": 9
+      },
+      "arrived": {
+        "room": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+        "scene": "hall:builder-home-s9aef8ce0-debeb-d4208-da397-db1d9e5a2adbd-shall-dkit-d5744d960-de0d8-d4dc4-dbbe5-d130a122bb0f0",
+        "position": {
+          "x": 0,
+          "z": 8.4
+        },
+        "drawCalls": 3,
+        "inside": "Synthetic Lantern Hall",
+        "arrivalIsStandable": true,
+        "wallsBlockAnOutsidePosition": true,
+        "receipts": [
+          "10afcb02049c453b55f08db583f99af159fa644b7600bc1b87024c4788ba8af9"
+        ]
+      },
+      "path": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0/door",
+      "card": {
+        "title": "Synthetic Lantern Hall",
+        "address": "tlh/home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+        "overview": "Exhibit hall",
+        "readings": {
+          "placeId": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+          "audienceVersion": null,
+          "thingId": null
+        }
+      },
+      "viewpoint": {
+        "parent": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+        "hall": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+        "facing": 0,
+        "start": {
+          "x": 8,
+          "y": 1.88,
+          "z": -0.5
+        },
+        "risen": {
+          "x": 8,
+          "y": 7.337750000000005,
+          "z": -0.5
+        },
+        "zoomFov": 36.5987734799129,
+        "attempted": {
+          "x": 8,
+          "y": 7.337750000000005,
+          "z": -2.8995893763952245
+        },
+        "outerSide": 0.30041062360477566,
+        "noCrossingOrGrant": true
+      }
+    },
+    "retest": {
+      "oldLinks": {
+        "old": {
+          "placeId": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd",
+          "thingId": "kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+          "versionId": "kit-6c7793e2-30b1-4973-8f2b-03b34f6134e7/kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0"
+        },
+        "destination": {
+          "placeId": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+          "audienceVersion": null,
+          "thingId": null
+        },
+        "originalReceiptsUntouched": true,
+        "resolution": {
+          "exact": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+          "wrongVersion": null,
+          "wrongThing": null,
+          "unrelatedHolder": null
+        }
+      },
+      "movement": {
+        "hall": "home/9aef8ce0-ebeb-4208-a397-b1d9e5a2adbd/hall-kit-5744d960-e0d8-4dc4-bbe5-130a122bb0f0",
+        "scene": "hall:builder-home-s9aef8ce0-debeb-d4208-da397-db1d9e5a2adbd-shall-dkit-d5744d960-de0d8-d4dc4-dbbe5-d130a122bb0f0",
+        "bounds": {
+          "width": 18,
+          "depth": 24
+        },
+        "height": 4.8,
+        "ceilingLine": "This Place\u2019s ceiling is 4.8 metres high.",
+        "entry": {
+          "x": 0,
+          "y": 1.88,
+          "z": 8.4
+        },
+        "risen": {
+          "x": 0,
+          "y": 4.55,
+          "z": 8.4
+        },
+        "zoom": {
+          "position": {
+            "x": 0,
+            "y": 4.55,
+            "z": 8.4
+          },
+          "fov": 34.395991775837516
+        },
+        "exit": {
+          "x": 0,
+          "y": 3.2582499999999994,
+          "z": 11.415624856543399
+        },
+        "left": {
+          "x": -8.599215440483693,
+          "y": 3.0882499999999977,
+          "z": 8.4
+        },
+        "right": {
+          "x": 8.599228839210918,
+          "y": 3.0882499999999977,
+          "z": 8.4
+        },
+        "landed": {
+          "x": 8.446921310157915,
+          "y": 1.88,
+          "z": 8.030448186995486
+        },
+        "crossingReceiptsBefore": [
+          "017af5e2c110bb47f0480d39728228b9701e84a71774fa85dd1bd7dcff01b097",
+          "b85417edaf54b8f527d0d7818895644bd6ad00c80d8a525d1cd27362e31da740",
+          "b13d0ca2d330baacd5404762473b2862826036272ca4e86a6db855051742fb7d",
+          "25c3a7409a0b3a7c9cb61c5b8d20bc61742ea6c8fd3cbd0b29bccb13e1869da3",
+          "20721434ea4ba4caba7acd43db7b1b5fb2cd5660a30f7229d9bd11f4a037d0a7",
+          "10afcb02049c453b55f08db583f99af159fa644b7600bc1b87024c4788ba8af9",
+          "14963d76634d47cc9ce26f30787ee58668223d25c0c58812744293e1afb04e82"
+        ],
+        "crossingReceiptsAfter": [
+          "017af5e2c110bb47f0480d39728228b9701e84a71774fa85dd1bd7dcff01b097",
+          "b85417edaf54b8f527d0d7818895644bd6ad00c80d8a525d1cd27362e31da740",
+          "b13d0ca2d330baacd5404762473b2862826036272ca4e86a6db855051742fb7d",
+          "25c3a7409a0b3a7c9cb61c5b8d20bc61742ea6c8fd3cbd0b29bccb13e1869da3",
+          "20721434ea4ba4caba7acd43db7b1b5fb2cd5660a30f7229d9bd11f4a037d0a7",
+          "10afcb02049c453b55f08db583f99af159fa644b7600bc1b87024c4788ba8af9",
+          "14963d76634d47cc9ce26f30787ee58668223d25c0c58812744293e1afb04e82"
+        ],
+        "grantsUnchanged": true
+      }
+    },
+    "liveCalls": 0,
+    "errors": []
+  },
+  "testedRuntimeCommit": "ca87c23b6215c795073e7789e7b1bbee68512cf3",
+  "sha256": {
+    "src/ui.js": "f794300e15faab30cfbfe913d0183c1929718eed8d95f40df4d3c20b1e02d3e9",
+    "src/runtime.js": "5b208de3c89b7245c60d1b017ab64cf1cb8838a0e08e4d555f764771cc767d1b",
+    "src/thing-subject.js": "b125ba9269767bc4e70f7063026e295e1d441e6c4e59f001c0346394826ebe82",
+    "src/standing-ui.js": "0b1b66edddeb7fa90ae2c7da45c25223018dbb95726bddd3c0d3c26ee8a6ff59"
+  }
+}

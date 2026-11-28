@@ -13,6 +13,7 @@ const mapNode = (page,id) => page.locator('[data-map-node=' + JSON.stringify(id)
 
 async function observe(context, url) {
   const page = await context.newPage(), errors = [], liveCalls = [];
+  page.setDefaultTimeout(30000);
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/functions/v1/**', route => {
     liveCalls.push(new URL(route.request().url()).pathname);
@@ -25,6 +26,7 @@ async function failureState(page,errors) {
   const state=await page.evaluate(()=>({
     room:window.atlasStatus?.().room,
     scene:window.atlasStatus?.().scene,
+    position:window.__atlas?.state().position,
     card:document.querySelector('#sheet:not([hidden]) #sheet-title')?.textContent,
     build:document.querySelector('#builder-hud:not([hidden]) .builder-status')?.textContent,
     travelError:document.querySelector('#travel-error,#travel-words-message')?.textContent,
@@ -195,7 +197,7 @@ async function tapHallFrontage(page, door) {
   await page.mouse.click(...point);
 }
 
-async function enterDoor(page,{hall,parent,paths}) {
+async function enterDoor(page,{hall,parent,paths},{atDoor}={}) {
   await showMap(page);
   await typeAddress(page,hall.address);
   await page.locator('#travel-arrival').selectOption('door');
@@ -206,6 +208,7 @@ async function enterDoor(page,{hall,parent,paths}) {
     return {room,scene,position,drawCalls};
   });
   assert.equal(outside.scene,parent.scene);
+  const viewpoint=await atDoor?.(page,{hall,parent,paths});
   const prompt=page.locator('#edge-prompt').filter({hasText:hall.title});
   await prompt.waitFor();
   await tapHallFrontage(page,hall.layout.interior.frontage.door);
@@ -213,6 +216,15 @@ async function enterDoor(page,{hall,parent,paths}) {
   assert.equal(await page.locator('#sheet-title').innerText(),hall.title);
   assert.equal(await page.locator('#sheet-content .address').innerText(),hall.address);
   assert.equal(await page.evaluate(()=>atlasStatus().room),parent.id);
+  const card={title:await page.locator('#sheet-title').innerText(),address:await page.locator('#sheet-content .address').innerText(),overview:await page.locator('#sheet-content .hall-overview').innerText()};
+  assert.equal(card.overview,hall.body);
+  await page.locator('#hall-info').click();
+  assert.equal(await page.locator('#sheet-title').innerText(),hall.title);
+  card.readings=JSON.parse(await page.locator('#sheet-content [data-standing-open]').first().getAttribute('data-standing-open'));
+  assert.equal(card.readings.placeId,hall.id);
+  assert.equal(card.readings.thingId,null);
+  await page.locator('#sheet-close').click();
+  await tapHallFrontage(page,hall.layout.interior.frontage.door);
   await page.locator('#hall-enter').click();
   const agreement=page.locator('[data-words-agree=' + JSON.stringify(paths[0].id) + ']');
   const filtered=page.locator('[data-words-filtered=' + JSON.stringify(paths[0].id) + ']');
@@ -239,7 +251,7 @@ async function enterDoor(page,{hall,parent,paths}) {
   assert.deepEqual([arrived.position.x,arrived.position.z],hall.layout.interior.arrival.position);
   assert.ok(arrived.arrivalIsStandable && arrived.wallsBlockAnOutsidePosition);
   assert.ok(arrived.receipts.length>0,'A separate enter Receipt belongs to the hall');
-  return {outside,arrived,path:paths[0].id};
+  return {outside,arrived,path:paths[0].id,card,...(viewpoint?{viewpoint}:{})};
 }
 
 async function readExhibit(page,records,exhibit) {
@@ -292,7 +304,7 @@ async function verifyRefused(page,records,profile) {
   return {profile,roomBeforeRequest:before,message};
 }
 
-async function checkNew(browser,url) {
+async function checkNew(browser,url,{retest,atDoor}={}) {
   const context=await browser.newContext(contextOptions);
   const {page,errors,liveCalls,open}=await observe(context,url);
   try {
@@ -314,7 +326,7 @@ async function checkNew(browser,url) {
     await page.locator('#sheet-close').click();
     console.log('PASS structural publication registers a distinct Place and one containing door on the live Map');
 
-    const crossing=await enterDoor(page,records);
+    const crossing=await enterDoor(page,records,{atDoor});
     const hallDock=await openBuild(page,records.hall.id);
     const exhibit=await addBuiltPiece(page,hallDock,{kind:'sign',name:exhibitTitle,text:exhibitText,position:[-2,0,0]});
     await publish(page,hallDock);
@@ -335,6 +347,7 @@ async function checkNew(browser,url) {
     assert.deepEqual(await builderReceipts(page),beforeReload);
     if(await page.evaluate(()=>atlasStatus().room)!==reopened.hall.id) await enterDoor(page,reopened);
     assert.deepEqual(await readExhibit(page,reopened,exhibit),subject);
+    const retestEvidence=await retest?.(page,reopened,subject);
     const refused=[];
     for(const profile of ['seed-visitor','seed-verified']) refused.push(await verifyRefused(page,reopened,profile));
     console.log('PASS reload restores the same child records and unauthorised profiles cannot find or enter the hall');
@@ -344,14 +357,14 @@ async function checkNew(browser,url) {
     const interiorPublicationReceipt=beforeReload.publications.findLast(row=>row.place===records.hall.id)?.id;
     assert.ok(publicationReceipt && interiorPublicationReceipt);
     return {build,home,owner,piece,hall:records.hall.id,path:records.paths[0].id,publicationReceipt,
-      interiorPublicationReceipt,crossing,subject,refused,liveCalls:liveCalls.length,errors};
+      interiorPublicationReceipt,crossing,subject,...(retestEvidence?{retest:retestEvidence}:{}),refused,liveCalls:liveCalls.length,errors};
   } catch(error) {
     await failureState(page,errors);
     throw error;
   } finally {await context.close();}
 }
 
-async function checkLegacy(browser,url,legacyURL) {
+async function checkLegacy(browser,url,legacyURL,{retest,atDoor}={}) {
   assert.ok(legacyURL,'Set ATLAS_LEGACY_URL to a locally served pre-structural commit');
   const origin=await browser.newContext(contextOptions);
   const legacy=await observe(origin,legacyURL);
@@ -407,7 +420,7 @@ async function checkLegacy(browser,url,legacyURL) {
     assert.deepEqual(recovered.hall.builderStructure.recoveredFrom,old.relation);
     const after=await builderReceipts(fresh.page);
     assert.deepEqual(after,old.original);
-    const crossing=await enterDoor(fresh.page,recovered);
+    const crossing=await enterDoor(fresh.page,recovered,{atDoor});
     await fresh.page.reload();
     await fresh.page.waitForFunction(()=>window.__atlas && __atlas.state().viewpoint.ready);
     await checkBuildStamp(fresh.page,build);
@@ -417,13 +430,14 @@ async function checkLegacy(browser,url,legacyURL) {
     assert.equal(second.paths[0].id,recovered.paths[0].id);
     assert.deepEqual(second.hall.builderStructure.recoveredFrom,old.relation);
     assert.deepEqual(await builderReceipts(fresh.page),old.original);
+    const retestEvidence=await retest?.(fresh.page,second);
     assert.deepEqual(fresh.errors,[]);
     assert.deepEqual(fresh.liveCalls,[]);
     console.log('PASS a genuinely published legacy slab recovers to one durable structural Place and door');
     return {build,legacyBuild:old.build,
       home:old.home,piece:old.piece,hall:recovered.hall.id,path:recovered.paths[0].id,
       originalPublicationReceipt:old.relation.publicationReceiptRef,
-      publicationReceipts:after.publications,structure:recovered.hall.builderStructure,crossing,
+      publicationReceipts:after.publications,structure:recovered.hall.builderStructure,crossing,...(retestEvidence?{retest:retestEvidence}:{}),
       liveCalls:fresh.liveCalls.length,errors:fresh.errors};
   } catch(error) {
     await failureState(fresh.page,fresh.errors);
@@ -431,7 +445,7 @@ async function checkLegacy(browser,url,legacyURL) {
   } finally {await next.close();}
 }
 
-(async()=>{
+async function main(){
   const pin=process.env.ATLAS_TEST_SPKI;
   const browser=await chromium.launch({
     executablePath:process.env.ATLAS_CHROMIUM||'/usr/bin/chromium',headless:true,
@@ -444,4 +458,7 @@ async function checkLegacy(browser,url,legacyURL) {
     if(process.env.ATLAS_EVIDENCE_FILE) await writeFile(process.env.ATLAS_EVIDENCE_FILE,JSON.stringify(result,null,2)+'\n');
     console.log(JSON.stringify(result));
   } finally {await browser.close();}
-})().catch(error=>{console.error(error);process.exitCode=1;});
+}
+
+module.exports={checkNew,checkLegacy,enterDoor,openBuild,addBuiltPiece,publish};
+if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
