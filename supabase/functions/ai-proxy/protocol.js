@@ -1,3 +1,4 @@
+import v9Catalog from './catalog-v9.js';
 import v8Catalog from './catalog-v8.js';
 import previousCatalog from './catalog-previous.js';
 import legacyCatalog from './catalog-legacy.js';
@@ -10,6 +11,7 @@ import {PHOTO_AGENT,PHOTO_SCHEMA,checkPhotoContext,photoPrompt} from './photo.js
 import {AUDIO_TRANSCRIPT_SCHEMA,AUDIO_SCORES_SCHEMA,checkAudioContext} from './audio.js';
 export {catalog,builderSchema};
 const dims=['violence','sexual','language','disturbing','viewpoint','sensory'];
+const archivedCatalogs=new Map([v9Catalog,v8Catalog,previousCatalog,legacyCatalog].map(bundle=>[bundle.revision,bundle]));
 const rank={Glance:0,Standard:1,Deep:2},importance={core:0,supporting:1,detail:2};
 export const evidenceSchema={type:'object',additionalProperties:false,required:['excerpts'],properties:{excerpts:{type:'array',maxItems:3,items:{type:'object',additionalProperties:false,required:['blockId','quote'],properties:{blockId:{type:'string',maxLength:60},quote:{type:'string',minLength:1,maxLength:800}}}}}};
 export function checkRequest(v){
@@ -33,7 +35,7 @@ export function checkRequest(v){
   if(!['primary','challenger'].includes(v.context.candidate)||!cases.cases.some(x=>x.id===v.context.caseId))fail('BAD_REQUEST');
  }else fail('OUT_OF_SCOPE',403);
  if(v.context.placeId!=='boycott')fail('OUT_OF_SCOPE',403);
- if(v.context.catalogRevision!==catalog.revision&&!(v.job==='guide'&&[legacyCatalog.revision,previousCatalog.revision,v8Catalog.revision].includes(v.context.catalogRevision)))fail('STALE_CATALOG',409);
+ if(v.context.catalogRevision!==catalog.revision&&!(v.job==='guide'&&archivedCatalogs.has(v.context.catalogRevision)))fail('STALE_CATALOG',409);
  return v;
 }
 export function allowedBlocks(context){
@@ -41,7 +43,7 @@ export function allowedBlocks(context){
  exact(l.limits,dims);exact(l.hard,dims);exact(l.show,['real','pseudonym','anonymous','agents']);
  if(!Object.hasOwn(rank,l.depth)||!['Author','Academic','Vouched','Community'].includes(l.trustFrom)||!['child','teen'].includes(l.audience)||Object.values(l.show).some(v=>typeof v!=='boolean'))fail('BAD_REQUEST');
  const legacy=context.catalogRevision===legacyCatalog.revision,axes=legacy?['scalar']:['amount','graphicness'];
- const source=context.catalogRevision===v8Catalog.revision?v8Catalog:legacy?legacyCatalog:context.catalogRevision===previousCatalog.revision?previousCatalog:catalog,limits={},hard={},valid=n=>Number.isInteger(n)&&n>=0&&n<=3;
+ const source=archivedCatalogs.get(context.catalogRevision)??catalog,limits={},hard={},valid=n=>Number.isInteger(n)&&n>=0&&n<=3;
  for(const d of dims){
   if(!legacy){exact(l.limits[d],axes);exact(l.hard[d],axes);}
   limits[d]={};hard[d]={};for(const axis of axes){
