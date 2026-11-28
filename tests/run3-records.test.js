@@ -12,3 +12,9 @@ test('birdwatching and bread match their own topics; sample event schedule recur
  const p=starterProposals({id:'synthetic',hobbies:'birdwatching',interests:'bread'})[0];assert.match(p.body,/birdwatching/i);assert.match(p.body,/recipe/i);assert.doesNotMatch(p.title,/reading/i);assert.match(p.provenance,/birdwatching.*bread/);
  const epoch=Date.parse('2026-11-01T00:00:00Z'),now=epoch+24*86400000,events=eventsFor({community:{epoch}},now);assert(events.every(e=>e.end>now));assert(events.every(e=>!e.publishedAt));
 });
+test('kept answers belong to the accepting holder and cannot bypass a tightened Lens',async()=>{
+ const {ROOMS}=await import('../src/data.js'),{evidenceText}=await import('../src/place-evidence.js');const m=new Map(),storage=()=>({getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v)}),profiles=new ProfileStore(storage),access=new AccessStore(storage);await profiles.switchProfile('seed-visitor');await access.ready;
+ const lens=access.lens(profiles.current()),block=ROOMS.boycott.blocks.find(b=>b.id==='outcomes'),p={id:crypto.randomUUID(),agentName:'Mara',proposal:{kind:'answer',room:'boycott',text:evidenceText(block),citations:['outcomes']}};access.data.staffState.proposals.push(p);await access.record('boycott',lens,'helper_offer_accepted',{proposal:p.id});
+ assert.equal(savedRecords(access,lens).kept.length,1);assert.equal(savedRecords(access,lens).kept[0].readable,true);assert.equal(savedRecords(access,{...lens,profileId:'another-holder'}).kept.length,0);
+ const tight=structuredClone(lens);tight.limits.disturbing={amount:0,graphicness:0};assert.equal(savedRecords(access,tight).kept[0].readable,false);
+});

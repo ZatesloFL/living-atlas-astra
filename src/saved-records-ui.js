@@ -1,14 +1,16 @@
 import {ROOMS,EDGES} from './data.js';
 import {personId,permission} from './permissions.js';
-import {roomEntry} from './content.js';
+import {roomEntry,blockAccess} from './content.js';
 import {thingSubject} from './thing-subject.js';
-import {readableAnswer} from './place-evidence.js';
+import {viewRoom} from './audience.js';
+import {readableAnswer,placeOverview,evidenceText} from './place-evidence.js';
 import {esc} from './block-renderer.js';
 export function savedRecords(access,lens){
- const who=personId(lens),visible=key=>ROOMS[key]&&permission(ROOMS[key],lens).canLook&&roomEntry(key,lens,EDGES).state!=='hidden';
+ const who=personId(lens),visible=key=>ROOMS[key]&&permission(ROOMS[key],lens).canLook&&roomEntry(key,lens,EDGES).state!=='hidden'&&!roomEntry(key,lens,EDGES).admission?.blocked;
  const places=access.places(lens),kept=Object.values(access.data.ledgers).flat().filter(r=>r.actor===who&&r.action==='helper_offer_accepted').flatMap(receipt=>{
   const answer=access.data.staffState.proposals.find(p=>p.id===receipt.diff.proposal&&p.proposal.kind==='answer');if(!answer)return [];
-  const q=answer.proposal,readable=visible(q.room)&&readableAnswer(q.text)&&q.citations.every(id=>id==='place-overview'||thingSubject(q.room,id,lens));
+  const q=answer.proposal,room=ROOMS[q.room]&&viewRoom(ROOMS[q.room],lens),sources=q.citations.map(id=>id==='place-overview'?{room,block:room&&placeOverview(room)}:thingSubject(q.room,id,lens));
+  const readable=visible(q.room)&&readableAnswer(q.text)&&sources.every(s=>{if(!s?.block)return false;const gate=blockAccess(s.block,s.room,lens);return !gate.hidden&&!gate.withheld&&!gate.soft;})&&(!sources.length||q.text.split('\n\n').every(part=>sources.some(s=>evidenceText(s.block).includes(part))));
   return [{answer,receipt,readable}];
  });
  return {pins:places.pins.filter(visible),recent:places.recent.filter(visible),kept};
