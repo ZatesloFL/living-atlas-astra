@@ -1,0 +1,12 @@
+{
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "servedCommit": "6224c8796639bdcf0610bdf3c5230dc89a662f1f",
+  "verifiedTLS": true,
+  "sha256": {
+    "src/ui.js": "f794300e15faab30cfbfe913d0183c1929718eed8d95f40df4d3c20b1e02d3e9",
+    "src/runtime.js": "5b208de3c89b7245c60d1b017ab64cf1cb8838a0e08e4d555f764771cc767d1b",
+    "src/thing-subject.js": "b125ba9269767bc4e70f7063026e295e1d441e6c4e59f001c0346394826ebe82",
+    "src/standing-ui.js": "0b1b66edddeb7fa90ae2c7da45c25223018dbb95726bddd3c0d3c26ee8a6ff59"
+  },
+  "browserCheck": "Remote Chromium certificate trust failed with ERR_CERT_AUTHORITY_INVALID; no validation bypass used. Local actual-control acceptance is recorded separately."
+}
