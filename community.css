@@ -4,3 +4,5 @@
 .index-provenance {margin:.6rem 0;font-size:.8rem;display:grid;gap:.35rem;color:var(--muted,#bac7d2)}
 .index-provenance div {display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
 .index-provenance dt {font-weight:600}.index-provenance dd {margin:0;overflow-wrap:anywhere}
+
+.trail-ending{padding:1rem;border:1px solid #87bd9e;border-radius:14px;background:#183b34;margin:0 0 1rem}.trail-ending h3{margin-top:0}

@@ -22,8 +22,8 @@ export const TRAILS=[
  ]}
 ];
 export const EVENTS=[
- {id:'sample-tour',title:'A walk through the exhibition',intro:'A sample guided walk through the boycott exhibits.',room:'boycott',curator:'docent-silver',startsAfter:2*60000,duration:45*60000,content:scores({violence:pair(1,1),disturbing:pair(1,1),viewpoint:pair(1,1)})},
- {id:'sample-table',title:'An open table for ideas',intro:'A sample open table in the civic hall.',room:'civic',curator:'editors',startsAfter:2*86400000,duration:3600000,content:scores()}
+ {id:'sample-tour',title:'A walk through the exhibition',intro:'A sample guided walk through the boycott exhibits.',room:'boycott',curator:'docent-silver',repeatEvery:7*86400000,startsAfter:2*60000,duration:45*60000,content:scores({violence:pair(1,1),disturbing:pair(1,1),viewpoint:pair(1,1)})},
+ {id:'sample-table',title:'An open table for ideas',intro:'A sample open table in the civic hall.',room:'civic',curator:'editors',repeatEvery:7*86400000,startsAfter:2*86400000,duration:3600000,content:scores()}
 ];
 export const PEOPLE=[
  {id:'visitor-river',name:'River (sample)',author:author('River (sample)','pseudonym','none'),room:'square',privacy:'everyone',groups:[],offset:[-2,2]},

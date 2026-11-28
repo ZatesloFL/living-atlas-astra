@@ -6,14 +6,14 @@ export class HUD {
   this.shell=document.createElement('div');this.shell.id='hud-shell';document.body.append(this.shell);this.shell.append(document.getElementById('topbar'));
   this.lane=document.createElement('section');this.lane.id='notification-lane';this.lane.setAttribute('aria-label','Notifications and travel status');this.shell.append(this.lane);
   const utility=document.createElement('div');utility.className='hud-utilities';utility.append(document.getElementById('performance'),document.getElementById('diagnostics-toggle'));this.lane.append(utility);
-  this.slot=document.createElement('div');this.slot.id='notification-slot';this.lane.append(this.slot);
+  this.slot=document.createElement('div');this.slot.id='notification-slot';this.lane.append(this.slot);this.journey=document.createElement('div');this.journey.id='journey-slot';this.journey.setAttribute('aria-label','Trail and waypoint');this.lane.append(this.journey);
   document.querySelector('.location-stack').append(document.getElementById('test-banner'));
   const footer=document.getElementById('bottom-bar'),left=document.createElement('div');left.className='hud-bottom-left';left.append(document.getElementById('build-button'),document.getElementById('perf-toggle'));footer.prepend(left);footer.insertBefore(document.getElementById('joystick'),document.getElementById('lens-button'));
   this.mount(document.getElementById('toast'),100);this.mount(document.getElementById('edge-prompt'),20);
   this.observer=new MutationObserver(()=>this.schedule());for(const node of [this.lane,document.getElementById('topbar')])this.observer.observe(node,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class']});this.observer.observe(document.body,{attributes:true,attributeFilter:['class']});this.observer.observe(document.getElementById('scene-title'),{attributes:true,attributeFilter:['class']});
   this.resize=new ResizeObserver(()=>this.measure());for(const node of [this.shell,footer])this.resize.observe(node);window.addEventListener('resize',()=>this.measure());this.schedule();window.atlasHud=this;
  }
- mount(node,priority=40){if(!node)return;if(!this.sources.some(s=>s.node===node))this.sources.push({node,priority});this.slot.append(node);this.schedule();}
+ mount(node,priority=40,{persistent=false}={}){if(!node)return;if(persistent){this.journey.append(node);this.schedule();return;}if(!this.sources.some(s=>s.node===node))this.sources.push({node,priority});this.slot.append(node);this.schedule();}
  schedule(){if(this.pending)return;this.pending=true;queueMicrotask(()=>{this.pending=false;this.sync();});}
  sync(){
   const toast=document.getElementById('toast');if(toast.hidden!==!this.queue.length)toast.hidden=!this.queue.length;const candidates=this.sources.filter(({node})=>!node.hidden).sort((a,b)=>b.priority-a.priority),winner=candidates[0]?.node;
