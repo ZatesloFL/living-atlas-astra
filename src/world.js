@@ -1,3 +1,4 @@
+import {identityBadge} from './identity.js';
 import {hallRoom,hallEntry} from './interior-space.js';
 import {exhibitSpace} from './interior-kit.js';
 import {drawFrontage,drawHall,hallLabels,flushHallSigns} from './interior-world.js';
@@ -180,7 +181,7 @@ export class World {
         this.placement=parent;
       }
       this.renderedRooms.push({id,ghost:!!ghost,version:r.version?.id,style:rights.canLook?style:null,...(draft?{draft:true}:{})});
-      if(!insideHall&&r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':versionLabel(r,this.lens)||sign[1],p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
+      if(!insideHall&&r.layout.sign!==false){const sign=!rights.canLook?['PRIVATE SPACE','KNOCK FOR ACCESS',[0,3.1,0]]:r.layout.sign??[r.title,'TAP TO READ',[0,2.5,0]],p=this.transform(...sign[2]);this.label((ghost?'◇ ':'')+sign[0]+(r.version?' · '+r.version.name:''),ghost?'OTHER LENS · NO ACCESS':(r.author?.isAgent||r.author?.organizationBadge?identityBadge(r.author):versionLabel(r,this.lens)||sign[1]),p.x,p.y,p.z,ghost?null:id,3.1,ghost?'#a0a8b4':DISTRICTS[r.district].color);}
       if(this.diffLens&&own&&rights.visibility==='public'&&(!other||viewRoom(original,this.diffLens).version?.id!==r.version?.id))this.add('ring','ghost',0,.15,0,2,2,2,'#aaa',null,[Math.PI/2,0,0]);
       if(!ghost&&rights.canLook){
         for(const [i,{layer}] of layerSelection(original,this.lens).filter(x=>!x.accepted).entries())this.add('diamond','teal',-1+i*.9,2.2,1.9,.16,.25,.16,'#fff','layer:'+id+':'+layer.id);

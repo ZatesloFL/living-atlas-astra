@@ -6,7 +6,7 @@ export const CURATORS=[
  {id:'editors',name:'Living Atlas editors',kind:'People',author:author('Living Atlas editors'),description:'Public places selected for a first visit.'},
  {id:'history-stewards',name:'History Quarter stewards',kind:'Group',author:author('History Quarter stewards'),description:'History reading paths and source-checking methods.'},
  {id:'neighbors',name:'Tallahassee neighbors',kind:'Credential group',credential:'tallahassee-resident',author:author('Tallahassee neighbors'),description:'Visible to simulated verified Tallahassee residents.'},
- ...['docent-silver','docent-guide','curator-studio'].map(id=>{const a=SEED_HELPERS.find(a=>a.id===id);return {id,name:a.name,kind:'Agent',author:{...author(a.name,'pseudonym','verified',true),operator:{...operator}},description:'Local '+a.role+' at '+a.places[0]+' · operated by Nic (verified, simulated).'};})
+ ...['docent-silver','docent-guide','curator-studio'].map(id=>{const a=SEED_HELPERS.find(a=>a.id===id);return {id,name:a.name,kind:'Agent',author:{id:a.id,...author(a.name,'pseudonym','verified',true),operator:{...operator}},description:'Local '+a.role+' at '+a.places[0]+'. Operator information is in the helper record.'};})
 ];
 export const TRAILS=[
  {id:'civil-rights',content:scores({violence:pair(1,1),disturbing:pair(1,1),viewpoint:pair(1,1)}),title:'Civil rights in Tallahassee',curator:'history-stewards',agentCredit:'docent-silver',intro:'Six stops: the boycott, the Capitol, then four explicitly virtual research stations. These placeholders make no claim to be historical event sites.',stops:[
@@ -31,7 +31,7 @@ export const PEOPLE=[
  {id:'visitor-neighbor',name:'Tallahassee neighbor (sample)',author:author('Tallahassee neighbor (sample)'),room:'square',privacy:'groups',groups:['tallahassee-resident'],offset:[2,3]},
  {id:'visitor-anon',name:'Anonymous reader (sample)',author:author('Anonymous reader (sample)','anonymous','none'),room:'capitol',privacy:'everyone',groups:[],offset:[-4,4]},
  {id:'visitor-private',name:'Quiet visitor (sample)',author:author('Quiet visitor (sample)','pseudonym','none'),room:'writing',privacy:'nobody',groups:['writing-circle'],offset:[1,2]},
- {id:'docent-guide',name:HELPER_NAMES.Docent.guide,author:{...author(HELPER_NAMES.Docent.guide,'pseudonym','verified',true),operator:{...operator}},room:'guide',privacy:'everyone',groups:[],offset:[1,1]}
+ {id:'docent-guide',name:HELPER_NAMES.Docent.guide,author:{id:'docent-guide',...author(HELPER_NAMES.Docent.guide,'pseudonym','verified',true),operator:{...operator}},room:'guide',privacy:'everyone',groups:[],offset:[1,1]}
 ];
 export const BOARD_CARDS=[
  {id:'board-boycott',type:'room',target:'boycott',curator:'editors',title:'Explore the 1956 exhibition',rule:'A public exhibition for a first visit',vouches:5,age:2},
@@ -51,8 +51,8 @@ export function addCommunityRooms(rooms,edges,room,scores){
   ['noticeboard','Noticeboard','gallery-wall',[-5,-4],'Choose whose recommendations you see, and how they are ordered.'],
   ['events-board','Events board','gallery-wall',[5,-4],'Two local sample events. RSVP stays in your profile.'],
   ['trails-kiosk','Trails','desk',[-5,3],'A curated sequence of places, with an introduction at every stop.'],
-  ['guide',HELPER_NAMES.Docent.guide+' · Docent','agent',[3,1],'An agent operated by Nic (verified, simulated). Ask about this place or start a tour.']]){
-  rooms[id]=room('square/'+id,title,'commons',summary,{layout:{kind:'plinth',scene:'square',slot,approach:[slot[0],slot[1]+2],model,sign:[title.toUpperCase(),id==='guide'?'AGENT · VERIFIED OPERATOR':'TAP TO EXPLORE',[0,2.8,0]]},...(id==='guide'?{author:CURATORS.find(c=>c.id==='docent-guide').author}:{})});
+  ['guide',HELPER_NAMES.Docent.guide+' · Docent','agent',[3,1],'Ask this Place’s Docent about the catalog or start a tour. Operator information is in the helper record.']]){
+  rooms[id]=room('square/'+id,title,'commons',summary,{layout:{kind:'plinth',scene:'square',slot,approach:[slot[0],slot[1]+2],model,sign:[title.toUpperCase(),id==='guide'?'HELPER · OPERATOR RECORD':'TAP TO EXPLORE',[0,2.8,0]]},...(id==='guide'?{author:CURATORS.find(c=>c.id==='docent-guide').author}:{})});
   edges.push({id:'square-'+id,from:'square',to:id,type:'seamless',scene:'square',position:[slot[0],slot[1]+2],render:false,contextPriority:0,zone:{x:[slot[0]-1.5,slot[0]+1.5],z:[slot[1]-.5,slot[1]+2.5]}});
  }
  for(const [id,title,slot] of [['route-research','Transport records · placeholder',[-10,7]],['organizing-records','Organizing records · placeholder',[-10,2]],['oral-archive','Listening archive · placeholder',[10,2]],['legacy-notes','Legacy notes · placeholder',[-10,-12]]]){

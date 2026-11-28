@@ -6,8 +6,7 @@ import {sourceBadgeHTML} from './source-media.js';
 
 export function curatorCredit(curator){
  if(!curator)return '';
- const operator=curator.author?.operator;
- return `${esc(curator.name)} · ${esc(identityBadge(curator.author))}${operator?` · operator ${esc(operator.name)} (${operator.backing==='verified'?'verified':'unverified'}${operator.simulated?', simulation':''})`:''}`;
+ return `${esc(curator.name)} · ${esc(identityBadge(curator.author))}`;
 }
 export function queryControls(query={}){
  const ranges=query.ranges??{},facets=query.facets??{};

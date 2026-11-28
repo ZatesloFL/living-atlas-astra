@@ -9,6 +9,8 @@ export function identityBadge(subject){
   subject=accountSubject(subject);
   const i=identityOf(subject);
   if(subject.isAgent)return helperIdentityLabel(subject);
+  if(subject.organizationBadge)return `Organization · ${verificationLabel(subject)}`;
+  if(subject.simulated)return `${DISPLAY_LABELS[i.display]} · ${verificationLabel(subject)}`;
   return `${DISPLAY_LABELS[i.display]} · ${accountStateLabel(subject)}`;
 }
 export function accountStateLabel(subject){
@@ -17,7 +19,7 @@ export function accountStateLabel(subject){
  if(subject.isTest&&subject.age<13)return 'Under-13 rejection fixture · no account';
  if(i.backing!=='verified')return Number.isFinite(subject.age)&&subject.age>0?'Unverified · age given, not verified':'Unverified · age unknown';
  if(Number.isFinite(subject.age)&&subject.age<18)return 'Minor 13–17 · simulated; guardian link not connected';
- return Number.isFinite(subject.age)?'Verified adult · simulated':'Verified adult';
+ return 'Verified adult · simulated';
 }
 export function authorName(subject){subject=accountSubject(subject);return identityOf(subject).display==='anonymous'&&!subject.isAgent?'Anonymous':subject.name;}
 export function accessSettings(lens,place=null){
@@ -37,7 +39,12 @@ export const lensSummary=lens=>{const a=accessSettings(lens);return DIMENSIONS.m
 export function appliedPreset(lens){const access=accessSettings(lens);return access.cap&&DIMENSIONS.some(([k])=>AXES.some(a=>asPair(lens.limits[k])[a]>access.limits[k][a]||asHard(lens.hard[k])[a]!==access.hard[k][a]))?`${access.cap} cap`:lens.preset;}
 
 // A helper's operator comes from that helper's record, never the viewer's Lens.
+export function verificationLabel(record){
+ const verified=record.backing_ref&&(record.backing??record.identity?.backing)==='verified';
+ return (verified?'verified record':'verification not connected')+(record.simulated||record.organizationBadge?.simulated?' · simulation':'');
+}
 export function helperIdentityLabel(actor){
+ actor=accountSubject(actor);
  const operator=actor.operator;if(!operator)return 'Agent · operator not recorded';
- return `Agent · operator ${operator.name??'not named'} · ${operator.backing_ref&&operator.backing==='verified'?'verified operator record':operator.simulated?'demonstration operator; verification not connected':'operator verification not connected'}`;
+ return `Agent · operator ${operator.name??'not named'} · ${verificationLabel(operator)}`;
 }

@@ -1,4 +1,5 @@
 import {placeOverview} from './place-evidence.js';
+import {helperIdentitySource} from './account-state.js';
 import {queryIndex} from './discovery-index.js';
 import {discoveryEvidence,validateIndexAnswer} from './discovery-answer.js';
 import {AXES,asPair,exceeds} from './scores.js';
@@ -17,7 +18,7 @@ import {normalizeQuestion} from './docent-questions.js';
 const lease=days=>new Date(Date.now()+days*86400000).toISOString();
 const actionKind={answer:'answer',tour:'tour',note:'note',flag:'score',curate:'curation',connect:'connection'};
 export class Staff {
- constructor(store,{aiClient=ai}={}){this.store=store;this.ai=aiClient;store.data.staffState??={helpers:[],proposals:[],initialized:false};this.seedPromise=null;this.ready=this.seed();this.ready.catch(()=>{});}
+ constructor(store,{aiClient=ai}={}){this.store=store;this.ai=aiClient;store.data.staffState??={helpers:[],proposals:[],initialized:false};helperIdentitySource(()=>this.data.helpers);this.seedPromise=null;this.ready=this.seed();this.ready.catch(()=>{});}
  get data(){return this.store.data.staffState;}
  helpers(){return this.data.helpers.filter(a=>!a.revokedAt&&(!a.expires||Date.parse(a.expires)>Date.now()));}
  attachments(place){

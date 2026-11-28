@@ -92,7 +92,7 @@ export class UI {
     if(!roomVisible(id,this.api.state().lens)){this.close();return;}
     this.open('info',DISTRICTS[r.district]?.name??'Place',r.title??'Untitled Place');
     const {authors,forks}=optionalCardFields(r);
-    this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<span>${escapeHTML(authorName(a))}</span><span class="badge ${a.isAgent?'agent':''}">${escapeHTML(identityBadge(a))}</span>`).join('')||'<span>Author not supplied.</span>'}</div>${r.author?.isAgent?`<p class="muted">Operated by a verified person: ${r.author.verifiedHuman?'yes':'no'}. Simulated identity.</p>`:''}
+    this.content.innerHTML=`<p class="address">${escapeHTML(r.address)}</p><div class="identity">${authors.map(a=>`<div class="author-record"><strong>Author: ${escapeHTML(authorName(a))}</strong><span class="badge ${a.isAgent?'agent':''}">${escapeHTML(identityBadge(a))}</span></div>`).join('')||'<span>Author not supplied.</span>'}</div>
       ${recordDetails(()=>readingCard(r,this.api.state().lens))}${recordDetails(()=>articleHTML(id,this.api.state().lens,{approved:this.api.state().approvedRooms?.includes(id),softApproved:this.softApproved}))}
       ${id==='market'&&exceeds(r.measured.sensory,r.content.sensory)?`<p class="reason">Night Market reads louder than it says: Sensory ${scoreText(r.measured.sensory)}, declared ${scoreText(r.content.sensory)}.</p>`:''}
       <div class="info-grid"><div class="info-box"><small>Substance</small>${substanceText[r.permissions?.substance]??'Substance permissions not supplied.'}</div><div class="info-box"><small>Style</small>${escapeHTML(styleLabel(r))}</div></div>
