@@ -1,6 +1,6 @@
 import {recordDetails,optionalCardFields} from './record-card.js';
 import {recordLabel} from './record-copy.js';
-import {thingSubject,thingTitle} from './thing-subject.js';
+import {thingSubject,thingTitle,recoveredHall} from './thing-subject.js';
 import {showAddressFailure} from './atlas-destinations.js';
 import {personalPair,dialLabel,UNSET_HELP,assuranceExplanation} from './lens-state.js';
 import {lensStandingHTML,bindLensStanding} from './standing-controls.js';
@@ -105,6 +105,7 @@ export class UI {
     bindBlocks(this.content,{related:next=>this.api.readRoom(next),allow:block=>{this.softApproved.add(block);this.info(id,true);}});if(preserve)this.content.scrollTop=oldScroll;
   }
   thing(roomKey,blockId){
+    const hall=recoveredHall({placeId:roomKey,thingId:blockId},this.api.state().lens);if(hall){this.entrance(hall.id);return;}
     this.softApproved.clear();const subject=thingSubject(roomKey,blockId,this.api.state().lens);if(!subject){this.toast('This Thing is unavailable through your current Lens.');return;}
     this.thingRoom=roomKey;const {room,block}=subject;this.open('thing','Thing · '+room.title,thingTitle(block));
     const render=this.renderThing=()=>{
@@ -117,8 +118,9 @@ export class UI {
   }
   entrance(id){
     const edge=hallEntry(id),result=visibleEdge(edge,this.api.state().lens),room=ROOMS[id];if(result.state==='hidden')return;
+    const view=viewRoom(room,this.api.state().lens),overview=result.rights?.canLook?(view.substance?.summary||view.substance?.body||'No overview supplied for this Place.'):'Private space, something is here.';
     this.open('entrance',DISTRICTS[room.district].name+' · hall entrance',roomTitle(room,this.api.state().lens));
-    this.content.innerHTML=`<p class="address">${escapeHTML(room.address)}</p><p>A hall of sample exhibits. Step inside to explore.</p>${result.reasons.map(r=>`<p class="reason">${escapeHTML(r)}</p>`).join('')}${result.rights?.canEnter?'<button id="hall-enter" class="primary">Enter ↗</button>':''}${result.rights?.canLook?'<button id="hall-info" class="secondary">Place info</button><button id="hall-page" class="secondary">Read in Page form</button><button id="hall-staff" class="secondary">Helpers · ask the Docent</button>':''}<button id="hall-access" class="secondary">Knock / manage access</button>`;
+    this.content.innerHTML=`<p class="address">${escapeHTML(room.address)}</p><p class="hall-overview">${escapeHTML(overview)}</p>${result.reasons.map(r=>`<p class="reason">${escapeHTML(r)}</p>`).join('')}${result.rights?.canEnter?'<button id="hall-enter" class="primary">Enter ↗</button>':''}${result.rights?.canLook?'<button id="hall-info" class="secondary">Place info</button><button id="hall-page" class="secondary">Read in Page form</button><button id="hall-staff" class="secondary">Helpers · ask the Docent</button>':''}<button id="hall-access" class="secondary">Knock / manage access</button>`;
     $('hall-enter')?.addEventListener('click',()=>{this.close();this.api.enter(edge);});$('hall-info')?.addEventListener('click',()=>this.info(id));$('hall-page')?.addEventListener('click',()=>this.api.openPage(id));$('hall-staff')?.addEventListener('click',()=>this.api.staff(id));$('hall-access').onclick=()=>this.api.accessRoom(id);
   }
   edge(edge){

@@ -6,7 +6,7 @@ import {mountReturnControl} from './navigation-return.js';
 import {entranceSpot} from './visit-return.js';
 import {resolveHolderDestination} from './holder-destinations.js';
 import {visitorHUD} from './visitor-hud.js';
-import {pickedThing,thingSubject} from './thing-subject.js';
+import {pickedThing,thingSubject,pickedRecoveredHall} from './thing-subject.js';
 import {localSegment,viewingSpot,airPointAllowed} from './visitor-viewpoint.js';
 import {manualDestination} from './atlas-destinations.js';
 export async function startAtlas(diag){
@@ -112,6 +112,7 @@ function enter(edge){
 }
 function selectId(id){
   mediaContext({mode:'3d',lens,scene:kind,position:controls.position});
+  const recovered=pickedRecoveredHall(id,lens);if(recovered){ui.entrance(recovered.id);return;}
   if(id==='noticeboard'||id==='neighborhood-board'){communityUI.open('board');return;}if(id==='events-board'){communityUI.open('events');return;}if(id==='trails-kiosk'){communityUI.open('trails');return;}if(id==='guide'){staffUI.docent('guide');return;}if(id?.startsWith('staff:')){staffUI.open(id.split(':')[1]);return;}if(id?.startsWith('person:')){communityUI.open('people');return;}
   if(id?.startsWith('exhibit:')){const draft=world.draftSubjects.get(id);if(draft){openDraftThing(draft);return;}const subject=pickedThing(id,lens);if(!subject){ui.toast('This Thing is unavailable through your current Lens.');return;}ui.thing(subject.roomKey,subject.block.id);const node=ui.content.querySelector('[data-block-id="'+CSS.escape(subject.block.id)+'"]');if(subject.photo!==null)node?.querySelector('[data-value="'+subject.photo+'"]')?.click();else node?.querySelector('[data-kit-event="tap"]')?.click();return;}
   if(id?.startsWith('layer:')){const [,room,layer]=id.split(':');layerUI.peek(room,layer);return;}
@@ -364,6 +365,6 @@ if(profiles.completed&&lens.form==='page')openPage(context.room);
 const initialRoom=diag.params.get('room');if(initialRoom&&ROOMS[initialRoom]&&profiles.completed&&initialRoom!==context.room)readRoom(initialRoom,false);
 const invite=diag.params.get('invite');if(invite){const g=access.data.grants.find(g=>g.id===invite&&g.kind==='invite'&&g.to.person===lens.profileId&&!g.revokedAt&&(!g.expires||Date.parse(g.expires)>Date.now()));const id=g&&Object.keys(ROOMS).find(id=>ROOMS[id].id===g.room);if(id)startTravel(id);else ui.toast('This local invite is missing, expired, or addressed to another profile.');}
 if(new URLSearchParams(location.search).has('test')){
-  window.__atlas={atlas:atlasUI,staff,staffUI,discovery,community:communityUI,travel,access,build:buildUI,buildScene:()=>builderStage.world?.scene,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),viewpoint:{ready:controls.canMove?.(),fov:camera.fov,direction:camera.getWorldDirection(new THREE.Vector3()).toArray(),normalFov:controls.normalFov,flying:controls.flying,entrance:structuredClone(enteredView)},edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus(),position:controls.position.clone()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),viewpoint:{entry:entranceRecord,frame:(room,block)=>world.thingFrame(room,block),plan:closePlan,entrance:returnEntrance},pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
+  window.__atlas={readings:ref=>accessUI.standingUI.open(ref),atlas:atlasUI,staff,staffUI,discovery,community:communityUI,travel,access,build:buildUI,buildScene:()=>builderStage.world?.scene,compare:()=>compareWorld?.scene,go:startTravel,waypoint:setWaypoint,state:()=>({kind,context,lens:structuredClone(lens),profiles:profiles.profiles.map(p=>({id:p.id,name:p.name,seed:p.seed})),activeProfile:profiles.activeId,testActive:profiles.testActive(),receiptCount:profiles.entries.length,position:controls.position.clone(),viewpoint:{ready:controls.canMove?.(),fov:camera.fov,direction:camera.getWorldDirection(new THREE.Vector3()).toArray(),normalFov:controls.normalFov,flying:controls.flying,entrance:structuredClone(enteredView)},edges:world.edgeObjects.map(e=>({id:e.id,result:e.result})),...window.atlasStatus(),position:controls.position.clone()}),position:(x,z,yaw=0)=>{controls.teleport(x,z,yaw);updateContext();},canStand:(x,z)=>world.canStand(x,z),viewpoint:{entry:entranceRecord,frame:(room,block)=>world.thingFrame(room,block),plan:closePlan,entrance:returnEntrance},pick:selectId,close:()=>ui.close(),changeScene,scene:()=>world.scene};
 }
 }

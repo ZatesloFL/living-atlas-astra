@@ -5,6 +5,7 @@ import {personId,permission} from './permissions.js';
 import {events,targetId,identityTier,currentMeasurements,pendingMeasurements,declarationSnapshot} from './standing-records.js';
 import {readingTable,facetPanels,standingEscape as esc} from './standing-view.js';
 import {deriveStanding} from './standing-facets.js';
+import {recoveredHall} from './thing-subject.js';
 const dialInputs=(values,prefix)=>`<div class="standing-dials">${DIALS.map(([key,axis,label])=>`<label>${label}<input type="number" min="0" max="3" step="1" required data-standing-dial="${key}" data-axis="${axis}" name="${prefix}-${key}-${axis}" value="${values?.[key]?.[axis]??''}"></label>`).join('')}</div>`;
 const readDials=form=>Object.fromEntries(DIMENSIONS.map(([key])=>[key,Object.fromEntries(AXES.map(axis=>{const input=form.querySelector(`[data-standing-dial="${key}"][data-axis="${axis}"]`);return [axis,input.value===''?NaN:Number(input.value)];}))]));
 export class StandingUI {
@@ -20,7 +21,7 @@ export class StandingUI {
  async run(action,ref){try{await action();await this.api.changed?.({preserveAccess:true});this.render(ref);}catch(error){this.ui.toast(error.message);}}
  async open(ref){
   const generation=++this.generation;
-  try{await this.access.ready;const target=this.store.resolve(ref,this.lens(),{metadataOnly:true});if(target.ref.thingId&&this.store.crossingReceipt({...target,ref:{placeId:target.room.id,versionId:null,thingId:null}},this.lens())){try{await this.store.crossThing(target.ref,this.lens());}catch{/* Public readings do not grant a crossing into the Thing. */}}if(generation!==this.generation)return;this.render(target.ref);}catch(error){this.ui.toast(error.message);}
+  try{await this.access.ready;const recovered=recoveredHall(ref,this.lens());if(recovered)ref={placeId:recovered.id,audienceVersion:null,thingId:null};const target=this.store.resolve(ref,this.lens(),{metadataOnly:true});if(target.ref.thingId&&this.store.crossingReceipt({...target,ref:{placeId:target.room.id,versionId:null,thingId:null}},this.lens())){try{await this.store.crossThing(target.ref,this.lens());}catch{/* Public readings do not grant a crossing into the Thing. */}}if(generation!==this.generation)return;this.render(target.ref);}catch(error){this.ui.toast(error.message);}
  }
  render(ref,queueId=null,{grantId=null}={}){
   const lens=this.lens();let target;try{target=this.store.resolve(ref,lens,{metadataOnly:true});}catch(error){this.ui.toast(error.message);return;}

@@ -7,6 +7,25 @@ import {roomVisible} from './rules.js';
 import {permission} from './permissions.js';
 import {doorPolicy} from './admission.js';
 
+// Recovery keeps the historical Thing and its receipts intact. Only the link
+// destination changes, using the explicit relation published by the Builder.
+export function recoveredHall(ref,lens){
+ if(!ref?.thingId)return null;
+ const hall=Object.values(ROOMS).find(room=>{
+  const old=room.builderStructure?.recoveredFrom?.thing;
+  return old?.placeId===ref.placeId&&old.thingId===ref.thingId&&(!ref.versionId||old.versionId===ref.versionId);
+ });
+ return hall&&roomVisible(hall.id,lens)&&permission(hall,lens).canLook?hall:null;
+}
+export function pickedRecoveredHall(marker,lens){
+ if(typeof marker!=='string'||!marker.startsWith('exhibit:'))return null;
+ for(const room of Object.values(ROOMS)){
+  const old=room.builderStructure?.recoveredFrom?.thing;
+  if(old&&marker==='exhibit:'+old.placeId+':'+old.thingId)return recoveredHall(old,lens);
+ }
+ return null;
+}
+
 export function thingSubject(roomKey,blockId,lens){
  const original=ROOMS[roomKey];if(!original||!roomVisible(roomKey,lens)||!permission(original,lens).canLook)return null;
  const room=sourcedRoom(viewRoom(original,lens),lens);if(doorPolicy(room,lens).blocked)return null;
