@@ -29,6 +29,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),arriva
    proof.answers.push({question:wire.request.context.question,depth:wire.depth,receipt:wire.response.receiptData.receiptId,face,sourceNames:names,recordClosedInitially:true,recordContainsReceiptAndModel:true});
    await p.locator('.answer-record summary').click();
    if(wire.request.context.question==='Who led this'){await p.setViewportSize({width:393,height:851});await p.screenshot({path:'lane/evidence/boycott-docent-answer-2026-11-28.png'});await p.setViewportSize({width:1100,height:850});}
+   if(['Who led this','Did it work?'].includes(wire.request.context.question)){
+    const source=wire.clientResult.proposal.citations[0];await p.locator('[data-docent-source="'+source+'"]').click();await p.locator('[data-block-id="'+source+'"]').waitFor();
+    assert.equal(await p.evaluate(()=>__atlas.state().context.room),'boycott');assert.match(await p.locator('#sheet-content').innerText(),/https?:|Sources|Stanford|Florida|field report/i);proof.answers.at(-1).sourceOpened=source;
+   }
   }
   assert.deepEqual(errors,[]);proof.errors=errors;
   await fs.writeFile('lane/evidence/boycott-docent-browser-2026-11-28.json',JSON.stringify(proof,null,2)+'\n');

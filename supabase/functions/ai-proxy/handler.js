@@ -81,6 +81,7 @@ export function createHandler({store,getSecret,fetchImpl=fetch,validateBuilderSc
      prepared.audio?validateAudioProposal(result.value,body.context.description):
      body.job==='guide'?validateAnswer(result.value,prepared.blocks):validateBuilder(result.value,validateBuilderSchema);
    }catch(error){reason=body.job==='builder'?'builder_validation_failed':failureClass(error?.failureClass);}
+   if(proposal&&prepared.answerReason)proposal.reason=prepared.answerReason;
    const r=await store.settle(attempt.id,{usage:result.usage,accepted:!!proposal,failureClass:reason,
     ...(prepared.photo?{photoProposal:proposal}:{}),...(prepared.audio?{audioProposal:proposal}:{})});
    if(!r.validation_passed) return respond(502,{code:'BAD_PROPOSAL',receiptId:r.id,failureClass:r.failure_class});
