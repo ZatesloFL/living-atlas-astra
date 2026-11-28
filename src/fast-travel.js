@@ -17,7 +17,7 @@ export class FastTravel {
  }
  destroy(){this.cancel({quiet:true});clearInterval(this.timer);this.unsubscribe?.();this.chip.remove();this.fade.remove();}
  showError(error){let output=this.ui.content.querySelector('#travel-words-message,#travel-error');if(!output){output=document.createElement('p');output.id='travel-error';output.setAttribute('role','alert');this.ui.content.prepend(output);}output.textContent=error.message??String(error);}
- lens(){return this.api.lens();}
+ lens(){return this.store.lens(this.api.lens());}
  start(target,{choice,words=false,auto=false,atlasTrip=words}={}){if(!ROOMS[target])return;this.cancel({quiet:true});const lens=this.lens(),origin=this.api.room(),plan=travelPlan(origin,target,lens);if(!plan.route){this.ui.toast('No permitted route to that place.');return false;}
   const entry=EDGES.find(e=>e.to===target),needsDoor=entry&&visibleEdge(entry,lens).type!=='seamless';this.session={origin,target,profile:personId(lens),choice:choice??(ROOMS[target].layout.interior||needsDoor?'door':'inside'),confirmed:new Set(),agreements:new Map(),invites:new Set(),created:[],preview:null,words,auto,atlasTrip};this.render();if(auto&&this.plan()?.ready)this.go();return true;
  }
@@ -57,6 +57,7 @@ export class FastTravel {
   try{await sleep(this.api.reduced()?180:350);if(cancelled())return;await sleep(120);if(cancelled())return;
    const latest=this.plan();if(!latest.route||!waystation&&!latest.ready)throw new Error('Access changed. Review the pre-flight again.');
    this.api.authorize?.(s);if(JSON.stringify(latest.route.map(e=>e.id))!==JSON.stringify(plan.route.map(e=>e.id)))throw new Error('The route changed. Review the pre-flight again.');
+   for(const row of latest.rows)if(row.kind==='door'&&row.state==='Ready')s.confirmed.add(row.edge.id);
    const uses=route.map(e=>({key:e.to,scope:visibleEdge(e,lens).type==='window'?'look':e.to===s.target&&s.choice!=='inside'?'look':'enter'}));
    if(!uses.length&&!waystation&&!landing.contextRoom&&permission(ROOMS[s.target],lens).canLook)uses.push({key:s.target,scope:s.choice==='inside'?'enter':'look'});
    if(landing.contextRoom){for(let i=uses.length-1;i>=0;i--)if(uses[i].key===landing.contextRoom&&uses[i].scope==='enter')uses.splice(i,1);uses.push({key:landing.contextRoom,scope:'enter'});}

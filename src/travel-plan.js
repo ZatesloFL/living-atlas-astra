@@ -33,7 +33,7 @@ export function travelPlan(from,target,lens,{confirmed=new Set(),agreements=null
    const accepted=p.grant.kind!=='invite'||invites.has(p.grant.id)||(lens.access?.ledgers?.[room.id]??[]).some(r=>r.action==='invite_opened'&&r.actor===personId(lens)&&r.diff.grant===p.grant.id);
    rows.push({id:'grant:'+p.grant.id,kind:p.grant.kind==='invite'?'invite':'pass',edge,grant:p.grant,state:accepted?'Ready':'Needs you',reason:`${p.scope} pass${p.grant.expires?' · expires '+new Date(p.grant.expires).toLocaleTimeString():''}`});
   }
-  const agreement=doorAgreement(edge,lens),agreed=agreements?agreements.get(edge.id)===agreement.signature:confirmed.has(edge.id);
+  const agreement=doorAgreement(edge,lens),agreed=(agreements?agreements.get(edge.id)===agreement.signature:confirmed.has(edge.id))||(lens.doorAgreements??[]).some(a=>a.person===personId(lens)&&a.edge===edge.id&&a.signature===agreement.signature&&(!a.expires||a.expires>Date.now()));
   if(agreement.required)rows.push({id:'door:'+edge.id,kind:'door',edge,admission:gate.admission,agreement,state:agreed&&!gate.admission?.blocked?'Ready':'Needs you',reason:agreement.reasons.join(' · ')});
   if(gate.type==='window')rows.push({id:'window:'+edge.id,kind:'window',edge,state:'Ready',reason:'View-only stop: arrive outside the window.'});
  }

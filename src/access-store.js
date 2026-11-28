@@ -13,7 +13,7 @@ export const GROUP_RECORDS=[{id:'family',name:'Family',kind:'made',members:[],ma
 const stamp=()=>new Date().toISOString(),id=()=>crypto.randomUUID();
 export class AccessStore {
  constructor(storage=()=>globalThis.localStorage){
-  this.visitGrants=[];
+  this.visitGrants=[];this.doorAgreements=[];
   this.storage=storage;this.warning='';this.queue=Promise.resolve();this.listeners=new Set();this.data={grants:[],requests:[],groups:structuredClone(GROUP_RECORDS),policies:{},ledgers:{},presence:[],places:{},layerState:{},community:{epoch:Date.now()},staffState:{helpers:[],proposals:[],initialized:false}};
   try{const raw=storage()?.getItem(ACCESS_KEY);if(raw){const d=JSON.parse(raw);if(d.version!==1)throw new Error('Unknown access data');for(const k of Object.keys(this.data))if(d[k]!==undefined&&Array.isArray(d[k])===Array.isArray(this.data[k]))this.data[k]=d[k];}}catch{this.warning='Saved access data could not be read. Using an empty local simulation.';}
   this.data.standingState??=emptyStanding();
@@ -23,7 +23,7 @@ export class AccessStore {
   this.ready=Promise.all([...Object.values(this.data.ledgers),this.data.standingState.receipts].map(verifyChain)).then(results=>{this.valid=results.every(r=>r.valid);return this.valid;}).catch(()=>this.valid=false);
  }
  snapshot(){return this.data;}
- lens(lens){const view={...lens,access:this.data,standingInvalid:this.valid===false,visitGrants:this.visitGrants};if(Object.values(ROOMS).some(r=>{const p=permission(r,view);return p.visibility!=='public'&&p.grant&&!p.denied&&!(r.ownerId&&p.owner);}))view.testMode=true;return view;}
+ lens(lens){const view={...lens,access:this.data,standingInvalid:this.valid===false,visitGrants:this.visitGrants,doorAgreements:this.doorAgreements.filter(a=>a.person===personId(lens)&&(!a.expires||a.expires>Date.now()))};if(Object.values(ROOMS).some(r=>{const p=permission(r,view);return p.visibility!=='public'&&p.grant&&!p.denied&&!(r.ownerId&&p.owner);}))view.testMode=true;return view;}
  subscribe(fn){this.listeners.add(fn);return()=>this.listeners.delete(fn);}
  persist(){try{this.storage()?.setItem(ACCESS_KEY,JSON.stringify({version:1,...this.data}));}catch{this.warning='Access changes stay in memory because browser storage is blocked.';}for(const fn of this.listeners)fn();}
  transaction(fn){const job=this.queue.then(async()=>{await this.ready;if(!this.valid)throw new Error('Room receipts failed verification. Preserved data cannot be changed.');const result=await fn();this.persist();return result;});this.queue=job.catch(()=>{});return job;}
@@ -46,12 +46,14 @@ export class AccessStore {
  });}
  async transitionVisit(key,lens){
   if(lens.preview)return;const next=key?this.room(key).id:null,person=personId(lens),within=new Set(next?(containingPlaces(next,ROOMS)??[]).map(id=>ROOMS[id].id):[]);
+  this.doorAgreements=this.doorAgreements.filter(a=>a.person!==person||((!a.expires||a.expires>Date.now())&&(a.state!=='active'||within.has(a.place))));
+  for(const a of this.doorAgreements)if(a.person===person&&a.place===next){a.state='active';a.expires=null;}
   for(const grant of [...this.visitGrants])if(grant.person===person){
    if(grant.expires&&Date.parse(grant.expires)<=Date.now()||grant.state==='active'&&!within.has(grant.place)){await this.record(grant.place,lens,'visit_lens_expired',{grant:grant.id,reason:next?'left Place':'visit ended'});this.visitGrants.splice(this.visitGrants.indexOf(grant),1);}
    else if(grant.place===next&&grant.state==='pending'){grant.state='active';grant.expires=null;await this.record(key,lens,'visit_lens_started',{grant:grant.id});}
   }
  }
- endVisits(lens){return this.transaction(async()=>{for(const grant of [...this.visitGrants])if(grant.person===personId(lens)){await this.record(grant.place,lens,'visit_lens_expired',{grant:grant.id,reason:'visit ended'});this.visitGrants.splice(this.visitGrants.indexOf(grant),1);}});}
+ endVisits(lens){return this.transaction(async()=>{this.doorAgreements=this.doorAgreements.filter(a=>a.person!==personId(lens));for(const grant of [...this.visitGrants])if(grant.person===personId(lens)){await this.record(grant.place,lens,'visit_lens_expired',{grant:grant.id,reason:'visit ended'});this.visitGrants.splice(this.visitGrants.indexOf(grant),1);}});}
  inclusion(key,mode,lens){return this.transaction(async()=>{this.owner(lens,key);if(!['anyone','approved','none'].includes(mode))throw new Error('Choose an inclusion policy.');const r=this.room(key);this.data.policies[r.id]={...this.data.policies[r.id],embed:mode};await this.record(key,lens,'inclusion_changed',{mode});});}
  policy(key,visibility,lens){return this.transaction(async()=>{this.owner(lens,key);const r=this.room(key);if(r.layout?.root&&!r.ownerId)throw new Error('The prototype keeps its home entrances public.');if(!['public','listed','hidden'].includes(visibility)||r.visibility==='private'&&visibility==='public')throw new Error('Choose an allowed visibility.');this.data.policies[r.id]={...this.data.policies[r.id],visibility};await this.record(key,lens,'visibility_changed',{visibility});});}
  knock(key,lens,{scope='enter',onBehalfOf}={}){return this.transaction(async()=>{if(lens.preview)throw new Error('Preview as does not record real access.');const r=this.room(key),p=permission(r,this.lens(lens));if(!p.visible)throw new Error('No reachable door for this request.');if(lens.isAgent&&!onBehalfOf)throw new Error('Choose the person this agent represents.');if(!SCOPES.includes(scope))throw new Error('Unknown scope');const request={id:id(),room:r.id,by:personId(lens),name:lens.identity?.display==='anonymous'?'Visitor':lens.profileName??lens.name??'Visitor',agent:!!lens.isAgent,to:onBehalfOf??personId(lens),scope,status:'pending',createdAt:stamp(),standing:this.standing.knockRecord(lens)};this.data.requests.push(request);await this.record(key,lens,'access_requested',request);return request;});}
@@ -70,7 +72,8 @@ export class AccessStore {
   if(lens.preview||lens.isAgent)throw new Error('A person must agree to this door.');const current=doorAgreement(edge,this.lens(lens));
   if(current.signature!==signature||current.blocked||!permission(this.room(edge.to),this.lens(lens)).canEnter)throw new Error('The doorway changed or is not admitted. Review it again.');
   if(!['reviewed','filtered-preview','visit-raise'].includes(choice))throw new Error('Unknown door choice.');
-  const receipt=await this.record(edge.to,lens,'door_agreed',{edgeId:edge.id,choice,terms:current.terms});return {signature:current.signature,receipt:receipt.hash};
+  const prior=this.lens(lens).doorAgreements.find(a=>a.edge===edge.id&&a.signature===current.signature);if(prior)return {signature:prior.signature,receipt:prior.receipt};
+  const receipt=await this.record(edge.to,lens,'door_agreed',{edgeId:edge.id,choice,terms:current.terms});this.doorAgreements=this.doorAgreements.filter(a=>a.person!==personId(lens)||a.edge!==edge.id);this.doorAgreements.push({person:personId(lens),place:this.room(edge.to).id,edge:edge.id,signature:current.signature,receipt:receipt.hash,state:'pending',expires:Date.now()+5*60000});return {signature:current.signature,receipt:receipt.hash};
  });}
  previewDoor(edge,lens,signature){return this.transaction(async()=>{
   const current=doorAgreement(edge,this.lens(lens));if(lens.preview||current.signature!==signature||!permission(this.room(edge.to),this.lens(lens)).canLook)throw new Error('This preview changed or is unavailable.');

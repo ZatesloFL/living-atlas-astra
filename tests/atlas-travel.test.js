@@ -18,3 +18,12 @@ test('A soft gap stops the trip; filtered preview is receipted without crossing;
 test('Declared age and price terms remain agreeing doors and unresolved price cannot be agreed away',async t=>{const f=fixture(t);await f.access.ready;const key=f.keys[1],edge=f.edges[1];ROOMS[key].admission={mode:'threshold',ageRule:{band:{lower:{op:'gte',years:18}}}};assert.equal(travelPlan('square',key,f.lens).ready,false);
  ROOMS[key].admission.price={reserved:'synthetic'};const a=doorAgreement(edge,f.lens);assert.equal(a.blocked,true);await assert.rejects(f.access.agreeDoor(edge,f.lens,{signature:a.signature}),/not admitted/);
 });
+test('an agreed door carries through an active visit past thirteen minutes; leaving or changed terms require a new choice',async t=>{
+ const f=fixture(t);await f.access.ready;const key=f.keys[1],edge=f.edges[1];ROOMS[key].minAge=13;
+ let lens=f.access.lens(f.lens),a=doorAgreement(edge,lens);const first=await f.access.agreeDoor(edge,lens,{signature:a.signature});
+ await f.access.transitionVisit(key,lens);assert.equal(f.access.doorAgreements[0].expires,null);
+ assert.equal(travelPlan('square',key,f.access.lens(f.lens),{agreements:new Map()}).ready,true);
+ assert.equal((await f.access.agreeDoor(edge,lens,{signature:a.signature})).receipt,first.receipt);assert.equal(f.access.data.ledgers[key].filter(r=>r.action==='door_agreed').length,1);
+ ROOMS[key].minAge=14;assert.equal(travelPlan('square',key,f.access.lens(f.lens)).ready,false);ROOMS[key].minAge=13;
+ await f.access.transitionVisit('square',lens);assert.equal(travelPlan('square',key,f.access.lens(f.lens)).ready,false);
+});
