@@ -1,3 +1,4 @@
+import {presentationRequest,publicName} from './profile-presentation.js';
 import {rememberAccounts,accountSnapshot} from './account-state.js';
 import {standingPreferences} from './standing-policy.js';
 import {asPair,asHard,validPair} from './scores.js';
@@ -11,7 +12,7 @@ export const STORAGE_KEY='living-atlas.profiles.v4';
 export const GROUPS=[['family','Family','made'],['writing-circle','Writing circle','made'],['tallahassee-resident','Verified Tallahassee resident','credential'],['neighborhood','My neighborhood','credential']];
 const clone=value=>structuredClone(value);
 export function makeProfile(name,extra={}){
-  return {id:crypto.randomUUID(),name,identity:{display:'pseudonym',backing:'none'},age:18,preset:null,limits:unsetDials(),hard:unsetDials(),show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],layerConsents:{},layerMode:'Core only',layerTypes:['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'],itemStyles:{},discovery:discoveryDefaults(),standingPreferences:standingPreferences(),groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
+  return {id:crypto.randomUUID(),name,identity:{display:'real',backing:'none'},age:18,preset:null,limits:unsetDials(),hard:unsetDials(),show:{real:true,pseudonym:true,anonymous:true,agent:true},trustFrom:'Author',depth:'Standard',form:'3d',stylePreset:'Studio',acceptedLayers:[],layerConsents:{},layerMode:'Core only',layerTypes:['More detail','Counterpoint','Expert deep-dive','Viewpoint','Remix'],itemStyles:{},discovery:discoveryDefaults(),standingPreferences:standingPreferences(),groups:[],playAs:'visitor',isAgent:false,isTest:false,...extra};
 }
 export function seedProfiles(){
   const base=(id,name,preset,extra={})=>makeProfile(name,{id,seed:true,isTest:true,preset,limits:clone(PRESETS[preset].limits),hard:clone(PRESETS[preset].hard),...extra});
@@ -20,7 +21,7 @@ export function seedProfiles(){
 function sanitize(p){
   if(!p||typeof p.id!=='string'||typeof p.name!=='string'||!p.name.trim()||!Number.isFinite(p.age))return null;
   const out=makeProfile(p.name.trim().slice(0,40));out.id=p.id.slice(0,100);out.age=Math.max(0,Math.min(120,Math.floor(p.age)));out.seed=seedIds.has(out.id);if(out.id==='seed-child')out.name='Under-13 rejection fixture';
-  out.identity={display:['anonymous','pseudonym','real'].includes(p.identity?.display)?p.identity.display:'anonymous',backing:p.identity?.backing==='verified'?'verified':'none'};
+  out.identity={display:['anonymous','pseudonym','real'].includes(p.identity?.display)?p.identity.display:'anonymous',backing:p.identity?.backing==='verified'?'verified':'none',...(typeof p.identity?.pseudonym==='string'&&p.identity.pseudonym.trim()?{pseudonym:p.identity.pseudonym.trim().slice(0,40)}:{})};
   out.preset=[...Object.keys(PRESETS),'Custom'].includes(p.preset)?p.preset:null;
   for(const [k] of DIMENSIONS){const l=personalPair(p.limits?.[k]),h=personalPair(p.hard?.[k]);out.limits[k]=validPair(l,{nullable:true})?l:unsetDials()[k];out.hard[k]=validPair(h,{nullable:true})?h:unsetDials()[k];}
   if(p.homePlaceId==='home/'+p.id){out.homePlaceId=p.homePlaceId;out.arrivalId=p.arrivalId;}
@@ -57,7 +58,7 @@ export class ProfileStore {
     catch(error){this.grantWarning='Atlas could not record its starter: '+error.message;return {created:false,error:this.grantWarning};}
   }
   active(){return this.profiles.find(p=>p.id===this.activeId);}
-  current(){rememberAccounts(this.profiles);const base=this.active()??makeProfile('Profile not set up',{age:0});return {...clone(base),...clone(this.override??{}),identity:{...base.identity,...this.override?.identity},accountState:accountSnapshot(base),profileId:base.id,profileName:base.name,viewAs:(this.override?.isAgent??base.isAgent)?'agent':'profile',testMode:this.testActive()};}
+  current(){rememberAccounts(this.profiles);const base=this.active()??makeProfile('Profile not set up',{age:0});return {...clone(base),...clone(this.override??{}),identity:{...base.identity,...this.override?.identity},accountState:accountSnapshot(base),profileId:base.id,profileName:publicName(base),viewAs:(this.override?.isAgent??base.isAgent)?'agent':'profile',testMode:this.testActive()};}
   testActive(){const p=this.active();return !!this.override||!!p?.isTest||p?.identity.backing==='verified'||p?.playAs==='owner'||!!p?.groups.length;}
   persist(){
     rememberAccounts(this.profiles);
@@ -78,8 +79,8 @@ export class ProfileStore {
       for(const [key,value] of Object.entries({preset,limits,hard,depth,form}))if(value!==undefined)existing[key]=clone(value);
       this.override=null;this.persist();await this.entryGrant(existing);return existing;
     }
-    const base=PRESETS[preset];const p=makeProfile(name?.trim().slice(0,40)||'My visit',{...(id?{id}:{}),age,preset:preset??null,limits:clone(limits??base?.limits??unsetDials()),hard:clone(hard??base?.hard??unsetDials()),depth,form,identity:{display,backing:'none'},...(homePlaceId?{homePlaceId,arrivalId}:{} )});
-    await this.record('profile_created',{profile:p.id,name:p.name});await this.record('profile_switched',{from:this.activeId,to:p.id});
+    const base=PRESETS[preset];const p=makeProfile(name?.trim().slice(0,40)||'My visit',{...(id?{id}:{}),age,preset:preset??null,limits:clone(limits??base?.limits??unsetDials()),hard:clone(hard??base?.hard??unsetDials()),depth,form,identity:{display:'real',backing:'none'},...(homePlaceId?{homePlaceId,arrivalId}:{} )});
+    await this.record('profile_created',{profile:p.id,name:p.name,presentation:{display:'real',origin:'starting presentation',chosen:false}});await this.record('profile_switched',{from:this.activeId,to:p.id});
     this.profiles.push(p);this.activeId=this.regularId=p.id;this.completed=true;this.override=null;this.persist();await this.entryGrant(p);return p;
   });}
   switchProfile(id){return this.transact(async()=>{
@@ -89,8 +90,8 @@ export class ProfileStore {
   });}
   saveAs(name){return this.transact(async()=>{
     if(!name?.trim())throw new Error('Give the profile a name.');
-    const p=sanitize({...this.current(),id:crypto.randomUUID(),name:name.trim(),seed:false,isTest:this.testActive()});
-    await this.record('profile_created',{profile:p.id,name:p.name,copiedFrom:this.activeId});await this.record('profile_switched',{from:this.activeId,to:p.id});
+    const p=sanitize({...this.current(),id:crypto.randomUUID(),name:name.trim(),identity:{...this.current().identity,display:'real'},seed:false,isTest:this.testActive()});
+    await this.record('profile_created',{profile:p.id,name:p.name,copiedFrom:this.activeId,presentation:{display:'real',origin:'starting presentation',chosen:false}});await this.record('profile_switched',{from:this.activeId,to:p.id});
     this.profiles.push(p);this.activeId=p.id;this.override=null;if(!p.isTest)this.regularId=p.id;this.persist();await this.entryGrant(p);return p;
   });}
   rename(id,name){return this.transact(async()=>{const p=this.profiles.find(p=>p.id===id);if(!p||p.seed)throw new Error('Built-in profiles keep their names. Save a copy to rename it.');if(!name?.trim())throw new Error('Give the profile a name.');await this.record('profile_renamed',{id,from:p.name,to:name.trim().slice(0,40)});p.name=name.trim().slice(0,40);this.persist();});}
@@ -105,7 +106,15 @@ export class ProfileStore {
     this.active().limits=clone(next.limits);this.active().preset='Custom';const persisted=this.persist();return {receipt:receipt.hash,persisted};
   });}
   preferences(lens){const p=this.active();if(!p)return;for(const key of ['preset','limits','hard','show','trustFrom','depth','form','stylePreset','acceptedLayers','layerMode','layerTypes','itemStyles','layerConsents','discovery','standingPreferences'])if(lens[key]!==undefined)p[key]=clone(lens[key]);this.persist();}
-  setDisplay(display){const p=this.active();if(!p||!['anonymous','pseudonym','real'].includes(display))return;p.identity.display=display;this.persist();}
+  changePresentation(words){const intent=presentationRequest(words,this.active()?.identity);return this.setDisplay(intent.display,{pseudonym:intent.pseudonym,words});}
+  setDisplay(display,{pseudonym,words='Profile inspector'}={}){return this.transact(async()=>{
+    const p=this.active();if(!p||!['anonymous','pseudonym','real'].includes(display))throw new Error('Choose a supported presentation in your active profile.');
+    const name=(pseudonym??p.identity.pseudonym??'').trim();if(display==='pseudonym'&&(!name||name.length>40))throw new Error('Choose the persistent name you want people to see.');
+    const before=clone(p.identity),after={...before,display,...(name?{pseudonym:name}:{})};
+    await this.record('presentation_changed',{profile:p.id,before,after,words});p.identity=after;this.override=null;this.persist();return p;
+  });}
+  offerPresentation(context){return this.transact(async()=>{const p=this.active();if(!p||this.entries.some(e=>e.action==='presentation_offered'&&e.diff.profile===p.id))return false;await this.record('presentation_offered',{profile:p.id,context,source:'Atlas',gate:false});this.persist();return true;});}
+
   setOverride(changes){this.override={...this.override,...clone(changes),identity:{...this.current().identity,...changes.identity}};}
   async exitTest(){if(this.active()?.isTest){if(this.regularId)return this.switchProfile(this.regularId);this.completed=false;this.activeId=null;this.override=null;this.persist();return;}this.override=null;this.persist();}
 }

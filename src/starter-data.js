@@ -1,4 +1,4 @@
-import {accountSnapshot,accountSubject} from './account-state.js';
+import {authorshipSnapshot} from './account-state.js';
 import {scores} from './scores.js';
 import {resolvePublicReference} from './public-references.js';
 export const STARTS=[['generated','From your interview'],['scratch','From scratch'],['reading','Reading garden template']];
@@ -19,7 +19,7 @@ const layout=(slot,kind='booth',scale=1)=>({kind,model:kind,slot,approach:[slot[
 export function starterDraft({profile,interview,start='generated',proposals=[],references=[],lens=profile,now=Date.now()}){
  if(interview.holderId!==profile.id||!STARTS.some(([id])=>id===start))throw new Error('Choose a start for this profile.');
  const root='home/'+profile.id,drive=root+'/drive',workshop=root+'/workshop',changes=[],rooms=[];
- const author={...accountSnapshot(accountSubject(profile)),backing_ref:null};
+ const author={...authorshipSnapshot(profile),backing_ref:null};
  const provenanceRef=interview.receiptId??null;
  const add=(kind,ref,fields)=>changes.push({op:'create',kind,ref,fields,provenanceRef});
  const place=(id,parent,title,body,where,blocks)=>{add('Place',{placeId:id},{title,address:'local/'+id,district:'makers',author,visibility:'hidden',permissions:{substance:'none',style:'open',embed:'none'},styleControl:'open',approvedLooks:['Studio','Gallery','Documentary'],style:{preset:'Studio',palette:'dusk',scale:1},content:scores(),measured:scores(),minAge:0,admission:{mode:'filtered',minimum:scores()},substance:{summary:body,body,claims:[]},forms:['3d','card','page'],forks:[],blocks,sources:[],layers:[],ratings:{author:'Your local Place',vouched:[],academic:'Not reviewed',community:'Not rated'},backing_ref:null,layout:{...where,scene:root}});const room={placeId:id,parentPlaceId:parent,layout:{...where,scene:root},pathIds:[],pieces:[],behaviors:[]};rooms.push(room);return room;};

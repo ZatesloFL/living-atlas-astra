@@ -1,0 +1,85 @@
+{
+  "firstScreen": "A few questions, an interview, your Lens — then a place that is yours, with a Drive room and a workshop.\n\nAccount step · Unverified · age unknown. One account works in Atlas and Second Look. Account sign-up and verification are not connected in this prototype; this flow previews an unverified account and does not create one. Your answers stay in this browser.\n\nAccount states\nWhat should we call your space?\nSelf-reported age · does not verify your age\n\nYou start with your name showing. You can change this later in your profile.\n\nSelf-reported age never establishes adult status. Any age you give stays unverified; fixed conservative ceilings apply.\n\nContinue to interview",
+  "profile": "How people see you\n\nYour name is hidden. You appear as a visitor.\n\nChange it in wordsChange how I appear\n\nTry “show my name”, “show no name”, or “use the name …”. Existing published authorship stays as recorded.\n\nChanged and recorded. Your name is hidden. You appear as a visitor.",
+  "after": {
+    "identity": {
+      "display": "anonymous",
+      "backing": "none",
+      "pseudonym": "Fern"
+    },
+    "receipts": [
+      {
+        "id": 1,
+        "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "actor": "new-visitor",
+        "action": "profile_created",
+        "time": "2026-11-28T16:17:30.577Z",
+        "diff": {
+          "profile": "d371ceea-a4a3-425d-a8d8-b02c9242f28c",
+          "name": "Synthetic Fern",
+          "presentation": {
+            "display": "real",
+            "origin": "starting presentation",
+            "chosen": false
+          }
+        },
+        "hash": "7e92c85fe6ccd9328a10284220d6bf550a635f1798d1b4a3a2e5dcd08cb821de"
+      },
+      {
+        "id": 2,
+        "prevHash": "7e92c85fe6ccd9328a10284220d6bf550a635f1798d1b4a3a2e5dcd08cb821de",
+        "actor": "new-visitor",
+        "action": "profile_switched",
+        "time": "2026-11-28T16:17:30.577Z",
+        "diff": {
+          "from": null,
+          "to": "d371ceea-a4a3-425d-a8d8-b02c9242f28c"
+        },
+        "hash": "d975167a3f5e45c078e4028335efe10d95c60ddc6b0ab430d32b0738fcaa4819"
+      },
+      {
+        "id": 3,
+        "prevHash": "d975167a3f5e45c078e4028335efe10d95c60ddc6b0ab430d32b0738fcaa4819",
+        "actor": "d371ceea-a4a3-425d-a8d8-b02c9242f28c",
+        "action": "presentation_changed",
+        "time": "2026-11-28T16:17:32.276Z",
+        "diff": {
+          "profile": "d371ceea-a4a3-425d-a8d8-b02c9242f28c",
+          "before": {
+            "display": "real",
+            "backing": "none"
+          },
+          "after": {
+            "display": "pseudonym",
+            "backing": "none",
+            "pseudonym": "Fern"
+          },
+          "words": "Use the name Fern"
+        },
+        "hash": "2e04ad8393e9215080a51a308b46db8380f18ae1addf31ccaf7acbf0f18aa206"
+      },
+      {
+        "id": 4,
+        "prevHash": "2e04ad8393e9215080a51a308b46db8380f18ae1addf31ccaf7acbf0f18aa206",
+        "actor": "d371ceea-a4a3-425d-a8d8-b02c9242f28c",
+        "action": "presentation_changed",
+        "time": "2026-11-28T16:17:33.233Z",
+        "diff": {
+          "profile": "d371ceea-a4a3-425d-a8d8-b02c9242f28c",
+          "before": {
+            "display": "pseudonym",
+            "backing": "none",
+            "pseudonym": "Fern"
+          },
+          "after": {
+            "display": "anonymous",
+            "backing": "none",
+            "pseudonym": "Fern"
+          },
+          "words": "Show no name"
+        },
+        "hash": "fcefd1681e98787d181d34cd5e916a3cfd8a4babdd8f18ef0bc8db7d19ea8b99"
+      }
+    ]
+  }
+}

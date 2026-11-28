@@ -1,3 +1,4 @@
+import {presentationWords} from './profile-presentation.js';
 import {openCrossingHistory} from './crossing-history.js';
 import {ArrivalFlow} from './arrival-ui.js';
 import {PRESETS} from './data.js';
@@ -37,7 +38,7 @@ export class ProfileUI {
       <span class="section-label">This profile</span><p class="muted profile-account-state">${esc(identityBadge(current??this.api.state().lens))}</p>
       ${this.api.askAtlas?'<button id="profile-atlas" class="primary">Ask Atlas</button>':''}
       ${current&&!this.store.arrivalRecords?.starter(current.id)?'<p class="muted">A starter place, a Drive room and a workshop for this local profile, whenever you are ready.</p><button id="profile-arrival" class="secondary">See your space</button>':''}
-      <div class="settings-form"><label>Presentation<select id="profile-display"><option value="anonymous" ${current?.identity.display==='anonymous'?'selected':''}>Anonymous presentation</option><option value="pseudonym" ${current?.identity.display==='pseudonym'?'selected':''}>Pseudonymous</option><option value="real" ${current?.identity.display==='real'?'selected':''}>Named</option></select></label>
+      <section class="profile-presentation"><h3>How people see you</h3><p>${esc(current?presentationWords(current):'Choose a profile first.')}</p><form id="profile-presentation"><label>Change it in words<input name="words" required maxlength="160" placeholder="Use the name Fern"></label><button>Change how I appear</button><p class="muted">Try “show my name”, “show no name”, or “use the name …”. Existing published authorship stays as recorded.</p><p id="presentation-message" role="status"></p></form></section><div class="settings-form">
       <label>Profile name<input id="profile-name" maxlength="40" value="${esc(current?.name??'My profile')}" autocomplete="off"></label></div>
       <button id="profile-save-as" class="primary">Save current view as a new profile</button>
       ${current&&!current.seed?'<div class="form-columns"><button id="profile-rename" class="secondary">Rename this profile</button><button id="profile-delete" class="secondary">Delete this profile</button></div>':''}
@@ -46,7 +47,7 @@ export class ProfileUI {
     this.ui.content.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>this.run(()=>this.choose(b.dataset.profile)));
     $('profile-atlas')?.addEventListener('click',()=>this.api.askAtlas());
     $('profile-arrival')?.addEventListener('click',()=>this.run(()=>this.setup(current)));
-    $('profile-display').onchange=e=>this.run(async()=>{this.store.setDisplay(e.target.value);await this.api.apply();this.switcher();});
+    $('profile-presentation').onsubmit=e=>{e.preventDefault();this.run(async()=>{await this.store.changePresentation(e.currentTarget.elements.words.value);await this.api.apply();this.switcher();$('presentation-message').textContent='Changed and recorded. '+presentationWords(this.store.active());});};
     $('profile-save-as').onclick=()=>this.run(async()=>{await this.store.saveAs($('profile-name').value);await this.api.apply();this.switcher();this.ui.toast('Profile saved.');});
     if($('profile-rename'))$('profile-rename').onclick=()=>this.run(async()=>{await this.store.rename(current.id,$('profile-name').value);await this.api.apply();this.switcher();});
     if($('profile-delete'))$('profile-delete').onclick=()=>{$('delete-confirm').innerHTML='<p class="reason">Delete this saved profile? Its existing receipts remain in history.</p><button id="delete-yes" class="secondary">Delete profile</button><button id="delete-no" class="secondary">Keep profile</button>';$('delete-no').onclick=()=>$('delete-confirm').replaceChildren();$('delete-yes').onclick=()=>this.run(async()=>{await this.store.remove(current.id);await this.api.apply();if(this.store.completed)this.switcher();else this.setup();});};

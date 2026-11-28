@@ -21,7 +21,7 @@ export function accountStateLabel(subject){
  if(Number.isFinite(subject.age)&&subject.age<18)return 'Minor 13–17 · simulated; guardian link not connected';
  return 'Verified adult · simulated';
 }
-export function authorName(subject){subject=accountSubject(subject);return identityOf(subject).display==='anonymous'&&!subject.isAgent?'Anonymous':subject.name;}
+export function authorName(subject){subject=accountSubject(subject);const i=identityOf(subject);return i.display==='anonymous'&&!subject.isAgent?'Anonymous':i.display==='pseudonym'?(i.pseudonym||subject.name):subject.name;}
 export function accessSettings(lens,place=null){
   const age=Number.isFinite(lens.age)?lens.age:0,verified=lens.identity?.backing==='verified';
   const cap=age<13?'Kids':(!verified||age<18)?'Teen':null;
