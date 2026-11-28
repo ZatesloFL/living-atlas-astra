@@ -182,13 +182,58 @@ async function outsiderAtAddress(page, profileId, home, piece) {
     console.log('PASS Home Sources inspector displays the owner’s saved Drive reference');
 
     await tab('kit');
+    await dock.locator('[data-builder-action=camera][data-value=top-down]').click();
+    await dock.locator('[data-builder-action=choose-kit][data-value=interior-shell]').click();
+    const outsideClick=await page.evaluate(async ()=>{
+      const {ROOMS}=await import('./src/data.js');
+      const {makeBuilderPiece}=await import('./src/builder-pieces.js');
+      const {builderHallPlacementFits,materializeBuilderHall}=await import('./src/builder-hall.js');
+      const {scores}=await import('./src/scores.js');
+      const parent=ROOMS[__atlas.build.draft.roomKey];
+      for(let y=200;y<innerHeight-140;y+=32)for(let x=20;x<innerWidth-12;x+=32){
+        if(document.elementFromPoint(x,y)?.id!=='world')continue;
+        const point=__atlas.build.api.pickBuildPosition({x,y});
+        if(!point||Math.max(Math.abs(point.x),Math.abs(point.z))>29)continue;
+        const piece=makeBuilderPiece('interior-shell',{id:'test-click',placeId:parent.id,
+          position:[Math.round(point.x*2)/2,0,Math.round(point.z*2)/2]});
+        piece.block={title:'Outside test',content:scores()};
+        if(!builderHallPlacementFits(parent,materializeBuilderHall(parent,piece).room))return {x,y};
+      }
+    });
+    assert.ok(outsideClick,'There is a canvas point outside the allowed hall footprint');
+    await page.mouse.click(outsideClick.x,outsideClick.y);
+    const placementError=dock.locator('.builder-status').filter({hasText:/outside your Place/i});
+    await placementError.waitFor();
+    assert.equal(await page.evaluate(()=>__atlas.build.draft.pieces.length),0);
+    evidence.outsidePlacement=await placementError.innerText();
+    await dock.locator('[data-builder-action=cancel-placement]').click();
+    await dock.locator('[data-builder-action=camera][data-value=orbit]').click();
     await dock.getByRole('button', {name: /^Sign/}).click();
     await dock.getByRole('button', {name: 'Place at center'}).click();
     const inspector = dock.locator('[data-builder-form=piece]');
     await inspector.locator('[name=title]').fill(title);
     await inspector.locator('[name="settings.text"]').fill(signText);
     await inspector.locator('[name="position.2"]').fill('1');
+    const beforeReview=await page.evaluate(()=>{
+      const store=__atlas.build.builder,update=store.update.bind(store);
+      const hold=new Promise(resolve=>window.releaseBuilderSave=resolve);
+      store.update=async (...args)=>{
+        await hold;
+        store.update=update;
+        return update(...args);
+      };
+      return store.data.receipts.filter(receipt=>receipt.action==='build_previewed').length;
+    });
     await inspector.getByRole('button', {name: 'Apply draft edits'}).click();
+    await page.waitForFunction(()=>__atlas.build.busy);
+    const reviewButton=dock.locator('[data-builder-action=review]');
+    await reviewButton.click();
+    await page.evaluate(()=>window.releaseBuilderSave());
+    await dock.getByRole('heading',{name:'Review publication',exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>__atlas.build.builder.data.receipts.filter(r=>r.action==='build_previewed').length),beforeReview+1);
+    assert.match(await dock.locator('[data-audience-counts]').innerText(),/0 shown · 1 withheld/);
+    assert.equal(await dock.getByRole('region',{name:'Room budget'}).count(),0);
+    evidence.reviewDuringSave={previewReceipts:1,counts:await dock.locator('[data-audience-counts]').innerText()};
     await page.waitForFunction(text => __atlas.build.draft.pieces.some(piece => piece.kind === 'sign' && piece.settings.text === text), signText);
     const piece = await page.evaluate(() => __atlas.build.draft.pieces.find(piece => piece.kind === 'sign').block.id);
     assert.equal((await drawn(page, {room: home, piece, preview: true})).signFace?.text, signText);
@@ -219,10 +264,14 @@ async function outsiderAtAddress(page, profileId, home, piece) {
       return state.room === room && document.querySelector('#sheet').hidden && Math.hypot(state.position.x - x, state.position.z - z) < .02;
     }, {room: home, x: plan.spot.position[0], z: plan.spot.position[2]});
     const closeFace = await faceInView(page, home, piece, plan.spot);
-    evidence.ownerDraft = {marked: await draftLabel.textContent(), thingTitle: title, signFace: ownerDraft.signFace, spot: plan.spot, pixels: closeFace};
+    const inkWidthFraction = closeFace.ink.clip.width / closeFace.board.clip.width;
+    evidence.ownerDraft = {marked: await draftLabel.textContent(), thingTitle: title, signFace: ownerDraft.signFace,
+      spot: plan.spot, pixels: closeFace, inkWidthFraction};
     if (process.env.ATLAS_SIGN_SCREENSHOT) await page.screenshot({path: process.env.ATLAS_SIGN_SCREENSHOT, clip: closeFace.board.clip});
     assert.ok(closeFace.ink.withinViewport && closeFace.ink.clip.width > 42 && closeFace.ink.clip.height > 16,
       'The physical lettering fits at the viewing spot: ' + JSON.stringify(evidence.ownerDraft));
+    assert.ok(closeFace.board.withinViewport && inkWidthFraction >= .65,
+      'The author’s words use the face at the portrait viewing spot: ' + JSON.stringify(closeFace));
     console.log('PASS owner Visit draws the marked draft; real card frames the authored sign face');
 
     await build();
@@ -269,6 +318,12 @@ async function outsiderAtAddress(page, profileId, home, piece) {
     assert.equal(published.signFace?.text, signText);
     assert.ok(!published.room?.draft && !/draft/i.test(await draftLabel.textContent()));
     evidence.ownerAfterPublish = {room: home, signFace: published.signFace, markedDraft: !!published.room?.draft};
+    await page.locator('#navigation-return').click();
+    await page.locator('#builder-find-work').click();
+    await page.locator('#sheet-content').getByRole('button',{name:title,exact:true}).click();
+    await page.locator('#viewpoint-confirm').click();
+    await page.waitForFunction(id=>atlasStatus().room===id && document.querySelector('#sheet').hidden,home);
+    evidence.findPublishedSign={room:home,title,viewpoint:'confirmed inside the same Place after return to entrance'};
     evidence.lurkerAfterPublish = await outsiderAtAddress(page, 'seed-visitor', home, piece);
     assert.equal(evidence.lurkerAfterPublish.display, 'anonymous');
     assert.equal(evidence.lurkerAfterPublish.backing, 'none');
@@ -279,6 +334,7 @@ async function outsiderAtAddress(page, profileId, home, piece) {
     await chooseProfile(page, owner);
     await enterPlaceByAddress(page, home);
     assert.equal((await drawn(page, {room: home, piece})).signFace?.text, signText);
+    assert.equal(await page.locator('#builder-find-work').isVisible(),true);
 
     // The private publication check is complete. Add narrow local fixture
     // invitations to verify both selected visitors actually get their own Lens.

@@ -29,11 +29,13 @@ export function drawFrontage(w,room,id,{edit=false,draft=false}={}){
   if(edit)w.box(0,y(1.68),0,opening-.12,y(3.28),.018,'#78a6ab','glass',marker);
  }
  const title=room.layout.sign?.[0]??room.title,point=w.transform(0,y(4.7),0);
+ const nameplate=authored&&w.transform(0,y(2.55),.25);
  w.placement=previous;
  if(authored){
   const header=point.clone();header.y=y(3.95);
   header.x+=Math.sin(f.facing)*.22;header.z+=Math.cos(f.facing)*.22;
   sign(w,{title,sub:draft?'DRAFT':'EXHIBIT HALL',position:header.toArray(),facing:f.facing,width:Math.min(3.8,f.width-.4),height:y(.65),id:marker});
+  w.label(title,draft?'Draft · Exhibit hall':'Enter · Exhibit hall',nameplate.x,nameplate.y,nameplate.z,marker);
   if(!edit)w.portalSurfaces.push({id:h.edge,x:f.door[0],z:f.door[1],rotation:f.facing,tint:'#cfbd83',opacity:.42});
  }else w.label(title,'ENTER · EXHIBITION HALL',point.x,point.y,point.z,id);
 }

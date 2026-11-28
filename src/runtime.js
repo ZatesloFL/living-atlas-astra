@@ -9,6 +9,7 @@ import {visitorHUD} from './visitor-hud.js';
 import {pickedThing,thingSubject,pickedRecoveredHall} from './thing-subject.js';
 import {localSegment,viewingSpot,airPointAllowed} from './visitor-viewpoint.js';
 import {manualDestination} from './atlas-destinations.js';
+import {publishedPiecesInWorld} from './builder-find.js';
 export async function startAtlas(diag){
 const THREE=await diag.asyncRun('engine module',()=>import('../vendor/three/three.module.min.js'));
 const {ROOMS,EDGES}=await diag.asyncRun('data module',()=>import('./data.js'));
@@ -55,7 +56,7 @@ const previewLens=id=>access.lens({...structuredClone(profiles.profiles.find(p=>
 const currentLens=()=>previewState?previewLens(previewState.left):access.lens(profiles.current());
 let profileUI,page,pageOrigin,selectedRoom,accessUI,travel,waypoint=null,place=null,expiryTimer,waypointRouteCache=null;
 let world,graphics,controls,ui,kind='studio',lens=diag.run('profile lens',()=>currentLens()),context={room:'studio'},transition=null,frame=0,lastTime=0,frames=0,period=0,fps=60,lastTune=0,lastContextUpdate=0,titlePosition=null,active=true,near=null,contextKey='studio';
-let enteredView=null,viewStatus=null,draftBadge=null;
+let enteredView=null,viewStatus=null,draftBadge=null,findWork=null,findScope=null;
 let stageCache=null,stageComparison=null,stageFraction=.5,stageRatio=null,visitDraftDirty=false;
 const atlasRecords=profiles.atlasRecords;await profiles.grantReady;
 const builder=new Builder({onPublish:refreshPublishedRoom,onDraft:refreshVisitDraft,atlasRecords});
@@ -133,6 +134,32 @@ function updateContext(){
     if(context.room==='market')ui.toast('Night Market reads louder than it says: Sensory amount 2 · graphicness 1.');else if(context.inside)ui.toast(world.hall?'Inside: '+context.inside:'Inside: Broadcast booth · host rules apply');else ui.toast(`Entered ${DISTRICT_NAME(context.room)}`);
   }
   if(draftBadge)draftBadge.hidden=!world.renderedRooms.some(room=>room.id===context.room&&room.draft);
+  if(findWork&&(findScope?.world!==world||findScope?.room!==context.room||findScope?.lens!==lens)){
+    findScope={world,room:context.room,lens};
+    findWork.hidden=!permission(ROOMS[context.room],lens).owner||!publishedPiecesInWorld(world,context.room).length;
+  }
+}
+
+function showPublishedWork(){
+ const room=context.room;
+ if(!permission(ROOMS[room],lens).owner)return;
+ const choices=publishedPiecesInWorld(world,room);
+ if(!choices.length)return;
+ ui.open('builder-find',ROOMS[room].title,'Find my work');
+ const list=document.createElement('ul');list.className='builder-find-list';
+ for(const item of choices){
+  const row=document.createElement('li'),button=document.createElement('button');
+  button.textContent=item.title;
+  button.onclick=()=>{
+   const current=context.room===room&&permission(ROOMS[room],lens).owner&&publishedPiecesInWorld(world,room).find(piece=>piece.pieceId===item.pieceId);
+   if(!current){ui.close();ui.toast('This work is outside your current view.');return;}
+   if(current.kind==='hall')startTravel(current.placeId,{choice:'door',manual:true});
+   else if(closePlan(room,current.blockId))offerCloser(room,current.blockId);
+   else ui.thing(room,current.blockId);
+  };
+  row.append(button);list.append(row);
+ }
+ ui.content.replaceChildren(list);
 }
 function rememberEntrance(force=false){
  if(lens.preview)return;
@@ -257,7 +284,9 @@ buildUI=new BuildUI(ui,profiles,{hud,builder,previewLens,stage:showBuildStage,en
 subscribeHostedSourceChanges(refreshBuiltScene);
 for(const [id,open] of [['profile-chip',()=>profileUI.switcher()],['test-button',()=>profileUI.testPanel()],['test-banner',()=>profileUI.testPanel()]])$(id).onclick=()=>{if(previewState||buildUI.active)buildUI.exit();open();};
 const audienceBadge=document.createElement('aside');audienceBadge.id='audience-hud';audienceBadge.hidden=true;hud.mount(audienceBadge,30);
-draftBadge=document.createElement('aside');draftBadge.id='builder-visit-draft';draftBadge.className='builder-visit-draft';draftBadge.textContent='Draft · Only you can see these changes';draftBadge.hidden=true;document.querySelector('.location-stack').append(draftBadge);updateContext();
+draftBadge=document.createElement('aside');draftBadge.id='builder-visit-draft';draftBadge.className='builder-visit-draft';draftBadge.textContent='Draft · Only you can see these changes';draftBadge.hidden=true;
+findWork=document.createElement('button');findWork.id='builder-find-work';findWork.className='glass';findWork.textContent='Find my work';findWork.hidden=true;findWork.onclick=showPublishedWork;
+document.querySelector('.location-stack').append(draftBadge,findWork);updateContext();
 function experienceChanged(next){if(next.preview){ui.toast('Exit Preview as to save changes.');return;}profiles.preferences(next);lens=currentLens();rebuild();profileUI.refresh();}
 function applyPreview(config){travel?.cancel();place=null;waypoint=null;previewState=config;lens=currentLens();if(config.split){if(previewRatio===null)previewRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}else if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}
 function exitPreview(){previewState=null;place=null;lens=currentLens();if(previewRatio!==null){graphics.ratio=previewRatio;previewRatio=null;graphics.resize();}controls.resetInput();rebuild();profileUI.refresh();}

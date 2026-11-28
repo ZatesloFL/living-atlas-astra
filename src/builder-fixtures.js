@@ -5,7 +5,7 @@ import {drawModel} from './world-models.js';
 import {readHostedPhotoPreview,sourceStateMessage,uploadedCopyLabel} from './source-media.js';
 
 const SIGN_BOARD = {width:1.15,height:.66,depth:.16,y:1.1};
-const SIGN_TILE = {width:512,height:320,textWidth:192,textHeight:226};
+const SIGN_TILE = {width:512,height:320,textWidth:448,textHeight:226};
 const glyphs = new Intl.Segmenter(undefined,{granularity:'grapheme'});
 
 function signLines(context,text,width,splitWords) {
