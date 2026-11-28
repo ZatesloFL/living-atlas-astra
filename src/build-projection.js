@@ -3,6 +3,7 @@ import { DISTRICTS, EDGES, ROOMS } from './data.js';
 import { defineInterior } from './interior-kit.js';
 import { KIT_SCHEMAS, validateComponent } from './kit.js';
 import { canonical } from './ledger.js';
+import { validateScores } from './standing-records.js';
 
 const registered = new Map();
 const pathTypes = new Set(['seamless', 'door', 'window', 'embedded']);
@@ -88,6 +89,7 @@ function runtimePlace(fields, room, layout, ownerId) {
   // The caller supplies the approved local owner. Grants and history belong to the access store.
   const { grants, history, ...authored } = fields;
   if (grants !== undefined || history !== undefined) fail('access records are separate from the projection');
+  if (Object.hasOwn(fields, 'builderStructure')) fail('structural placement is assigned by the publisher');
   return {
     address: 'tlh/' + placeId,
     district: 'makers',
@@ -148,8 +150,8 @@ function attachPieces(staged, placesById, records) {
   }
 }
 
-function runtimePaths(rooms, staged, keys, placesById, changes) {
-  const existing = new Set(EDGES.map(path => path.id));
+function runtimePaths(rooms, staged, keys, placesById, changes, replacePaths) {
+  const existing = new Set(EDGES.filter(path => !replacePaths.has(path)).map(path => path.id));
   const paths = new Map();
   for (const room of rooms.values()) {
     for (const pathId of room.pathIds) {
@@ -159,7 +161,7 @@ function runtimePaths(rooms, staged, keys, placesById, changes) {
         fields.from === fields.to || !keys.has(fields.to) || !pathTypes.has(fields.type)) {
         fail('invalid, unknown, or occupied Path ' + pathId);
       }
-      const origin = staged.get(fields.from);
+      const origin = placesById.get(fields.from);
       const target = placesById.get(fields.to);
       const scene = origin.layout.interior?.scene ?? origin.layout.scene;
       const targetScene = target.layout.interior?.scene ?? target.layout.scene;
@@ -188,6 +190,69 @@ function runtimePaths(rooms, staged, keys, placesById, changes) {
   return [...paths.values()];
 }
 
+function stageProjection(projection, changes, ownerId, { anchor, replaceRooms = new Set(), replacePaths = new Set() } = {}) {
+  const records = readChanges(changes);
+  const rooms = readRooms(projection);
+  if (rooms.size - (anchor ? 1 : 0) !== records.Place.size) fail('each new room requires one authored Place');
+  const staged = new Map();
+  const keys = new Map();
+  const placesById = new Map();
+  const addresses = new Set();
+  const interiorScenes = new Set();
+  for (const [key, place] of Object.entries(ROOMS)) {
+    if (replaceRooms.has(key)) continue;
+    keys.set(place.id, key);
+    placesById.set(place.id, place);
+    for (const name of [key, place.id, place.address, ...place.aliases ?? []]) addresses.add(name.toLowerCase());
+    if (place.layout?.interior) interiorScenes.add(place.layout.interior.scene);
+  }
+  if (anchor) placesById.set(anchor.id, anchor);
+  for (const room of rooms.values()) {
+    if (room.placeId === anchor?.id) continue;
+    const change = records.Place.get(room.placeId);
+    if (!change || keys.has(room.placeId) || !replaceRooms.has(room.placeId) && room.placeId in ROOMS) {
+      fail('unknown or occupied Place ' + room.placeId);
+    }
+    const place = runtimePlace(change.fields, room, runtimeLayout(room, projection.rootPlaceId), ownerId);
+    if (change.provenanceRef !== undefined) place.provenanceRef = change.provenanceRef;
+    const names = [place.id, place.address, ...place.aliases ?? []];
+    if (!names.every(name => isId(name) && !addresses.has(name.toLowerCase()))) fail('invalid or occupied Place address ' + room.placeId);
+    for (const name of names) addresses.add(name.toLowerCase());
+    const scene = place.layout.interior?.scene;
+    if (scene !== undefined) {
+      if (interiorScenes.has(scene)) fail('occupied interior scene ' + scene);
+      interiorScenes.add(scene);
+    }
+    staged.set(place.id, place);
+    keys.set(place.id, place.id);
+    placesById.set(place.id, place);
+  }
+  for (const { ref, fields, provenanceRef = null } of records.Thing.values()) {
+    const place = staged.get(ref.placeId);
+    if (!place || typeof fields.type !== 'string') fail('invalid authored Thing ' + ref.thingId);
+    place.blocks.push({ importance: 'core', sources: [], backing_ref: null, ...fields, id: ref.thingId, provenanceRef });
+  }
+  for (const { ref, fields, provenanceRef = null } of records.helper.values()) {
+    if (!staged.has(fields.placeId)) fail('helper must attach to a Place in the projection');
+    const place = staged.get(fields.placeId);
+    (place.kitHelpers ??= []).push({ backing_ref: null, ...fields, id: ref.actorId, provenanceRef });
+  }
+  attachPieces(staged, placesById, records);
+  const paths = runtimePaths(rooms, staged, keys, placesById, records.Path, replacePaths);
+  for (const place of staged.values()) {
+    const interior = place.layout.interior;
+    if (interior) {
+      if (!paths.some(path => path.id === interior.edge && path.to === place.id && path.from === keys.get(interior.parent))) {
+        fail('interior entry Path is missing for ' + place.id);
+      }
+      place.layout.interior = defineInterior({ ...interior, parent: keys.get(interior.parent) });
+    }
+  }
+  const entries = Object.fromEntries(staged);
+  addArrivals(entries, paths);
+  return { entries, paths };
+}
+
 /**
  * Register an approved initial projection in the session catalog. Arrival and
  * the publisher supply the owner from their approved local claim, outside the
@@ -205,58 +270,12 @@ export function registerProjection(input, { ownerId } = {}) {
     return structuredClone(prior.result);
   }
 
-  const records = readChanges(changes);
-  const rooms = readRooms(projection);
-  if (rooms.size !== records.Place.size) fail('each room requires one authored Place');
-  const staged = new Map();
-  const keys = new Map();
-  const placesById = new Map();
-  const addresses = new Set();
-  for (const [key, place] of Object.entries(ROOMS)) {
-    keys.set(place.id, key);
-    placesById.set(place.id, place);
-    for (const name of [key, place.id, place.address, ...place.aliases ?? []]) addresses.add(name.toLowerCase());
-  }
-  for (const room of rooms.values()) {
-    const change = records.Place.get(room.placeId);
-    if (!change || keys.has(room.placeId) || room.placeId in ROOMS) fail('unknown or occupied Place ' + room.placeId);
-    const place = runtimePlace(change.fields, room, runtimeLayout(room, projection.rootPlaceId), ownerId);
-    if (change.provenanceRef !== undefined) place.provenanceRef = change.provenanceRef;
-    const names = [place.id, place.address, ...place.aliases ?? []];
-    if (!names.every(name => isId(name) && !addresses.has(name.toLowerCase()))) fail('invalid or occupied Place address ' + room.placeId);
-    for (const name of names) addresses.add(name.toLowerCase());
-    staged.set(place.id, place);
-    keys.set(place.id, place.id);
-    placesById.set(place.id, place);
-  }
-  for (const { ref, fields, provenanceRef = null } of records.Thing.values()) {
-    const place = staged.get(ref.placeId);
-    if (!place || typeof fields.type !== 'string') fail('invalid authored Thing ' + ref.thingId);
-    place.blocks.push({ importance: 'core', sources: [], backing_ref: null, ...fields, id: ref.thingId, provenanceRef });
-  }
-  for (const { ref, fields, provenanceRef = null } of records.helper.values()) {
-    if (!staged.has(fields.placeId)) fail('helper must attach to a Place in the projection');
-    const place = staged.get(fields.placeId);
-    (place.kitHelpers ??= []).push({ backing_ref: null, ...fields, id: ref.actorId, provenanceRef });
-  }
-  attachPieces(staged, placesById, records);
-  const paths = runtimePaths(rooms, staged, keys, placesById, records.Path);
-  for (const place of staged.values()) {
-    const interior = place.layout.interior;
-    if (interior) {
-      if (!paths.some(path => path.id === interior.edge && path.to === place.id && path.from === keys.get(interior.parent))) {
-        fail('interior entry Path is missing for ' + place.id);
-      }
-      place.layout.interior = defineInterior({ ...interior, parent: keys.get(interior.parent) });
-    }
-  }
-  const entries = Object.fromEntries(staged);
-  addArrivals(entries, paths);
+  const { entries, paths } = stageProjection(projection, changes, ownerId);
   const rootKey = projection.rootPlaceId;
   const root = entries[rootKey];
   const result = {
     rootKey,
-    roomKeys: Object.fromEntries([...staged.keys()].map(id => [id, keys.get(id)])),
+    roomKeys: Object.fromEntries(Object.keys(entries).map(id => [id, id])),
     arrival: {
       room: rootKey, scene: root.layout.interior?.scene ?? root.layout.scene, choice: 'inside',
       ...(root.layout.interior?.arrival ?? root.layout.arrivals.inside)
@@ -270,9 +289,80 @@ export function registerProjection(input, { ownerId } = {}) {
   return structuredClone(result);
 }
 
+/** Validate a Builder parent's whole structural revision without exposing it.
+ *  Apply synchronously after its Receipt is persisted, in the same catalog turn.
+ */
+export function prepareBuilderStructures(parentKey, parent, structures, {forPreview = false} = {}) {
+  const live = Object.hasOwn(ROOMS, parentKey) ? ROOMS[parentKey] : null;
+  if (!live?.ownerId || !parent?.layout || live.id !== parent.id || live.ownerId !== parent.ownerId || !Array.isArray(structures)) {
+    fail('invalid structural publication parent');
+  }
+  const ownsPlacement = placement => placement.builderStructure?.parentPlaceId === parent.id;
+  const replaceRooms = new Set(Object.entries(ROOMS).filter(([, room]) => ownsPlacement(room)).map(([key]) => key));
+  const replacePaths = new Set(EDGES.filter(ownsPlacement));
+  const anchor = { placeId: parent.id, parentPlaceId: null, layout: {}, pathIds: [], pieces: [], behaviors: [] };
+  const projection = { schemaVersion: 2, rootPlaceId: parent.id, rooms: [anchor] };
+  const changes = [];
+  const roomKeys = new Map();
+  const byDoor = new Map();
+  const input = structuredClone(structures);
+  checkData(input);
+  for (const candidate of input) {
+    const {pieceId, room, changes: submitted} = candidate ?? {};
+    const interior = room?.layout?.interior;
+    if (!isId(pieceId) || roomKeys.has(pieceId) || room?.parentPlaceId !== parent.id ||
+      room.layout?.scene !== (parent.layout.interior?.scene ?? parent.layout.scene) ||
+      interior?.parent !== parent.id || !Array.isArray(submitted)) fail('invalid structural child');
+    const doors = submitted.filter(change => change?.kind === 'Path');
+    const door = doors[0];
+    if (doors.length !== 1 || door.ref?.pathId !== interior.edge || door.fields?.from !== parent.id ||
+      door.fields?.to !== room.placeId || door.fields?.type !== 'door' ||
+      door.fields.host !== undefined && door.fields.host !== parent.id) fail('a structural child needs its own containing door');
+    const previous = replaceRooms.has(room.placeId) ? ROOMS[room.placeId] : null;
+    if (previous && (previous.ownerId !== parent.ownerId || previous.builderStructure.pieceId !== pieceId)) {
+      fail('occupied structural identity ' + room.placeId);
+    }
+    if ([...replaceRooms].some(key => key !== room.placeId && ROOMS[key].builderStructure.pieceId === pieceId)) {
+      fail('a structural child keeps its Place identity when reprojection changes its layout');
+    }
+    const previousDoor = [...replacePaths].find(path => path.id === door.ref.pathId);
+    if (previousDoor && previousDoor.builderStructure.pieceId !== pieceId) fail('occupied structural door ' + door.ref.pathId);
+    if ([...replacePaths].some(path => path.id !== door.ref.pathId && path.builderStructure.pieceId === pieceId)) {
+      fail('a structural child keeps its door identity when reprojection changes its layout');
+    }
+    roomKeys.set(pieceId, room.placeId);
+    byDoor.set(door.ref.pathId, pieceId);
+    anchor.pathIds.push(door.ref.pathId);
+    projection.rooms.push(room);
+    changes.push(...submitted);
+  }
+  const { entries, paths } = stageProjection(projection, changes, parent.ownerId, {anchor: parent, replaceRooms, replacePaths});
+  const retired = new Set([...replaceRooms].filter(key => !Object.hasOwn(entries, key)));
+  if (!forPreview && retired.size) {
+    for (const room of Object.values(ROOMS)) {
+      if (retired.has(room.parentPlaceId ?? room.parentId ?? room.parent)) fail('move the rooms inside this hall before removing it');
+    }
+    if (EDGES.some(path => !replacePaths.has(path) && [path.from, path.to, path.host].some(key => retired.has(key)))) {
+      fail('this hall still has a separate Path attached');
+    }
+  }
+  for (const [pieceId, key] of roomKeys) {
+    validateScores(entries[key].content);
+    entries[key].builderStructure = {parentPlaceId: parent.id, pieceId};
+  }
+  for (const path of paths) path.builderStructure = {parentPlaceId: parent.id, pieceId: byDoor.get(path.id)};
+  if (forPreview) return {entries, paths, roomKeys};
+  return {entries, paths, roomKeys, apply() {
+    for (const key of retired) delete ROOMS[key];
+    for (const key of roomKeys.values()) ROOMS[key] = entries[key];
+    for (let i = EDGES.length - 1; i >= 0; i--) if (ownsPlacement(EDGES[i])) EDGES.splice(i, 1);
+    for (const path of paths) EDGES.push(path);
+  }};
+}
+
 // A Builder revision overlays the existing Place. Its recorded furnishings
 // can change without replacing the original Place, Paths, or other records.
-export function composeBuilderRoom(base, pieces, metadata = {}) {
+export function composeBuilderRoom(base, pieces, {structuralPieceIds, ...metadata} = {}) {
   const room = {
     ...base, ...metadata, layout: {...base.layout}, blocks: [...base.blocks ?? []],
     kitPieces: [...base.kitPieces ?? []], builderFixtures: []
@@ -281,6 +371,11 @@ export function composeBuilderRoom(base, pieces, metadata = {}) {
   const keys = new Set(room.blocks.map(block => block.id));
   for (const piece of structuredClone(pieces)) {
     const {block, ...placement} = piece;
+    const builtPlace = structuralPieceIds?.get(piece.id);
+    if (piece.kind === 'interior-shell' && builtPlace) {
+      room.kitPieces.push({...placement, ref:{placeId:builtPlace}});
+      continue;
+    }
     if (!block || keys.has(block.id)) fail('occupied Builder Thing ' + block?.id);
     keys.add(block.id);
     const {position: [x, y, z], yaw, scale} = placement.transform;

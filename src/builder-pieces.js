@@ -308,13 +308,13 @@ export function createBuilderPiece(kind, { placeId, targetPlaceId, ...options } 
   return { piece, change: null };
 }
 
-export function createBuilderInterior({ placeId, parentPlaceId, pathId, frontage, bays = [], partitions = [] }) {
+export function createBuilderInterior({ placeId, parentPlaceId, pathId, scene, frontage, bays = [], partitions = [] }) {
   if (!isPlaceId(placeId) || !isPlaceId(parentPlaceId) || !isPlaceId(pathId) || placeId === parentPlaceId) {
     throw new Error('An exhibit hall needs its own Place, containing Place, and door.');
   }
-  const scene = 'hall:' + placeId.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
   return defineInterior({
-    kind: 'exhibit-hall', scene, parent: parentPlaceId, edge: pathId, width: 18, depth: 24, height: 4.8,
+    kind: 'exhibit-hall', scene: scene ?? 'hall:' + placeId.toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
+    parent: parentPlaceId, edge: pathId, width: 18, depth: 24, height: 4.8,
     frontage: { width: 6.4, height: 4.4, depth: 4.8, door: [0, 0], arrival: [0, 3], outside: [0, 5], ...frontage },
     arrival: { position: [0, 8.4], facing: 0 }, exit: [0, 11.65], bays, partitions,
   });

@@ -10,13 +10,20 @@ export function builderSubject(room, node = room) {
 export function builderPublications(roomKey, room, receipts) {
   const publications = new Map();
   for (const receipt of receipts) {
-    if (receipt.action!=='build_published' || receipt.actor!==room.ownerId || receipt.diff.roomKey!==roomKey) continue;
-    const place = {placeId:room.id,thingId:null,versionId:receipt.diff.revisionId};
-    publications.set(subjectKey(place),receipt);
-    for (const subject of receipt.diff.ownedRecordVersions??[]) {
-      if (subject.placeId!==room.id || typeof subject.thingId!=='string' || typeof subject.versionId!=='string') continue;
-      const key = subjectKey(subject);
-      if (!publications.has(key)) publications.set(key,receipt);
+    if (receipt.action!=='build_published' || receipt.actor!==room.ownerId) continue;
+    if(receipt.diff.roomKey===roomKey) {
+      const place = {placeId:room.id,thingId:null,versionId:receipt.diff.revisionId};
+      publications.set(subjectKey(place),receipt);
+      for (const subject of receipt.diff.ownedRecordVersions??[]) {
+        if (subject.placeId!==room.id || typeof subject.thingId!=='string' || typeof subject.versionId!=='string') continue;
+        const key = subjectKey(subject);
+        if (!publications.has(key)) publications.set(key,receipt);
+      }
+    }
+    if(room.builderStructure) for(const subject of receipt.diff.ownedPlaceVersions??[]) {
+      if(subject.placeId!==room.id||subject.pieceId!==room.builderStructure.pieceId||typeof subject.versionId!=='string')continue;
+      const key=subjectKey(subject);
+      if(!publications.has(key))publications.set(key,receipt);
     }
   }
   return publications;

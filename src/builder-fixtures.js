@@ -164,6 +164,7 @@ function drawHostedFixture(world,room,piece,block,box,marker){
 export function drawBuilderFixtures(world,room,roomKey,blocks){
   const parent=world.placement;
   for(const piece of room.builderFixtures){
+    if(piece.kind==='interior-shell'&&world.builderView?.structures&&world.builderView.roomKey===roomKey)continue;
     const block=blocks.get(piece.block);
     if(!block)continue;
     const hosted=isHostedSourceKind(piece.kind);

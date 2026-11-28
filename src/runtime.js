@@ -267,15 +267,16 @@ function showBuildStage({roomKey,draft,selectedId,camera:mode,preview,lens:owner
   const room=builder.roomFor(roomKey,ownerLens,draft),scene=room.layout.interior?.scene??room.layout.scene;
   const left=preview?.left??ownerLens;
   const layout={...room.layout.interior,...exhibitSpace(room,itemStyle(room,left).scale)};
+  const structures=room.draftStructures;
   const allowed=preview?new Set(preview.assessment.checks.shown):null;
   const next=preview?.blocked?{scene:new THREE.Scene(),labels:[],dispose(){}}:
     withBuilderRoom(roomKey,room,()=>new World(scene,left,reducedQuery.matches,
-      preview?.diff?preview.right:null,{roomKey,editing:!preview,mapping,allowed}));
+      preview?.diff?preview.right:null,{roomKey,editing:!preview,mapping,allowed,structures}));
   if(preview?.blocked)next.scene.background=new THREE.Color('#172739');
   stageComparison?.dispose();stageComparison=null;
   if(preview?.split){
    const allowed=new Set(builder.inspect(roomKey,room,preview.right).shown);
-   stageComparison=withBuilderRoom(roomKey,room,()=>new World(scene,preview.right,reducedQuery.matches,null,{roomKey,allowed}));
+   stageComparison=withBuilderRoom(roomKey,room,()=>new World(scene,preview.right,reducedQuery.matches,null,{roomKey,allowed,structures}));
   }
   stageFraction=preview?.fraction??.5;
   if(stageComparison&&stageRatio===null){stageRatio=graphics.ratio;graphics.ratio=Math.min(graphics.ratio,1);graphics.resize();}

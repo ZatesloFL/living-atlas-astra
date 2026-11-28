@@ -8,11 +8,13 @@ import {validateScores} from './standing-records.js';
 import {scores} from './scores.js';
 import {LOOKS} from './item-style.js';
 import {makeSourcePiece, sourcedRoom} from './source-catalog.js';
-import {composeBuilderRoom, withBuilderRoom} from './build-projection.js';
+import {composeBuilderRoom, prepareBuilderStructures, withBuilderRoom} from './build-projection.js';
+import {builderHallIdentity, materializeBuilderHall, validateBuilderHallPlacement} from './builder-hall.js';
 import {BUILDER_DRAW_CEILING, BUILDER_PIECES, builderPieceCost, makeBuilderPiece, snapBuilderPosition, validateBuilderPiece} from './builder-pieces.js';
 import {builderPublication, builderPublications, builderSubject, stampBuilderProvenance, submissionFor} from './builder-provenance.js';
 import {AtlasRecords} from './atlas-records.js';
 import {atlasActionBoundary} from './atlas-action-policy.js';
+import {crossing} from './rules.js';
 
 export const BUILDER_STORAGE = 'living-atlas.builder.v1';
 export const ROOM_BUDGET = Object.freeze({instances:80,atlasTiles:12,liveTextures:2,drawCalls:BUILDER_DRAW_CEILING,behaviors:16});
@@ -23,6 +25,8 @@ const receiptView = receipt => ({id:'builder:'+receipt.hash, time:receipt.time, 
 const storageDefault = () => globalThis.localStorage;
 const empty = () => ({drafts:{},receipts:[]});
 const authoredBases = new WeakMap();
+const isHall = piece=>piece.kind==='interior-shell';
+const structureIds = receipt=>new Map((receipt?.diff.ownedPlaceVersions??[]).map(({pieceId,placeId})=>[pieceId,placeId]));
 
 function publicContainment(roomKey,lens,rooms,host) {
   const chain = containingPlaces(roomKey,rooms,host);
@@ -156,16 +160,18 @@ export class Builder {
       const storage = this.storage();
       if (!storage) throw new Error('Builder needs browser storage to keep this change.');
       if ((storage.getItem(BUILDER_STORAGE)??null)!==this.raw) throw new Error('Builder changed in another tab. Reload to continue.');
+      const publication = result.preparePublication?.();
       storage.setItem(BUILDER_STORAGE,serialized);
       const previousDraft = this.data.drafts[roomKey]?.pieces;
       this.raw = serialized;
       this.data = data;
+      publication?.apply();
       if(result.projected) {
         const base = this.base.get(roomKey)??authoredBases.get(ROOMS[roomKey]);
         if (base) authoredBases.set(result.projected,base);
         ROOMS[roomKey]=result.projected;
       }
-      if (!result.projected && !same(previousDraft ?? [], data.drafts[roomKey]?.pieces ?? [])) this.onDraft(roomKey);
+      if (!publication && !result.projected && !same(previousDraft ?? [], data.drafts[roomKey]?.pieces ?? [])) this.onDraft(roomKey);
       return result;
     };
     const task = this.queue.then(()=>globalThis.navigator?.locks
@@ -359,7 +365,28 @@ export class Builder {
 
   roomFor(roomKey,lens,draft=this.open(roomKey,lens)) {
     const room=this.owner(roomKey,lens);
-    return composeBuilderRoom(this.base.get(roomKey),normalizePieces(copy(draft.pieces),room));
+    const base=this.base.get(roomKey);
+    const pieces=normalizePieces(copy(draft.pieces),room);
+    return this.composePreview(roomKey,room,base,pieces,lens);
+  }
+
+  hallVisibility(data,roomKey,room,lens) {
+    const prior=new Map(this.published(data,roomKey,room.ownerId).flatMap(receipt=>
+      (receipt.diff.ownedPlaceVersions??[]).map(({pieceId,visibility})=>[pieceId,visibility])));
+    return pieceId=>prior.get(pieceId)??(visibilityOf(room,lens)==='public'?'public':'hidden');
+  }
+
+  composePreview(roomKey,room,base,pieces,lens) {
+    const halls=pieces.filter(isHall);
+    if(!halls.length)return {...composeBuilderRoom(base,pieces),draftStructures:[]};
+    const visibility=this.hallVisibility(this.data,roomKey,room,lens);
+    const plans=halls.map(piece=>materializeBuilderHall(base,piece,{visibility:visibility(piece.id)}));
+    const {entries,paths,roomKeys}=prepareBuilderStructures(roomKey,room,plans,{forPreview:true});
+    return {...composeBuilderRoom(base,pieces,{structuralPieceIds:roomKeys}),
+      draftStructures:plans.map(({pieceId})=>{
+        const key=roomKeys.get(pieceId);
+        return {room:entries[key],path:paths.find(path=>path.to===key),pieceId};
+      })};
   }
 
   visitDrafts(scene,lens) {
@@ -373,14 +400,16 @@ export class Builder {
       if (!draft.dirty) continue;
       const published = new Map(draft.basePieces.map(piece=>[piece.id,piece]));
       const changed = new Set(draft.pieces.filter(piece=>!same(piece,published.get(piece.id)??null)).map(piece=>piece.block.id));
-      drafts.set(key,{room:this.roomFor(key,lens,draft),changed});
+      const structureRefs=structureIds(this.published(this.data,key,room.ownerId).at(-1));
+      drafts.set(key,{room:composeBuilderRoom(this.base.get(key),normalizePieces(copy(draft.pieces),room),
+        {structuralPieceIds:structureRefs}),changed});
     }
     return drafts;
   }
 
   preview(roomKey,lens,visitorLens) {
     return this.transaction(roomKey,lens,async({data,draft,room,base})=>{
-      const staged=composeBuilderRoom(base,normalizePieces(copy(draft.pieces),room));
+      const staged=this.composePreview(roomKey,room,base,normalizePieces(copy(draft.pieces),room),lens);
       const checks=this.inspect(roomKey,staged,visitorLens);
       const receipt=await appendEntry(data.receipts,room.ownerId,'build_previewed',{roomKey,baseVersion:draft.baseVersion,checks});
       draft.preview=receiptView(receipt);
@@ -395,8 +424,16 @@ export class Builder {
       const canEnter=entry.state!=='hidden'&&entry.state!=='private'&&!entry.admission?.blocked&&!!entry.rights?.canEnter&&entry.type!=='window';
       const view=sourcedRoom(viewRoom(staged,targetLens),targetLens);
       const shown=canEnter?selectContent(view,targetLens).blocks.filter(block=>!block.filtered&&!blockNeedsPreview(block,view,targetLens,{approved:true})).map(block=>block.id):[];
+      const structures=staged.draftStructures??[];
+      if(canEnter&&structures.length){
+        const catalog={...ROOMS,...Object.fromEntries(structures.map(({path,room})=>[path.to,room]))};
+        for(const {pieceId,path} of structures){
+          const gate=crossing(path,targetLens,catalog);
+          if(gate.state!=='hidden'&&gate.rights?.canLook)shown.push(pieceId);
+        }
+      }
       return {canEnter,description:entry.admission?.description??(canEnter?'Entry is available for this Lens.':'Entry is unavailable for this Lens.'),
-        shown,withheld:view.blocks.filter(block=>!shown.includes(block.id)).map(block=>block.id),reasons:entry.reasons??[]};
+        shown,withheld:[...view.blocks.map(block=>block.id),...structures.map(structure=>structure.pieceId)].filter(id=>!shown.includes(id)),reasons:entry.reasons??[]};
     });
   }
 
@@ -419,6 +456,50 @@ export class Builder {
     });
   }
 
+  preparePublication(data,roomKey,room,base,receipt,pieces,{validatePlacement=false}={}) {
+    const publishedStructures=receipt.diff.ownedPlaceVersions;
+    const halls=pieces.filter(isHall);
+    const records=new Map((publishedStructures??[]).map(record=>[record.pieceId,record]));
+    const structures=publishedStructures&&(halls.length||Object.values(ROOMS).some(child=>child.builderStructure?.parentPlaceId===room.id))
+      ? prepareBuilderStructures(roomKey,room,halls.map(piece=>{
+        const plan=materializeBuilderHall(base,piece,{visibility:records.get(piece.id)?.visibility});
+        if(validatePlacement)validateBuilderHallPlacement(base,plan.room);
+        return plan;
+      })) : null;
+    const children=new Map();
+    if(structures) {
+      for(const record of publishedStructures) {
+        const {placeId,pathId,versionId,pieceId}=record;
+        const entrance=structures.paths.find(path=>path.id===pathId&&path.to===placeId);
+        if(structures.roomKeys.get(pieceId)!==placeId||!entrance) {
+          throw new Error('The Exhibit hall’s saved Place or Path has changed.');
+        }
+        const child=structures.entries[placeId];
+        child.recordVersionId=versionId;
+        child.standing.declarationRef=receiptView(receipt).id;
+        entrance.provenanceRef=receiptView(receipt).id;
+        const childBase=stampBuilderProvenance(placeId,child,data.receipts);
+        const head=this.published(data,placeId,child.ownerId).at(-1);
+        structures.entries[placeId]=head?stampBuilderProvenance(placeId,composeBuilderRoom(childBase,head.diff.pieces,
+          {recordVersionId:head.diff.revisionId,structuralPieceIds:structureIds(head)}),data.receipts):childBase;
+        children.set(placeId,childBase);
+      }
+      if(children.size!==structures.roomKeys.size)throw new Error('A saved Exhibit hall is missing its Place record.');
+    }
+    const projected=stampBuilderProvenance(roomKey,composeBuilderRoom(base,pieces,{
+      recordVersionId:receipt.diff.revisionId,structuralPieceIds:structures?.roomKeys
+    }),data.receipts);
+    return {childKeys:children.keys(),apply:()=>{
+      structures?.apply();
+      for(const [key,childBase] of children){
+        this.base.set(key,childBase);
+        authoredBases.set(ROOMS[key],childBase);
+      }
+      authoredBases.set(projected,base);
+      ROOMS[roomKey]=projected;
+    }};
+  }
+
   async publish(roomKey,lens) {
     const result=await this.transaction(roomKey,lens,async({data,draft,room,base})=>{
       const head=this.published(data,roomKey,room.ownerId).at(-1);
@@ -437,13 +518,18 @@ export class Builder {
         const keep=previous&&same(material,priorMaterial)&&same(piece.settings,previous.settings)&&same(piece.behaviors,previous.behaviors);
         piece.block.recordVersionId=keep ? priorVersion : revisionId+'/'+piece.id;
       }
+      const hallVisibility=this.hallVisibility(data,roomKey,room,lens);
       const receipt=await appendEntry(data.receipts,room.ownerId,'build_published',{
         roomKey,revisionId,priorRevisionId:draft.baseVersion,previewReceiptId:draft.preview.id,pieces,
-        ownedRecordVersions:authored.map(piece=>({placeId:room.id,thingId:piece.id,versionId:piece.block.recordVersionId}))
+        ownedRecordVersions:authored.filter(piece=>!isHall(piece)).map(piece=>({placeId:room.id,thingId:piece.id,versionId:piece.block.recordVersionId})),
+        ownedPlaceVersions:authored.filter(isHall).map(piece=>({
+          ...builderHallIdentity(room.id,piece.id),pieceId:piece.id,versionId:piece.block.recordVersionId,
+          visibility:hallVisibility(piece.id)
+        }))
       });
-      const projected=stampBuilderProvenance(roomKey,composeBuilderRoom(base,pieces,{recordVersionId:revisionId}),data.receipts);
       Object.assign(draft,{baseVersion:revisionId,pieces,undo:[],redo:[],preview:null});
-      return {receipt:receiptView(receipt),draft:this.snapshot(data,roomKey,room),projected};
+      return {receipt:receiptView(receipt),draft:this.snapshot(data,roomKey,room),
+        preparePublication:()=>this.preparePublication(data,roomKey,room,base,receipt,pieces,{validatePlacement:true})};
     });
     this.onPublish(roomKey);
     return {receipt:result.receipt,draft:result.draft};
@@ -495,7 +581,10 @@ export class Builder {
   async recover(lens,{arrivalRecords,loadArrivalSeed}={}) {
     if (!lens || lens.preview || !await this.ready) return;
     await this.loadPublicClaims(lens,arrivalRecords,loadArrivalSeed);
-    for (const [roomKey,room] of Object.entries(ROOMS)) {
+    const keys=new Set(Object.keys(ROOMS));
+    for (const roomKey of keys) {
+      const room=ROOMS[roomKey];
+      if(!room)continue;
       if (!room.ownerId || !room.layout) continue;
       const head = this.published(this.data,roomKey,room.ownerId).at(-1);
       if (!head) continue;
@@ -508,10 +597,9 @@ export class Builder {
       }
       if (!this.base.has(roomKey)) this.base.set(roomKey,copy(base));
       const pieces = normalizePieces(copy(head.diff.pieces),room);
-      const projected = stampBuilderProvenance(roomKey,composeBuilderRoom(base,pieces,
-        {recordVersionId:head.diff.revisionId}),this.data.receipts);
-      authoredBases.set(projected,base);
-      ROOMS[roomKey]=projected;
+      const projection=this.preparePublication(this.data,roomKey,room,base,head,pieces);
+      projection.apply();
+      for(const key of projection.childKeys) keys.add(key);
     }
   }
 

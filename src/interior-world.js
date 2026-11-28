@@ -2,16 +2,42 @@ import * as THREE from '../vendor/three/three.module.min.js';
 import {ROOMS} from './data.js';
 import {selectContent,blockAccess} from './content.js';
 import {hallExit} from './interior-space.js';
+import {exhibitPlacement} from './kit-placement.js';
 
-export function drawFrontage(w,room,id){
- const h=room.layout.interior,f=h.frontage,[x,z]=f.door,half=f.width/2,side=(f.width-3.4)/2;
- for(const dx of [-1,1]){w.box(x+dx*(1.7+side/2),2,z,side,4,.35,'#a6b2a3','stone',id);w.block(x+dx*(1.7+side/2),z,side,.35);w.box(x+dx*half,2,z-f.depth/2,.25,4,f.depth,'#667e77','stone','wall');w.block(x+dx*half,z-f.depth/2,.25,f.depth);}
- w.box(x,3.95,z,f.width,.9,.4,'#c8ba94','stone',id);w.box(x,f.height,z-f.depth/2,f.width+.3,.18,f.depth+.4,'#627970');
- w.box(x,2,z-f.depth,f.width,4,.3,'#667e77','stone','wall');w.block(x,z-f.depth,f.width,.3);
- w.floor(x,z+1.1,4.4,2.4,'#8d9c8c');w.block(x,z,3.4,.2);
- w.label(room.layout.sign?.[0]??room.title,'ENTER · EXHIBITION HALL',x,4.7,z,id);
+export function drawFrontage(w,room,id,{edit=false,draft=false}={}){
+ const h=room.layout.interior,f=h.frontage,authored=room.builderStructure;
+ const marker=edit&&authored?'builder:'+authored.pieceId:id;
+ const previous=w.placement;
+ w.placement={slot:f.door,facing:f.facing??0,scale:1,oriented:!!authored};
+ const half=f.width/2,opening=authored?Math.min(3.4,f.width*.66):3.4,side=(f.width-opening)/2;
+ const y=n=>n*f.height/4.4;
+ for(const dx of [-1,1]){
+  w.box(dx*(opening/2+side/2),y(2),0,side,y(4),.35,'#a6b2a3','stone',marker);
+  w.block(dx*(opening/2+side/2),0,side,.35);
+  w.box(dx*half,y(2),-f.depth/2,.25,y(4),f.depth,'#667e77','stone','wall');
+  w.block(dx*half,-f.depth/2,.25,f.depth);
+ }
+ w.box(0,y(3.95),0,f.width,y(.9),.4,'#c8ba94','stone',marker);
+ w.box(0,f.height,-f.depth/2,f.width+.3,.18,f.depth+.4,'#627970');
+ w.box(0,y(2),-f.depth,f.width,y(4),.3,'#667e77','stone','wall');w.block(0,-f.depth,f.width,.3);
+ w.floor(0,1.1,4.4,2.4,'#8d9c8c');w.block(0,0,opening,.2);
+ if(authored){
+  const height=ROOMS[h.parent]?.layout.interior?.height??8;
+  // The veil is animated; its clearance boundary still belongs to the Place.
+  const corners=[[-opening/2,0,.08],[opening/2,height,.08],[-opening/2,0,-.08],[opening/2,height,-.08]];
+  w.solids.push(new THREE.Box3().setFromPoints(corners.map(point=>w.transform(...point))));
+  if(edit)w.box(0,y(1.68),0,opening-.12,y(3.28),.018,'#78a6ab','glass',marker);
+ }
+ const title=room.layout.sign?.[0]??room.title,point=w.transform(0,y(4.7),0);
+ w.placement=previous;
+ if(authored){
+  const header=point.clone();header.y=y(3.95);
+  header.x+=Math.sin(f.facing)*.22;header.z+=Math.cos(f.facing)*.22;
+  sign(w,{title,sub:draft?'DRAFT':'EXHIBIT HALL',position:header.toArray(),facing:f.facing,width:Math.min(3.8,f.width-.4),height:y(.65),id:marker});
+  if(!edit)w.portalSurfaces.push({id:h.edge,x:f.door[0],z:f.door[1],rotation:f.facing,tint:'#cfbd83',opacity:.42});
+ }else w.label(title,'ENTER · EXHIBITION HALL',point.x,point.y,point.z,id);
 }
-export function drawHall(w,id){
+export function drawHall(w,id,{roof=true}={}){
  const room=ROOMS[id],h=room.layout.interior,W=h.width,D=h.depth,H=h.height;
  w.scene.background=new THREE.Color('#5b6d68');w.scene.fog=null;
  w.sun.position.set(-3,H-.7,6);w.sun.intensity=1.4;w.sun.shadow.camera.left=-W;w.sun.shadow.camera.right=W;w.sun.shadow.camera.top=D;w.sun.shadow.camera.bottom=-D;
@@ -20,7 +46,7 @@ export function drawHall(w,id){
  // Solid enclosure. Collision and ray occlusion use the same wall positions.
  for(const x of [-W/2,W/2]){w.box(x,H/2,0,.3,H,D,'#73877d','stone','wall');w.block(x,0,.3,D);w.box(x+Math.sign(-x)*.17,.55,0,.08,1.1,D,'#b4a27e');}
  for(const z of [-D/2,D/2]){w.box(0,H/2,z,W,H,.3,'#73877d','stone','wall');w.block(0,z,W,.3);}
- w.box(0,H,0,W+.3,.2,D+.3,'#93aaa4');
+ if(roof)w.box(0,H,0,W+.3,.2,D+.3,'#93aaa4');
  for(const p of h.partitions){w.box(p.position[0],1.9,p.position[1],p.size[0],3.8,p.size[1],'#8e9e8c','stone','wall');w.block(...p.position,...p.size);}
  // A continuous aisle and two broad cross aisles; no floor furniture in the route.
  w.floor(0,0,5.5,D-.6,'#bdb69c');for(const z of [5.4,-3.8])w.floor(0,z,W-.7,2.6,'#b8b297');
@@ -29,13 +55,23 @@ export function drawHall(w,id){
  w.box(0,1.5,D/2-.2,2.7,3,.12,'#304b4c','stone','edge:'+exit.id);
  for(const x of [-1.5,1.5])w.box(x,1.7,D/2-.27,.16,3.4,.18,'#c7b793');
  w.box(0,3.35,D/2-.27,3.16,.16,.18,'#c7b793');
- sign(w,{title:'Return to the Quarter',sub:'EXIT · DOOR CROSSING',position:[0,2.65,D/2-.31],facing:Math.PI,width:2.4,height:.65,id:'edge:'+exit.id});
+ sign(w,{title:room.builderStructure?'Back to '+ROOMS[h.parent].title:'Return to the Quarter',sub:'EXIT · DOOR CROSSING',position:[0,2.65,D/2-.31],facing:Math.PI,width:2.4,height:.65,id:'edge:'+exit.id});
  sign(w,{title:room.layout.sign?.[0]??room.title,sub:'EXHIBITION HALL',position:[0,4,D/2-.2],facing:Math.PI,width:5,height:.7,id});
 }
-export function hallLabels(w,room,id){
- const blocks=selectContent(room,w.lens).blocks.filter(b=>b.exhibit&&!blockAccess(b,room,w.lens).hidden);
- for(const bay of room.layout.interior.bays){const b=blocks.find(b=>b.id===bay.block);if(!b)continue;
-  sign(w,{title:b.exhibit.settings.title,sub:'SAMPLE · ARCHIVE NOT SYNCED',position:bay.label,facing:bay.facing,width:3.2,height:.78,id:'exhibit:'+id+':'+b.id});
+export function hallLabels(w,room,id,layout,{unfiltered,allowed}){
+ const blocks=(unfiltered?room.blocks:selectContent(room,w.lens).blocks.filter(b=>!blockAccess(b,room,w.lens).hidden))
+  .filter(b=>b.exhibit&&(!allowed||allowed.has(b.id)));
+ const bays=new Map(room.layout.interior.bays.map(bay=>[bay.block,bay]));
+ for(const p of layout.components??[]){
+  const b=blocks.find(block=>block.id===p.block);if(!b)continue;
+  const bay=bays.get(b.id);
+  if(!bay&&!room.builderStructure)continue;
+  const title=b.title??b.exhibit.settings.title;
+  const tag={title,sub:'SAMPLE · ARCHIVE NOT SYNCED',width:3.2,height:.78,id:'exhibit:'+id+':'+b.id};
+  if(bay){sign(w,{...tag,position:bay.label,facing:bay.facing});continue;}
+  const {slot:[x,z],elevation,facing}=exhibitPlacement(layout,p);
+  const y=Math.min(room.layout.interior.height-.55,elevation+3.25);
+  sign(w,{...tag,position:[x,y,z],facing});
  }
 }
 function sign(w,s){
