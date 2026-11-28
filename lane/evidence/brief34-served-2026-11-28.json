@@ -1,0 +1,159 @@
+{
+  "checked_at": "2026-11-28T16:43:10.516899+00:00",
+  "commit": "6c4fe8d6e5cd86072119b16d923e2f240447c4d0",
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "tls_verification": true,
+  "files": [
+    {
+      "path": "atlas.css",
+      "expected_sha256": "faa49b6b52e3948941bdf9b27c7daf91aee7a1ae90ec9bd080827b465c88199b",
+      "status": 200,
+      "served_sha256": "faa49b6b52e3948941bdf9b27c7daf91aee7a1ae90ec9bd080827b465c88199b",
+      "match": true
+    },
+    {
+      "path": "src/access-ui.js",
+      "expected_sha256": "bc1c6856052e3e35c462a1927e8dddf1e3e6a50f757e8c4f5f33348b0f321861",
+      "status": 200,
+      "served_sha256": "bc1c6856052e3e35c462a1927e8dddf1e3e6a50f757e8c4f5f33348b0f321861",
+      "match": true
+    },
+    {
+      "path": "src/account-state.js",
+      "expected_sha256": "756883a03397c0d2c7b3d051c02f301e7502fd065eb3c06d6c62866aac39ee5e",
+      "status": 200,
+      "served_sha256": "756883a03397c0d2c7b3d051c02f301e7502fd065eb3c06d6c62866aac39ee5e",
+      "match": true
+    },
+    {
+      "path": "src/arrival-seed.js",
+      "expected_sha256": "75a191b5add8b7674474640a09b5f8518ae23ebee68c97c469ce6ce2033ddad8",
+      "status": 200,
+      "served_sha256": "75a191b5add8b7674474640a09b5f8518ae23ebee68c97c469ce6ce2033ddad8",
+      "match": true
+    },
+    {
+      "path": "src/arrival-ui.js",
+      "expected_sha256": "e9eb9c4e902c7e612af2424f550203671a3b657e35392ce096a8f411b5af9ade",
+      "status": 200,
+      "served_sha256": "e9eb9c4e902c7e612af2424f550203671a3b657e35392ce096a8f411b5af9ade",
+      "match": true
+    },
+    {
+      "path": "src/atlas-destinations.js",
+      "expected_sha256": "91bfeae5bd2a4942d2970ba000e5491f38b8cc2fda7925020c5718d9f78dd873",
+      "status": 200,
+      "served_sha256": "91bfeae5bd2a4942d2970ba000e5491f38b8cc2fda7925020c5718d9f78dd873",
+      "match": true
+    },
+    {
+      "path": "src/atlas-intents.js",
+      "expected_sha256": "b629067c7d0c10e93f10eb5a8eac01afe64fe44395750400bd95351f22802b0b",
+      "status": 200,
+      "served_sha256": "b629067c7d0c10e93f10eb5a8eac01afe64fe44395750400bd95351f22802b0b",
+      "match": true
+    },
+    {
+      "path": "src/atlas-map-model.js",
+      "expected_sha256": "3436478ed845c82a984c99f52008c782fa2e9ecee3d97481c6ab862701d074b5",
+      "status": 200,
+      "served_sha256": "3436478ed845c82a984c99f52008c782fa2e9ecee3d97481c6ab862701d074b5",
+      "match": true
+    },
+    {
+      "path": "src/atlas-map-view.js",
+      "expected_sha256": "3d74b9cbb7f0bb069627a7506b93e8bce8164779b70466ef6bb9f873388c3405",
+      "status": 200,
+      "served_sha256": "3d74b9cbb7f0bb069627a7506b93e8bce8164779b70466ef6bb9f873388c3405",
+      "match": true
+    },
+    {
+      "path": "src/atlas-records.js",
+      "expected_sha256": "fda317cc87ef53d8ff0cbc979c7b87b0e3f2d0355f2716b1f0308c972649a000",
+      "status": 200,
+      "served_sha256": "fda317cc87ef53d8ff0cbc979c7b87b0e3f2d0355f2716b1f0308c972649a000",
+      "match": true
+    },
+    {
+      "path": "src/atlas-spatial.js",
+      "expected_sha256": "1f5f29e4b65daae238a1f55a707a866b4b013116f059428d098fd9a30836c773",
+      "status": 200,
+      "served_sha256": "1f5f29e4b65daae238a1f55a707a866b4b013116f059428d098fd9a30836c773",
+      "match": true
+    },
+    {
+      "path": "src/atlas-ui.js",
+      "expected_sha256": "74c6808675e18147c55a7bb4d95731fcd0926ec3212ecc5f59d81930479c394c",
+      "status": 200,
+      "served_sha256": "74c6808675e18147c55a7bb4d95731fcd0926ec3212ecc5f59d81930479c394c",
+      "match": true
+    },
+    {
+      "path": "src/identity.js",
+      "expected_sha256": "886ae5f2b394f01338b2ca40cda516b4fec4bb3cf11f4e463e8f68242e9fdf5e",
+      "status": 200,
+      "served_sha256": "886ae5f2b394f01338b2ca40cda516b4fec4bb3cf11f4e463e8f68242e9fdf5e",
+      "match": true
+    },
+    {
+      "path": "src/page.js",
+      "expected_sha256": "da8ef60111d16774f321624e2551c48b226211489117ef5c01c7c2bca9868a7c",
+      "status": 200,
+      "served_sha256": "da8ef60111d16774f321624e2551c48b226211489117ef5c01c7c2bca9868a7c",
+      "match": true
+    },
+    {
+      "path": "src/profile-presentation-ui.js",
+      "expected_sha256": "7f779c2df2ed22efb1835cc435e19daa58a30ee0a4624a7a0bef5181a32e37bf",
+      "status": 200,
+      "served_sha256": "7f779c2df2ed22efb1835cc435e19daa58a30ee0a4624a7a0bef5181a32e37bf",
+      "match": true
+    },
+    {
+      "path": "src/profile-presentation.js",
+      "expected_sha256": "4c96995fcce96c4d905d212e0810534de5ce91bae3df00a1d52c02e72f72aa9e",
+      "status": 200,
+      "served_sha256": "4c96995fcce96c4d905d212e0810534de5ce91bae3df00a1d52c02e72f72aa9e",
+      "match": true
+    },
+    {
+      "path": "src/profile-ui.js",
+      "expected_sha256": "99223dc28ec84504f8294033d814bb7b4d5ef039be21a03025c68792c07d796f",
+      "status": 200,
+      "served_sha256": "99223dc28ec84504f8294033d814bb7b4d5ef039be21a03025c68792c07d796f",
+      "match": true
+    },
+    {
+      "path": "src/profiles.js",
+      "expected_sha256": "58eda6d791d3a88df1f67f568fde7fe71dc4745e2e0e73d813d61ad1dcbfc202",
+      "status": 200,
+      "served_sha256": "58eda6d791d3a88df1f67f568fde7fe71dc4745e2e0e73d813d61ad1dcbfc202",
+      "match": true
+    },
+    {
+      "path": "src/starter-data.js",
+      "expected_sha256": "05b04f822b4dcdb677e0ec66200936064e2a9a8580c6ef34d76c6d8e27f20363",
+      "status": 200,
+      "served_sha256": "05b04f822b4dcdb677e0ec66200936064e2a9a8580c6ef34d76c6d8e27f20363",
+      "match": true
+    },
+    {
+      "path": "src/ui.js",
+      "expected_sha256": "6fc0674a89bc6718274e99a2552dfac04c41ac499412026a106015bb4cb465b6",
+      "status": 200,
+      "served_sha256": "6fc0674a89bc6718274e99a2552dfac04c41ac499412026a106015bb4cb465b6",
+      "match": true
+    },
+    {
+      "path": "style.css",
+      "expected_sha256": "85351a29801db7d740d170b66b3260736e4b158f3e03db36403cbee269772f80",
+      "status": 200,
+      "served_sha256": "85351a29801db7d740d170b66b3260736e4b158f3e03db36403cbee269772f80",
+      "match": true
+    }
+  ],
+  "all_match": true,
+  "observed_build_stamp": {
+    "commit": "6c4fe8d6e5cd86072119b16d923e2f240447c4d0"
+  }
+}
