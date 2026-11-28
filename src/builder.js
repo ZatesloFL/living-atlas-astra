@@ -10,6 +10,7 @@ import {LOOKS} from './item-style.js';
 import {makeSourcePiece, sourcedRoom} from './source-catalog.js';
 import {composeBuilderRoom, prepareBuilderStructures, withBuilderRoom} from './build-projection.js';
 import {builderHallIdentity, materializeBuilderHall, validateBuilderHallPlacement} from './builder-hall.js';
+import {materializeRecoveredBuilderHall} from './builder-hall-recovery.js';
 import {BUILDER_DRAW_CEILING, BUILDER_PIECES, builderPieceCost, makeBuilderPiece, snapBuilderPosition, validateBuilderPiece} from './builder-pieces.js';
 import {builderPublication, builderPublications, builderSubject, stampBuilderProvenance, submissionFor} from './builder-provenance.js';
 import {AtlasRecords} from './atlas-records.js';
@@ -27,6 +28,31 @@ const empty = () => ({drafts:{},receipts:[]});
 const authoredBases = new WeakMap();
 const isHall = piece=>piece.kind==='interior-shell';
 const structureIds = receipt=>new Map((receipt?.diff.ownedPlaceVersions??[]).map(({pieceId,placeId})=>[pieceId,placeId]));
+
+function slabOrigins(room, receipts) {
+  const published=new Map(),placed=new Map();
+  for(const receipt of receipts){
+    if(Object.hasOwn(receipt.diff,'ownedPlaceVersions'))continue;
+    for(const piece of (receipt.diff.pieces??[]).filter(isHall)){
+      const {id:thingId,block,transform}=piece;
+      const versionId=block?.recordVersionId;
+      const versionKey=versionId?JSON.stringify([thingId,versionId]):null;
+      if(versionKey&&!published.has(versionKey))published.set(versionKey,receipt);
+      placed.set(thingId,{transform,from:{
+        thing:{placeId:room.id,thingId,...(versionId?{versionId}:{})},
+        publicationReceiptRef:receiptView(published.get(versionKey)??receipt).id,
+        placementReceiptRef:receiptView(receipt).id
+      }});
+    }
+  }
+  return placed;
+}
+
+function hallPlan(base,piece,visibility,slab) {
+  const keepLegacyPosition=slab&&same(slab.transform,piece.transform);
+  const materialize=keepLegacyPosition?materializeRecoveredBuilderHall:materializeBuilderHall;
+  return materialize(base,piece,{visibility});
+}
 
 function publicContainment(roomKey,lens,rooms,host) {
   const chain = containingPlaces(roomKey,rooms,host);
@@ -380,7 +406,8 @@ export class Builder {
     const halls=pieces.filter(isHall);
     if(!halls.length)return {...composeBuilderRoom(base,pieces),draftStructures:[]};
     const visibility=this.hallVisibility(this.data,roomKey,room,lens);
-    const plans=halls.map(piece=>materializeBuilderHall(base,piece,{visibility:visibility(piece.id)}));
+    const slabs=slabOrigins(room,this.published(this.data,roomKey,room.ownerId));
+    const plans=halls.map(piece=>hallPlan(base,piece,visibility(piece.id),slabs.get(piece.id)));
     const {entries,paths,roomKeys}=prepareBuilderStructures(roomKey,room,plans,{forPreview:true});
     return {...composeBuilderRoom(base,pieces,{structuralPieceIds:roomKeys}),
       draftStructures:plans.map(({pieceId})=>{
@@ -400,7 +427,8 @@ export class Builder {
       if (!draft.dirty) continue;
       const published = new Map(draft.basePieces.map(piece=>[piece.id,piece]));
       const changed = new Set(draft.pieces.filter(piece=>!same(piece,published.get(piece.id)??null)).map(piece=>piece.block.id));
-      const structureRefs=structureIds(this.published(this.data,key,room.ownerId).at(-1));
+      const structureRefs=new Map(Object.values(ROOMS).filter(child=>child.builderStructure?.parentPlaceId===room.id)
+        .map(child=>[child.builderStructure.pieceId,child.id]));
       drafts.set(key,{room:composeBuilderRoom(this.base.get(key),normalizePieces(copy(draft.pieces),room),
         {structuralPieceIds:structureRefs}),changed});
     }
@@ -456,13 +484,19 @@ export class Builder {
     });
   }
 
-  preparePublication(data,roomKey,room,base,receipt,pieces,{validatePlacement=false}={}) {
-    const publishedStructures=receipt.diff.ownedPlaceVersions;
+  preparePublication(data,roomKey,room,base,receipt,pieces,lens,{validatePlacement=false}={}) {
     const halls=pieces.filter(isHall);
-    const records=new Map((publishedStructures??[]).map(record=>[record.pieceId,record]));
-    const structures=publishedStructures&&(halls.length||Object.values(ROOMS).some(child=>child.builderStructure?.parentPlaceId===room.id))
+    const previous=this.published(data,roomKey,room.ownerId);
+    const slabs=slabOrigins(room,previous);
+    const visibility=this.hallVisibility(data,roomKey,room,lens);
+    const publishedStructures=receipt.diff.ownedPlaceVersions??halls.map(piece=>({
+      ...builderHallIdentity(room.id,piece.id),pieceId:piece.id,visibility:visibility(piece.id),
+      versionId:piece.block.recordVersionId??receipt.diff.revisionId+'/'+piece.id
+    }));
+    const records=new Map(publishedStructures.map(record=>[record.pieceId,record]));
+    const structures=(halls.length||Object.values(ROOMS).some(child=>child.builderStructure?.parentPlaceId===room.id))
       ? prepareBuilderStructures(roomKey,room,halls.map(piece=>{
-        const plan=materializeBuilderHall(base,piece,{visibility:records.get(piece.id)?.visibility});
+        const plan=hallPlan(base,piece,records.get(piece.id)?.visibility,slabs.get(piece.id));
         if(validatePlacement)validateBuilderHallPlacement(base,plan.room);
         return plan;
       })) : null;
@@ -478,6 +512,12 @@ export class Builder {
         child.recordVersionId=versionId;
         child.standing.declarationRef=receiptView(receipt).id;
         entrance.provenanceRef=receiptView(receipt).id;
+        const recoveredFrom=slabs.get(pieceId)?.from;
+        if(recoveredFrom){
+          child.builderStructure.recoveredFrom=recoveredFrom;
+          child.builderStructure.recoveredVersionId=recoveredFrom.thing.versionId??versionId;
+          if(child.builderStructure.recoveredVersionId===versionId)child.standing.declarationRef=recoveredFrom.publicationReceiptRef;
+        }
         const childBase=stampBuilderProvenance(placeId,child,data.receipts);
         const head=this.published(data,placeId,child.ownerId).at(-1);
         structures.entries[placeId]=head?stampBuilderProvenance(placeId,composeBuilderRoom(childBase,head.diff.pieces,
@@ -529,7 +569,7 @@ export class Builder {
       });
       Object.assign(draft,{baseVersion:revisionId,pieces,undo:[],redo:[],preview:null});
       return {receipt:receiptView(receipt),draft:this.snapshot(data,roomKey,room),
-        preparePublication:()=>this.preparePublication(data,roomKey,room,base,receipt,pieces,{validatePlacement:true})};
+        preparePublication:()=>this.preparePublication(data,roomKey,room,base,receipt,pieces,lens,{validatePlacement:true})};
     });
     this.onPublish(roomKey);
     return {receipt:result.receipt,draft:result.draft};
@@ -597,7 +637,7 @@ export class Builder {
       }
       if (!this.base.has(roomKey)) this.base.set(roomKey,copy(base));
       const pieces = normalizePieces(copy(head.diff.pieces),room);
-      const projection=this.preparePublication(this.data,roomKey,room,base,head,pieces);
+      const projection=this.preparePublication(this.data,roomKey,room,base,head,pieces,lens);
       projection.apply();
       for(const key of projection.childKeys) keys.add(key);
     }

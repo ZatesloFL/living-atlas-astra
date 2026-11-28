@@ -1,4 +1,6 @@
 import {ROOMS,EDGES} from './data.js';
+import {containingPlaces} from './admission.js';
+import {roomEntry} from './content.js';
 import {planRoute} from './travel-plan.js';
 export function hallRoom(scene){return Object.keys(ROOMS).find(id=>ROOMS[id].layout.interior?.scene===scene);}
 export function hallEntry(id){
@@ -38,4 +40,26 @@ export function spatialArrival(id,choice){
  if(!h)return {room:id,scene:r.layout.scene,...r.layout.arrivals[choice],choice};
  const p=choice==='door'?h.frontage.arrival:h.frontage.outside;
  return choice==='inside'?{room:id,scene:h.scene,...h.arrival,choice}:{room:id,contextRoom:h.parent,scene:r.layout.scene,position:p,facing:h.frontage.facing??Math.atan2(p[0]-h.frontage.door[0],p[1]-h.frontage.door[1]),choice};
+}
+
+// Revoked entry cannot be used to land in a containing Place the new holder cannot enter.
+export function hallExteriorFallback(id,lens){
+ const hall=ROOMS[id],interior=hall?.layout?.interior;
+ if(interior&&!hall.builderStructure)return spatialArrival(id,'door');
+ const ancestors=interior?containingPlaces(id,ROOMS)?.slice(0,-1):[];
+ let nearest=null;
+ for(const key of ancestors??[]){
+  const room=ROOMS[key],entry=room.layout?.interior&&hallEntry(key);
+  if(!room.layout||room.layout.interior&&!entry)break;
+  const gate=roomEntry(key,lens,entry?[entry]:EDGES);
+  if(!gate.rights?.canEnter||gate.state==='hidden'||gate.type==='window'||gate.admission?.blocked)break;
+  nearest=key;
+ }
+ if(!nearest)return spatialArrival('square','inside');
+ if(nearest===interior.parent){
+  const doorway=spatialArrival(id,'door');
+  const parent=ROOMS[nearest].layout;
+  if(doorway.scene===(parent.interior?.scene??parent.scene))return {...doorway,room:nearest};
+ }
+ return spatialArrival(nearest,'inside');
 }

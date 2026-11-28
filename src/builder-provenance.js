@@ -9,6 +9,7 @@ export function builderSubject(room, node = room) {
 // can publish the same Thing without publishing its material again.
 export function builderPublications(roomKey, room, receipts) {
   const publications = new Map();
+  const recovered=room.builderStructure?.recoveredFrom;
   for (const receipt of receipts) {
     if (receipt.action!=='build_published' || receipt.actor!==room.ownerId) continue;
     if(receipt.diff.roomKey===roomKey) {
@@ -24,6 +25,12 @@ export function builderPublications(roomKey, room, receipts) {
       if(subject.placeId!==room.id||subject.pieceId!==room.builderStructure.pieceId||typeof subject.versionId!=='string')continue;
       const key=subjectKey(subject);
       if(!publications.has(key))publications.set(key,receipt);
+    }
+    if(recovered?.publicationReceiptRef==='builder:'+receipt.hash&&recovered.thing.placeId===room.parentPlaceId&&
+      recovered.thing.thingId===room.builderStructure.pieceId&&receipt.diff.pieces?.some(piece=>
+        piece.id===recovered.thing.thingId&&piece.kind==='interior-shell'&&piece.block?.recordVersionId===recovered.thing.versionId)){
+      const target={placeId:room.id,versionId:room.builderStructure.recoveredVersionId};
+      publications.set(subjectKey(target),receipt);
     }
   }
   return publications;

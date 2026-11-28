@@ -3,14 +3,15 @@ import assert from 'node:assert/strict';
 import {builderHallIdentity, builderHallPlacementFits, materializeBuilderHall, validateBuilderHallPlacement} from '../src/builder-hall.js';
 import {makeBuilderPiece} from '../src/builder-pieces.js';
 import {ROOMS, EDGES, PRESETS} from '../src/data.js';
-import {hallEntry, hallExit, spatialArrival, spatialRoute} from '../src/interior-space.js';
+import {hallEntry, hallExit, hallExteriorFallback, spatialArrival, spatialRoute} from '../src/interior-space.js';
 import {manualDestination} from '../src/atlas-destinations.js';
 import {roomVisible} from '../src/rules.js';
 import {scores} from '../src/scores.js';
 
 const parentFixture = id => ({id, address:'local/'+id, district:'makers', visibility:'public', ownerId:'synthetic-owner',
   title:'Synthetic parent', content:scores(), minAge:0, blocks:[],
-  layout:{kind:'booth',root:true,scene:id,slot:[4,-2],scale:3,facing:Math.PI/2}});
+  layout:{kind:'booth',root:true,scene:id,slot:[4,-2],scale:3,facing:Math.PI/2,
+    arrivals:{inside:{position:[4,0],facing:0}}}});
 
 function hallPiece(parent,id,transform={}) {
   const piece=makeBuilderPiece('interior-shell',{placeId:parent.id,id,...transform});
@@ -111,16 +112,29 @@ test('nested halls use the approved parent and their own doors in both direction
     assert.deepEqual(back.map(path=>path.id),[hallExit(nested.id).id,hallExit(child.id).id]);
     assert.equal(roomVisible(nested.id,visitor),true);
     assert.equal(manualDestination(nested.id,visitor,'square').ok,true);
+    assert.deepEqual(hallExteriorFallback(nested.id,visitor),{...spatialArrival(nested.id,'door'),room:child.id});
+
+    child.visibility='hidden';
+    assert.deepEqual(hallExteriorFallback(nested.id,visitor),spatialArrival(parent.id,'inside'));
+    child.visibility='public';
 
     parent.visibility='hidden';
     assert.equal(roomVisible(nested.id,visitor),false);
     assert.equal(manualDestination(nested.id,visitor,'square').ok,false);
     assert.equal(spatialRoute('square',nested.id,visitor,'square','inside'),null);
     const invited={...visitor,access:{grants:[{id:'unit-parent-access',room:parent.id,scope:'enter',to:{person:visitor.profileId}}]}};
+    const lookOnly={...invited,access:{grants:[{...invited.access.grants[0],scope:'look'}]}};
+    assert.deepEqual(hallExteriorFallback(nested.id,visitor),spatialArrival('square','inside'));
+    assert.deepEqual(hallExteriorFallback(nested.id,lookOnly),spatialArrival('square','inside'));
+    assert.deepEqual(hallExteriorFallback(nested.id,invited),{...spatialArrival(nested.id,'door'),room:child.id});
     assert.equal(manualDestination(nested.id,invited,'square').ok,true);
     assert.deepEqual(spatialRoute('square',nested.id,invited,'square','inside').map(path=>path.id),entry.map(path=>path.id));
   }finally{
     for(const id of added)delete ROOMS[id];
     EDGES.splice(originalPathCount);
   }
+});
+
+test('Seeded hall ejection uses the existing exterior geometry',()=>{
+  assert.deepEqual(hallExteriorFallback('boycott',{}),spatialArrival('boycott','door'));
 });

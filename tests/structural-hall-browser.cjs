@@ -28,6 +28,7 @@ async function failureState(page,errors) {
     card:document.querySelector('#sheet:not([hidden]) #sheet-title')?.textContent,
     build:document.querySelector('#builder-hud:not([hidden]) .builder-status')?.textContent,
     travelError:document.querySelector('#travel-error,#travel-words-message')?.textContent,
+    travelRows:[...document.querySelectorAll('.travel-checklist li')].map(row=>row.textContent),
     startup:window.atlasDiagnostics?.().errors,
   })).catch(()=>null);
   console.error(JSON.stringify({state,errors}));
@@ -74,6 +75,15 @@ async function addBuiltPiece(page,dock,{kind,name,text,position,dials={}}) {
     piece.kind===kind && (piece.settings?.title===name || piece.block?.title===name)),{kind,name});
   return page.evaluate(({kind,name})=>__atlas.build.draft.pieces.find(piece=>
     piece.kind===kind && (piece.settings?.title===name || piece.block?.title===name)).id,{kind,name});
+}
+
+async function moveBuiltPiece(page,dock,piece,z) {
+  await dock.locator('[data-builder-action=panel][data-value=outline]').click();
+  await dock.locator('[data-builder-action=select][data-value=' + JSON.stringify(piece) + ']').click();
+  const inspector=dock.locator('[data-builder-form=piece]');
+  await inspector.locator('[name="position.2"]').fill(String(z));
+  await inspector.getByRole('button',{name:/Apply draft edits|Save draft edits/}).click();
+  await page.waitForFunction(({piece,z})=>__atlas.build.draft?.pieces.find(item=>item.id===piece)?.transform.position[2]===z,{piece,z});
 }
 
 async function publish(page,dock) {
@@ -132,10 +142,11 @@ async function builderReceipts(page) {
   return page.evaluate(async ()=>{
     const {BUILDER_STORAGE}=await import('./src/builder.js');
     const {verifyChain}=await import('./src/ledger.js');
-    const receipts=JSON.parse(localStorage.getItem(BUILDER_STORAGE)).receipts;
-    return {valid:(await verifyChain(receipts)).valid,ids:receipts.map(receipt=>receipt.hash),
+    const raw=localStorage.getItem(BUILDER_STORAGE);
+    const receipts=JSON.parse(raw).receipts;
+    return {raw,valid:(await verifyChain(receipts)).valid,ids:receipts.map(receipt=>receipt.hash),
       publications:receipts.filter(receipt=>receipt.action==='build_published').map(receipt=>({
-        id:'builder:'+receipt.hash,place:receipt.diff.roomKey,time:receipt.time
+        id:'builder:'+receipt.hash,place:receipt.diff.roomKey,time:receipt.time,things:receipt.diff.ownedRecordVersions??[]
       }))};
   });
 }
@@ -190,7 +201,10 @@ async function enterDoor(page,{hall,parent,paths}) {
   await page.locator('#travel-arrival').selectOption('door');
   await confirmManualRoute(page);
   await page.waitForFunction(id=>atlasStatus().room===id,parent.id);
-  const outside=await page.evaluate(()=>({room:atlasStatus().room,scene:atlasStatus().scene,position:atlasStatus().position}));
+  const outside=await page.evaluate(()=>{
+    const {room,scene,position,drawCalls}=atlasStatus();
+    return {room,scene,position,drawCalls};
+  });
   assert.equal(outside.scene,parent.scene);
   const prompt=page.locator('#edge-prompt').filter({hasText:hall.title});
   await prompt.waitFor();
@@ -201,16 +215,18 @@ async function enterDoor(page,{hall,parent,paths}) {
   assert.equal(await page.evaluate(()=>atlasStatus().room),parent.id);
   await page.locator('#hall-enter').click();
   const agreement=page.locator('[data-words-agree=' + JSON.stringify(paths[0].id) + ']');
+  const filtered=page.locator('[data-words-filtered=' + JSON.stringify(paths[0].id) + ']');
   if(await agreement.isVisible()) await agreement.click();
+  else if(await filtered.isVisible()) await filtered.click();
   await page.waitForFunction(id=>{
     const error=document.querySelector('#travel-words-message')?.textContent;
     if(error) throw new Error(error);
     return atlasStatus().room===id&&!__atlas.travel.active;
   },hall.id);
   const arrived=await page.evaluate(hall=>{
-    const {room,scene,position}=atlasStatus();
+    const {room,scene,position,drawCalls}=atlasStatus();
     const {width,depth}=hall.layout.interior;
-    return {room,scene,position,inside:__atlas.state().context.inside,
+    return {room,scene,position,drawCalls,inside:__atlas.state().context.inside,
       arrivalIsStandable:__atlas.canStand(position.x,position.z),
       wallsBlockAnOutsidePosition:!__atlas.canStand(width/2+.1,0)&&!__atlas.canStand(0,depth/2+.1),
       receipts:(__atlas.access.data.ledgers[hall.id]??[]).filter(entry=>
@@ -257,6 +273,9 @@ async function verifyRefused(page,records,profile) {
   const {hall,paths}=records;
   await switchProfile(page,profile);
   const before=await page.evaluate(()=>atlasStatus().room);
+  if(process.env.ATLAS_ALLOW_PRIOR_PARENT_FALLBACK!=='1') {
+    assert.equal(before,'square','The private containing Home is not a fallback for an unrelated profile');
+  }
   await showMap(page);
   assert.equal(await mapNode(page,hall.id).count(),0);
   assert.equal(await page.locator('[data-map-edge=' + JSON.stringify(paths[0].id) + ']').count(),0);
@@ -279,6 +298,7 @@ async function checkNew(browser,url) {
   try {
     await open();
     const {home,owner}=await arrive(page);
+    const build=await checkBuildStamp(page,process.env.ATLAS_EXPECT_STAMP);
     const dock=await openBuild(page,home);
     const piece=await addBuiltPiece(page,dock,{kind:'interior-shell',name:title,position:shellPosition});
     const draft=await catalog(page,home,piece);
@@ -306,6 +326,7 @@ async function checkNew(browser,url) {
 
     await page.reload();
     await page.waitForFunction(()=>window.__atlas && __atlas.state().viewpoint.ready);
+    await checkBuildStamp(page,build);
     const reopened=await catalog(page,home,piece);
     assertStructure(reopened,home,owner);
     assert.equal(reopened.hall.id,records.hall.id);
@@ -319,7 +340,6 @@ async function checkNew(browser,url) {
     console.log('PASS reload restores the same child records and unauthorised profiles cannot find or enter the hall');
     assert.deepEqual(liveCalls,[]);
     assert.deepEqual(errors,[]);
-    const build=await checkBuildStamp(page,process.env.ATLAS_EXPECT_STAMP);
     const publicationReceipt=beforeReload.publications.findLast(row=>row.place===home)?.id;
     const interiorPublicationReceipt=beforeReload.publications.findLast(row=>row.place===records.hall.id)?.id;
     assert.ok(publicationReceipt && interiorPublicationReceipt);
@@ -344,6 +364,9 @@ async function checkLegacy(browser,url,legacyURL) {
       kind:'interior-shell',name:title,position:shellPosition,dials:{'sensory.amount':1,'sensory.graphicness':0}
     });
     await publish(legacy.page,dock);
+    const moveDock=await openBuild(legacy.page,home);
+    await moveBuiltPiece(legacy.page,moveDock,piece,-1);
+    await publish(legacy.page,moveDock);
     const slab=await catalog(legacy.page,home,piece);
     assert.equal(slab.parent.oldSlab,true);
     assert.equal(slab.hall,null);
@@ -351,13 +374,18 @@ async function checkLegacy(browser,url,legacyURL) {
     const storage=await legacy.page.evaluate(()=>Object.entries(localStorage));
     const original=await builderReceipts(legacy.page);
     assert.ok(original.valid);
-    const publicationReceipt=original.publications.findLast(row=>row.place===home)?.id;
-    assert.ok(publicationReceipt);
+    const publications=original.publications.filter(row=>row.place===home&&row.things.some(thing=>thing.thingId===piece));
+    assert.equal(publications.length,2);
+    const thing=publications[0].things.find(item=>item.thingId===piece);
+    assert.deepEqual(publications[1].things.find(item=>item.thingId===piece),thing);
+    const relation={thing,publicationReceiptRef:publications[0].id,placementReceiptRef:publications[1].id};
+    assert.notEqual(relation.publicationReceiptRef,relation.placementReceiptRef);
     const build=await checkBuildStamp(legacy.page,process.env.ATLAS_LEGACY_EXPECT_STAMP);
     assert.deepEqual(legacy.errors,[]);
     assert.deepEqual(legacy.liveCalls,[]);
-    old={home,owner,piece,storage,original,build,publicationReceipt,content:slab.parent.slabContent,body:slab.parent.slabBody};
-    console.log('PASS prior release publishes the legacy slab fixture without any child Place');
+    old={home,owner,piece,storage,original,build,relation,position:slab.shell.transform.position,
+      content:slab.parent.slabContent,body:slab.parent.slabBody};
+    console.log('PASS prior release publishes and moves the same legacy slab version without any child Place');
   } finally {await origin.close();}
 
   const next=await browser.newContext(contextOptions);
@@ -370,26 +398,31 @@ async function checkLegacy(browser,url,legacyURL) {
     },old.storage);
     await fresh.open();
     await fresh.page.waitForFunction(()=>window.__atlas && __atlas.state().viewpoint.ready);
+    const build=await checkBuildStamp(fresh.page,process.env.ATLAS_EXPECT_STAMP);
     const recovered=await catalog(fresh.page,old.home,old.piece);
     assertStructure(recovered,old.home,old.owner);
     assert.deepEqual(recovered.hall.content,old.content);
     assert.equal(recovered.hall.body,old.body);
+    assert.deepEqual(recovered.shell.transform.position,old.position);
+    assert.deepEqual(recovered.hall.builderStructure.recoveredFrom,old.relation);
     const after=await builderReceipts(fresh.page);
-    assert.ok(after.valid);
-    assert.deepEqual(after.ids.slice(0,old.original.ids.length),old.original.ids);
+    assert.deepEqual(after,old.original);
     const crossing=await enterDoor(fresh.page,recovered);
     await fresh.page.reload();
     await fresh.page.waitForFunction(()=>window.__atlas && __atlas.state().viewpoint.ready);
+    await checkBuildStamp(fresh.page,build);
     const second=await catalog(fresh.page,old.home,old.piece);
     assertStructure(second,old.home,old.owner);
     assert.equal(second.hall.id,recovered.hall.id);
     assert.equal(second.paths[0].id,recovered.paths[0].id);
+    assert.deepEqual(second.hall.builderStructure.recoveredFrom,old.relation);
+    assert.deepEqual(await builderReceipts(fresh.page),old.original);
     assert.deepEqual(fresh.errors,[]);
     assert.deepEqual(fresh.liveCalls,[]);
     console.log('PASS a genuinely published legacy slab recovers to one durable structural Place and door');
-    return {build:await checkBuildStamp(fresh.page,process.env.ATLAS_EXPECT_STAMP),legacyBuild:old.build,
+    return {build,legacyBuild:old.build,
       home:old.home,piece:old.piece,hall:recovered.hall.id,path:recovered.paths[0].id,
-      originalPublicationReceipt:old.publicationReceipt,
+      originalPublicationReceipt:old.relation.publicationReceiptRef,
       publicationReceipts:after.publications,structure:recovered.hall.builderStructure,crossing,
       liveCalls:fresh.liveCalls.length,errors:fresh.errors};
   } catch(error) {

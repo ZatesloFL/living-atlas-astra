@@ -15,7 +15,7 @@ const {ROOMS,EDGES}=await diag.asyncRun('data module',()=>import('./data.js'));
 const {Renderer}=await diag.asyncRun('renderer module',()=>import('./renderer.js'));
 const {Controls,SPAWN_Z}=await diag.asyncRun('controls module',()=>import('./controls.js'));
 const {mediaContext,stopMedia}=await import('./kit-ui.js');
-const {hallRoom,hallEntry,hallExit,spatialArrival}=await import('./interior-space.js');
+const {hallRoom,hallEntry,hallExit,hallExteriorFallback,spatialArrival}=await import('./interior-space.js');
 const {World}=await diag.asyncRun('world module',()=>import('./world.js'));
 const {WorldLabels}=await diag.asyncRun('labels module',()=>import('./labels.js'));
 const {HUD}=await import('./hud.js');const hud=window.atlasHud??new HUD();
@@ -76,7 +76,7 @@ function visitWorld(scene){
   {visitDrafts:builder.visitDrafts(scene,lens)});
 }
 function rebuild(next=kind,{keepDoors=false}={}){
-  const hall=hallRoom(next);if(hall&&(visibleEdge(hallEntry(hall),lens).state==='hidden'||!permission(ROOMS[hall],lens).canEnter)){const landing=spatialArrival(hall,'door');next=landing.scene;place=null;stopMedia();if(!lens.preview&&access.data.presence.some(p=>p.person===personId(lens)&&p.room===ROOMS[hall].id))access.leave(hall,lens).catch(error=>ui.toast(error.message));controls.teleport(...landing.position,landing.facing);}
+  const hall=hallRoom(next);if(hall&&(visibleEdge(hallEntry(hall),lens).state==='hidden'||!permission(ROOMS[hall],lens).canEnter)){const landing=hallExteriorFallback(hall,lens);next=landing.scene;place=null;stopMedia();if(!lens.preview&&access.data.presence.some(p=>p.person===personId(lens)&&p.room===ROOMS[hall].id))access.leave(hall,lens).catch(error=>ui.toast(error.message));controls.teleport(...landing.position,landing.facing);}
   const nextWorld=diag.run(world?'scene rebuild':'first scene',()=>visitWorld(next));
   if(keepDoors)retainDoors(nextWorld);
   try{world?.dispose();}catch(error){diag.record('scene disposal',error,'The new scene remains available.');}
