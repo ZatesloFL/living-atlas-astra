@@ -339,7 +339,7 @@ test('shipped Staff context crosses the real client transport and handler with o
   let providerCalls=0,expected;const paths=[],outcomes=[];
   const h=handler(async(url,options)=>{
    providerCalls++;const prompt=JSON.parse(JSON.parse(options.body).messages[0].content),b=prompt.blocks.find(b=>b.blockId===(profileId==='seed-child'?'kids-lead':'lead'))??prompt.blocks[0];
-   const value={excerpts:[{blockId:b.blockId,quote:b.body.split('\n\n').find(part=>part.length>60).slice(0,800)}]};expected=value.excerpts;
+   const value={excerpts:b?[{blockId:b.blockId,quote:b.body.split('\n\n').find(part=>part.length>60).slice(0,800)}]:[]};expected=value.excerpts;
    return Response.json({...docentThinkingFixture,content:[docentThinkingFixture.content[0],{type:'text',text:JSON.stringify(value)}]});
   });
   const client=createAI({transport:createProxyTransport({endpoint:'https://example.test/functions/v1/ai-proxy',fetchImpl:async(url,options)=>{

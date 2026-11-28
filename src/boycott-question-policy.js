@@ -12,21 +12,21 @@ export function boycottQuestionKind(value){
 }
 export const BOYCOTT_ANSWER_RULES={
  overview:'Explain the subject of this Place from its authored overview. Quote its summary, not just its title or location.',
- leadership:'Name who led or organized the boycott. Quote a complete passage containing the named leader or organizing body AND their leadership role. A general description of what the boycott was does not answer who.',
+ leadership:'Name who led or organized the boycott. Quote a complete passage containing the named leader or organizing body AND their leadership role. When both are named, include the council and its president together. A general description of what the boycott was does not answer who.',
  outcome:'Quote the recorded outcome: what happened to the bus service and whether segregation ended. Pressure or negotiations alone do not establish an outcome. Keep any qualifications in the passage.',
  verification:'Quote what remains to verify or check against sources, including the record’s qualifications.',
  capabilities:'Quote what this helper may do under its look grant, including its limits. Historical facts do not answer this question.',
  'bus-service':'Quote which bus service residents boycotted.'
 };
-const leadership=/\b(?:led|leads|leaders?|leadership|president|headed|organized|organised|organizers?|organisers?)\b/i;
+const leadership=/\b(?:led|leads|leaders?|leadership|president|headed|organizers?|organisers?)\b/i;
 const name=/\b[A-Z][\p{L}.’.-]*(?:[ -]+[A-Z][\p{L}.’.-]*)+/u;
 export function boycottQuoteAnswers(kind,text,id){
  if(typeof text!=='string'||!text.trim())return false;
  switch(kind){
  case 'overview':return ['place-overview','lead','kids-lead'].includes(id)&&text.trim().split(/\s+/).length>=5;
  case 'leadership':return leadership.test(text)&&name.test(text);
- case 'outcome':return /\b(?:desegregat\w*|integrat\w*|succeed\w*|success\w*|ended|won|resum\w*|achieved)\b/i.test(text)&&/\b(?:bus\w*|boycott|segregat\w*|service|campaign)\b/i.test(text);
- case 'verification':return /\b(?:verify|verification|unverified|checking|checked|pending)\b/i.test(text);
+ case 'outcome':return /\b(?:desegregat\w*|integrat\w*|succeed\w*|success\w*|end(?:ed)?|won|resum\w*|achieved)\b/i.test(text)&&/\b(?:bus\w*|boycott|segregat\w*|service|campaign)\b/i.test(text);
+ case 'verification':return /\b(?:verify|verification|unverified|checking|checked|pending|accounts differ)\b/i.test(text)||id==='memory'&&/\bgives\b[\s\S]*\bgives\b/i.test(text);
  case 'capabilities':return id==='helper-grant'&&/\b(?:answer questions|propose tours)\b/.test(text)&&/\blook grant\b/.test(text);
  case 'bus-service':return /\bbus service\b/i.test(text)&&/\b(?:segregated|boycott)\b/i.test(text);
  default:return false;

@@ -38,8 +38,8 @@ export function typedQuestionBlockIds(context){
  // for the unchanged server prompt, schema, question and accounting overhead.
  let remaining=Math.max(800,3000-new TextEncoder().encode(context.question).length);
  const ids=[];
- // The current Place's own words are always available, even when an overview
- // question has no keyword in an exhibit body. Other selection stays exact.
+ // Overview/open-ended questions retain the Place's authored words. Named
+ // facets use their own citable passages instead of an unrelated summary.
  const kind=context.place?.key==='boycott'?boycottQuestionKind(context.question):null;
  const overview=(!kind||kind==='overview')&&context.blocks.find(block=>block.id===PLACE_OVERVIEW_ID);
  for(const {block} of [...(overview?[{block:overview}]:[]),...rankedQuestionBlocks(context).filter(({block})=>block!==overview)]){

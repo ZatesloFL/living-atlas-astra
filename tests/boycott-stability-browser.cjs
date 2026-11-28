@@ -13,6 +13,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),arriva
   for(let n=0;n<8;n++){const agree=p.locator('[data-words-agree],[data-words-filtered]').first();if(!await agree.isVisible())break;await agree.click();}
   await p.waitForFunction(()=>!__atlas.travel.active&&!__atlas.travel.session&&__atlas.state().context.room==='boycott');
   for(const wire of fixture.captures.filter(c=>c.round===1)){
+   if(await p.evaluate(()=>__atlas.state().lens.depth)!==wire.depth){
+    await p.evaluate(()=>__atlas.close());await p.locator('#lens-button').click();await p.locator('.atlas-record-layer>summary').click();await p.locator('#atlas-inspector').click();await p.locator('[data-preference=depth]').selectOption(wire.depth);await p.locator('#lens-done').click();
+   }
    await p.evaluate(async response=>{const {createAI}=await import('./src/ai.js');__atlas.staff.ai=createAI({transport:{eligible:()=>true,request:async()=>structuredClone(response)}});},wire.response);
    await p.evaluate(()=>__atlas.staffUI.docent('boycott'));
    await p.locator('#docent-question').fill(wire.request.context.question);await p.locator('#docent-question').press('Enter');await p.locator('[data-ai-source]').waitFor();
@@ -23,7 +26,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),arriva
    for(const name of names){assert(name,'Every citation has a readable source name');assert(face.includes(name));}
    if(wire.request.context.question==='Did it work?')assert.equal(await p.locator('.partial-evidence').count(),0);
    await p.locator('.answer-record summary').click();const inspected=await p.locator('.answer-record').innerText();assert(inspected.includes(wire.response.receiptData.receiptId));assert(inspected.includes(wire.response.model));
-   proof.answers.push({question:wire.request.context.question,receipt:wire.response.receiptData.receiptId,face,sourceNames:names,recordClosedInitially:true,recordContainsReceiptAndModel:true});
+   proof.answers.push({question:wire.request.context.question,depth:wire.depth,receipt:wire.response.receiptData.receiptId,face,sourceNames:names,recordClosedInitially:true,recordContainsReceiptAndModel:true});
    await p.locator('.answer-record summary').click();
    if(wire.request.context.question==='Who led this'){await p.setViewportSize({width:393,height:851});await p.screenshot({path:'lane/evidence/boycott-docent-answer-2026-11-28.png'});await p.setViewportSize({width:1100,height:850});}
   }
