@@ -4,8 +4,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),arriva
 (async()=>{
  const fixture=JSON.parse(await fs.readFile('tests/fixtures/docent-proxy-live-boycott-stability.json','utf8'));
  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader']});
- const p=await browser.newPage({viewport:{width:1100,height:850}}),errors=[],proof={evidenceCommit:fixture.evidenceCommit,edgeFunctionVersion:fixture.edgeFunctionVersion,method:'Desktop Chromium; real proxy response replay, no live model calls; physical phone acceptance remains Nic’s',answers:[]};
- p.setDefaultTimeout(20000);p.on('pageerror',e=>errors.push(e.message));
+ const p=await browser.newPage({viewport:{width:1100,height:850}}),errors=[],outbound=[],proof={evidenceCommit:fixture.evidenceCommit,edgeFunctionVersion:fixture.edgeFunctionVersion,method:'Desktop Chromium; real proxy response replay, no live model calls; physical phone acceptance remains Nic’s',answers:[]};
+ p.setDefaultTimeout(20000);p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(r.url().includes('.supabase.co/'))outbound.push(r.url());});
  try{
   await p.goto((process.env.ATLAS_URL||'http://127.0.0.1:8012/')+'?safe&test&ai=local');
   await p.locator('[name=age]').fill('34');await p.locator('[name=name]').fill('Synthetic Docent reviewer');await arrival(p,{square:false,preset:'Teen'});
@@ -34,7 +34,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),arriva
     assert.equal(await p.evaluate(()=>__atlas.state().context.room),'boycott');assert.match(await p.locator('#sheet-content').innerText(),/https?:|Sources|Stanford|Florida|field report/i);proof.answers.at(-1).sourceOpened=source;
    }
   }
-  assert.deepEqual(errors,[]);proof.errors=errors;
+  assert.deepEqual(errors,[]);assert.deepEqual(outbound,[]);proof.errors=errors;proof.outbound=outbound;
   await fs.writeFile('lane/evidence/boycott-docent-browser-2026-11-28.json',JSON.stringify(proof,null,2)+'\n');
   console.log('PASS boycott answer, named source, closed record, outcome and unsupported-answer UI checks');
  }finally{await browser.close();}

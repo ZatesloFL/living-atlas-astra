@@ -64,3 +64,20 @@ test('typed questions and presets share evidence; the date discrepancy only ente
   }
  }
 });
+test('nineteen real proxy captures replay with stable verdicts, named leadership, qualified outcomes and receipted abstentions',async()=>{
+ const {readFile}=await import('node:fs/promises'),{allowedBlocks}=await import('../supabase/functions/ai-proxy/protocol.js');
+ const capture=JSON.parse(await readFile(new URL('./fixtures/docent-proxy-live-boycott-stability.json',import.meta.url),'utf8'));
+ assert.match(capture.captureType,/real deployed proxy/);assert.equal(capture.edgeFunctionVersion,11);assert.equal(capture.captures.length,19);assert.equal(capture.passed,true);
+ assert(capture.stability.every(s=>s.agree&&s.verdicts.length===3));const receipts=new Set();
+ for(const wire of capture.captures){
+  const receipt=wire.serverReceipt;assert.equal(receipt.id,wire.response.receiptData.receiptId);receipts.add(receipt.id);assert.equal(receipt.result,'accepted');assert.equal(receipt.validation_passed,true);assert.equal(receipt.failure_class,null);assert.equal(receipt.cost_basis,'measured');assert(receipt.output_tokens<=2048);
+  const ctx=context(wire.request.context.question,allowedBlocks(wire.request.context));
+  assert.deepEqual(docentBlockIds(ctx),wire.request.context.visibleBlockIds);
+  const answer=await createAI({transport:{eligible:()=>true,request:async()=>structuredClone(wire.response)}}).request({job:'guide',agentId:'docent-silver',context:ctx});
+  assert.deepEqual(answer,wire.clientResult);assert.equal(provenanceLabel(answer.receiptData,answer.proposal),wire.label);
+  if(ctx.question==='Who led this')assert.match(answer.proposal.text,/Inter-Civic Council.*Rev\. C\. K\. Steele/s);
+  if(ctx.question==='Did it work?'){assert.match(answer.proposal.text,/January 7, 1957.*still faced arrest.*summer 1957/s);assert.equal(partialOutcomePassage(ctx),null);}
+  if(wire.verdict==='no-supported-answer'){assert.equal(answer.proposal.text,DONT_KNOW);assert.deepEqual(answer.proposal.citations,[]);assert(!wire.label.includes('grounded'));}
+ }
+ assert.equal(receipts.size,19);
+});

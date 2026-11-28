@@ -1,0 +1,2843 @@
+{
+  "captureType": "real deployed proxy responses to synthetic questions; never raw provider envelopes",
+  "startedAt": "2026-11-28T19:11:02.706Z",
+  "evidenceCommit": "99a69e560f7d5f3d64d266f83068387a80b6ef4a",
+  "clientCommit": "43174b4dbc027435c55be5c3a6065ff1c2cb0315",
+  "edgeFunctionVersion": 11,
+  "transport": "Application client over verified TLS; not a physical phone test",
+  "sessionPolicy": "One holder, two sessions, nine calls in the first session and at most ten in the second, at least twenty seconds between calls. No retries.",
+  "sessions": [
+    {
+      "at": "2026-11-28T19:11:03.840Z",
+      "httpStatus": 200,
+      "renewingSameHolder": false
+    },
+    {
+      "at": "2026-11-28T19:14:30.635Z",
+      "httpStatus": 200,
+      "renewingSameHolder": true
+    }
+  ],
+  "captures": [
+    {
+      "at": "2026-11-28T19:11:06.287Z",
+      "request": {
+        "requestId": "1987e2dd-a088-475c-a761-2167fbe1e0d9",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "oral-history"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "Who led this"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+          "citations": [
+            "oral-history"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "e8254f1d-5e7e-4658-a8c4-8e1e6892d265"
+        }
+      },
+      "round": 1,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+          "citations": [
+            "oral-history"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "e8254f1d-5e7e-4658-a8c4-8e1e6892d265"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "e8254f1d-5e7e-4658-a8c4-8e1e6892d265",
+        "time": "2026-11-28 19:11:06.202+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 922,
+        "output_tokens": 341,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 252,
+        "cost_microusd": 263,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:11:28.827Z",
+      "request": {
+        "requestId": "92e9d96d-a9f2-4f3b-a6fc-ae4408d11190",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is this Place?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "In 1956, Black residents of Tallahassee boycotted the city’s segregated public bus service. Follow the students who sparked the protest, the people who kept it going and the struggle over who could sit where.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "acf2369e-eaf3-4918-9dc3-288faacbcfd2"
+        }
+      },
+      "round": 1,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "In 1956, Black residents of Tallahassee boycotted the city’s segregated public bus service. Follow the students who sparked the protest, the people who kept it going and the struggle over who could sit where.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "acf2369e-eaf3-4918-9dc3-288faacbcfd2"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "acf2369e-eaf3-4918-9dc3-288faacbcfd2",
+        "time": "2026-11-28 19:11:28.746+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 833,
+        "output_tokens": 429,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 336,
+        "cost_microusd": 298,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:11:53.195Z",
+      "request": {
+        "requestId": "cd2d279f-df25-4aa1-b2cc-309645a3bea7",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "bus-model",
+            "outcomes"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "Did it work?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.",
+          "citations": [
+            "outcomes"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "8960e7d8-a5f1-4628-a313-e4d4985de138"
+        }
+      },
+      "round": 1,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.",
+          "citations": [
+            "outcomes"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "8960e7d8-a5f1-4628-a313-e4d4985de138"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "8960e7d8-a5f1-4628-a313-e4d4985de138",
+        "time": "2026-11-28 19:11:53.118+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 1289,
+        "output_tokens": 859,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 691,
+        "cost_microusd": 559,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:12:14.938Z",
+      "request": {
+        "requestId": "bd8d6135-d80d-4ce6-b4f9-3e3cdde878fa",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What needs verification?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "6f2e7266-d053-4953-9979-d03870e10154"
+        }
+      },
+      "round": 1,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "6f2e7266-d053-4953-9979-d03870e10154",
+          "answerEvidence": "none"
+        }
+      },
+      "label": "Live · no supported answer",
+      "verdict": "no-supported-answer",
+      "serverReceipt": {
+        "id": "6f2e7266-d053-4953-9979-d03870e10154",
+        "time": "2026-11-28 19:12:14.86+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 530,
+        "output_tokens": 48,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 36,
+        "cost_microusd": 77,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:12:38.084Z",
+      "request": {
+        "requestId": "2aed4e9f-8af1-4a32-9095-7253efee3e05",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "helper-grant"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What can this helper do?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "Mara may answer questions and propose tours in this Place under a look grant. This grant is standing, revocable, and does not allow changes to the Place. Travel still checks every door and your Lens.",
+          "citations": [
+            "helper-grant"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "82a4bf0b-a135-4ae9-852c-ca22bf67c1cf"
+        }
+      },
+      "round": 1,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "Mara may answer questions and propose tours in this Place under a look grant. This grant is standing, revocable, and does not allow changes to the Place. Travel still checks every door and your Lens.",
+          "citations": [
+            "helper-grant"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "82a4bf0b-a135-4ae9-852c-ca22bf67c1cf"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "82a4bf0b-a135-4ae9-852c-ca22bf67c1cf",
+        "time": "2026-11-28 19:12:37.981+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 633,
+        "output_tokens": 439,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 349,
+        "cost_microusd": 283,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:13:00.557Z",
+      "request": {
+        "requestId": "3e63492d-8445-47f1-9072-9981814e4f5c",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "oral-history"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "Who led this"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+          "citations": [
+            "oral-history"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "5d6ec2d7-1425-4375-8b44-8ed949fc8153"
+        }
+      },
+      "round": 2,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+          "citations": [
+            "oral-history"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "5d6ec2d7-1425-4375-8b44-8ed949fc8153"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "5d6ec2d7-1425-4375-8b44-8ed949fc8153",
+        "time": "2026-11-28 19:13:00.46+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 922,
+        "output_tokens": 367,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 278,
+        "cost_microusd": 276,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:13:22.999Z",
+      "request": {
+        "requestId": "770f47cf-e55b-49c9-9dda-b4c6d85d6808",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is this Place?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "In 1956, Black residents of Tallahassee boycotted the city’s segregated public bus service. Follow the students who sparked the protest, the people who kept it going and the struggle over who could sit where.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "ad58f927-2966-4be2-9233-2b5df74cbf8a"
+        }
+      },
+      "round": 2,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "In 1956, Black residents of Tallahassee boycotted the city’s segregated public bus service. Follow the students who sparked the protest, the people who kept it going and the struggle over who could sit where.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "ad58f927-2966-4be2-9233-2b5df74cbf8a"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "ad58f927-2966-4be2-9233-2b5df74cbf8a",
+        "time": "2026-11-28 19:13:22.911+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 833,
+        "output_tokens": 383,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 290,
+        "cost_microusd": 275,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:13:47.234Z",
+      "request": {
+        "requestId": "36c2187f-09eb-4ff6-8514-f33dee11e863",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "bus-model",
+            "outcomes"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "Did it work?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.",
+          "citations": [
+            "outcomes"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "be9ff972-e39d-4eb8-8c99-c721d0f12029"
+        }
+      },
+      "round": 2,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.",
+          "citations": [
+            "outcomes"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "be9ff972-e39d-4eb8-8c99-c721d0f12029"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "be9ff972-e39d-4eb8-8c99-c721d0f12029",
+        "time": "2026-11-28 19:13:47.156+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 1289,
+        "output_tokens": 696,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 528,
+        "cost_microusd": 477,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:14:10.108Z",
+      "request": {
+        "requestId": "af079e5f-f009-4aed-8322-305ce8c03e0c",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What needs verification?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "430ccc41-01e9-476e-b829-1c031f2567fc"
+        }
+      },
+      "round": 2,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "430ccc41-01e9-476e-b829-1c031f2567fc",
+          "answerEvidence": "none"
+        }
+      },
+      "label": "Live · no supported answer",
+      "verdict": "no-supported-answer",
+      "serverReceipt": {
+        "id": "430ccc41-01e9-476e-b829-1c031f2567fc",
+        "time": "2026-11-28 19:14:10.028+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 530,
+        "output_tokens": 48,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 36,
+        "cost_microusd": 77,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:14:33.944Z",
+      "request": {
+        "requestId": "2feb210a-62e0-4c20-8136-6993a089d95c",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "helper-grant"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What can this helper do?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "Mara may answer questions and propose tours in this Place under a look grant. This grant is standing, revocable, and does not allow changes to the Place. Travel still checks every door and your Lens.",
+          "citations": [
+            "helper-grant"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "87cc606b-2e4f-4e45-abfc-856b1c6f679c"
+        }
+      },
+      "round": 2,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "Mara may answer questions and propose tours in this Place under a look grant. This grant is standing, revocable, and does not allow changes to the Place. Travel still checks every door and your Lens.",
+          "citations": [
+            "helper-grant"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "87cc606b-2e4f-4e45-abfc-856b1c6f679c"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "87cc606b-2e4f-4e45-abfc-856b1c6f679c",
+        "time": "2026-11-28 19:14:33.867+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 633,
+        "output_tokens": 394,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 304,
+        "cost_microusd": 261,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:14:56.413Z",
+      "request": {
+        "requestId": "05f6e618-d8e6-4ed7-88fe-6929505af760",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "oral-history"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "Who led this"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+          "citations": [
+            "oral-history"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "fefc9cf6-5cd3-406d-a4df-f2729bf247e5"
+        }
+      },
+      "round": 3,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+          "citations": [
+            "oral-history"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "fefc9cf6-5cd3-406d-a4df-f2729bf247e5"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "fefc9cf6-5cd3-406d-a4df-f2729bf247e5",
+        "time": "2026-11-28 19:14:56.334+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 922,
+        "output_tokens": 351,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 262,
+        "cost_microusd": 268,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:15:18.611Z",
+      "request": {
+        "requestId": "5537ae26-286b-40c2-94af-3c300b828787",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is this Place?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "In 1956, Black residents of Tallahassee boycotted the city’s segregated public bus service. Follow the students who sparked the protest, the people who kept it going and the struggle over who could sit where.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "a03cfb75-dfef-48ff-a4b7-efb4a905e969"
+        }
+      },
+      "round": 3,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "In 1956, Black residents of Tallahassee boycotted the city’s segregated public bus service. Follow the students who sparked the protest, the people who kept it going and the struggle over who could sit where.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "a03cfb75-dfef-48ff-a4b7-efb4a905e969"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "a03cfb75-dfef-48ff-a4b7-efb4a905e969",
+        "time": "2026-11-28 19:15:18.522+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 833,
+        "output_tokens": 333,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 240,
+        "cost_microusd": 250,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:15:42.050Z",
+      "request": {
+        "requestId": "ff9e26e1-7b64-46c0-a52f-ec72b360bf51",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "bus-model",
+            "outcomes"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "Did it work?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.",
+          "citations": [
+            "outcomes"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "f2f5a121-0acb-481e-9ed1-65a9c704d926"
+        }
+      },
+      "round": 3,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.",
+          "citations": [
+            "outcomes"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "f2f5a121-0acb-481e-9ed1-65a9c704d926"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "f2f5a121-0acb-481e-9ed1-65a9c704d926",
+        "time": "2026-11-28 19:15:41.967+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 1289,
+        "output_tokens": 586,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 418,
+        "cost_microusd": 422,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:16:03.786Z",
+      "request": {
+        "requestId": "f02f1f68-9c06-44ec-a5ca-5b9ec6991f8f",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What needs verification?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "d167ab13-06e3-4040-ac88-05b17103de2f"
+        }
+      },
+      "round": 3,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "d167ab13-06e3-4040-ac88-05b17103de2f",
+          "answerEvidence": "none"
+        }
+      },
+      "label": "Live · no supported answer",
+      "verdict": "no-supported-answer",
+      "serverReceipt": {
+        "id": "d167ab13-06e3-4040-ac88-05b17103de2f",
+        "time": "2026-11-28 19:16:03.707+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 530,
+        "output_tokens": 48,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 36,
+        "cost_microusd": 77,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:16:26.078Z",
+      "request": {
+        "requestId": "51a10ddb-ecf9-4c6d-9970-24d667fc9dbc",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "helper-grant"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What can this helper do?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "Mara may answer questions and propose tours in this Place under a look grant. This grant is standing, revocable, and does not allow changes to the Place. Travel still checks every door and your Lens.",
+          "citations": [
+            "helper-grant"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "dfeea695-4afe-45f9-8069-ec1befca5cf8"
+        }
+      },
+      "round": 3,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "Mara may answer questions and propose tours in this Place under a look grant. This grant is standing, revocable, and does not allow changes to the Place. Travel still checks every door and your Lens.",
+          "citations": [
+            "helper-grant"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "dfeea695-4afe-45f9-8069-ec1befca5cf8"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "dfeea695-4afe-45f9-8069-ec1befca5cf8",
+        "time": "2026-11-28 19:16:26.001+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 633,
+        "output_tokens": 333,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 243,
+        "cost_microusd": 230,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:16:48.016Z",
+      "request": {
+        "requestId": "2501bf32-bb62-4783-857d-ad01de62e98e",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "place-overview"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is the airspeed of a swallow?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "3dcf4e27-37e0-4ef8-bd0c-76fcc1ccb983"
+        }
+      },
+      "round": 1,
+      "depth": "Standard",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "3dcf4e27-37e0-4ef8-bd0c-76fcc1ccb983",
+          "answerEvidence": "none"
+        }
+      },
+      "label": "Live · no supported answer",
+      "verdict": "no-supported-answer",
+      "serverReceipt": {
+        "id": "3dcf4e27-37e0-4ef8-bd0c-76fcc1ccb983",
+        "time": "2026-11-28 19:16:47.937+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 565,
+        "output_tokens": 57,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 45,
+        "cost_microusd": 85,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:17:10.996Z",
+      "request": {
+        "requestId": "aec11204-487a-4994-87b8-e3cb7d134edc",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "memory"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Deep",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What needs verification?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Florida historical marker gives May 26 for the students’ arrest. The FSU Department of History account gives May 27. This exhibit uses late May where the accounts differ",
+          "citations": [
+            "memory"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "c3834131-a27e-4c35-99d5-8e6a04c0356a"
+        }
+      },
+      "round": 1,
+      "depth": "Deep",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Florida historical marker gives May 26 for the students’ arrest. The FSU Department of History account gives May 27. This exhibit uses late May where the accounts differ",
+          "citations": [
+            "memory"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "c3834131-a27e-4c35-99d5-8e6a04c0356a"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "c3834131-a27e-4c35-99d5-8e6a04c0356a",
+        "time": "2026-11-28 19:17:10.915+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 821,
+        "output_tokens": 516,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 434,
+        "cost_microusd": 341,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:17:33.860Z",
+      "request": {
+        "requestId": "f039d969-e457-4d05-8d7f-a974529f3e15",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "memory"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Deep",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What needs verification?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Florida historical marker gives May 26 for the students’ arrest. The FSU Department of History account gives May 27. This exhibit uses late May where the accounts differ and distinguishes the January ordinance from the change in everyday riding over subsequent months.",
+          "citations": [
+            "memory"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "d4bae37a-fedb-4759-89fc-b0d03cef9f69"
+        }
+      },
+      "round": 2,
+      "depth": "Deep",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Florida historical marker gives May 26 for the students’ arrest. The FSU Department of History account gives May 27. This exhibit uses late May where the accounts differ and distinguishes the January ordinance from the change in everyday riding over subsequent months.",
+          "citations": [
+            "memory"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "d4bae37a-fedb-4759-89fc-b0d03cef9f69"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "d4bae37a-fedb-4759-89fc-b0d03cef9f69",
+        "time": "2026-11-28 19:17:33.778+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 821,
+        "output_tokens": 602,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 493,
+        "cost_microusd": 384,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    },
+    {
+      "at": "2026-11-28T19:17:57.335Z",
+      "request": {
+        "requestId": "6c102370-e2bd-4f24-97a7-37fbe2fa7ca0",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2",
+          "visibleBlockIds": [
+            "memory"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Deep",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What needs verification?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Florida historical marker gives May 26 for the students’ arrest. The FSU Department of History account gives May 27. This exhibit uses late May where the accounts differ and distinguishes the January ordinance from the change in everyday riding over subsequent months.",
+          "citations": [
+            "memory"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "4579d5be-7108-41bb-a91d-d0ab255b8e59"
+        }
+      },
+      "round": 3,
+      "depth": "Deep",
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Exact excerpts from permitted Things and records in this view. Sources are attributed; no independent verification is asserted.",
+          "text": "The Florida historical marker gives May 26 for the students’ arrest. The FSU Department of History account gives May 27. This exhibit uses late May where the accounts differ and distinguishes the January ordinance from the change in everyday riding over subsequent months.",
+          "citations": [
+            "memory"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "4579d5be-7108-41bb-a91d-d0ab255b8e59"
+        }
+      },
+      "label": "Live · grounded answer",
+      "verdict": "grounded-answer",
+      "serverReceipt": {
+        "id": "4579d5be-7108-41bb-a91d-d0ab255b8e59",
+        "time": "2026-11-28 19:17:57.257+00",
+        "job": "guide",
+        "model": "anthropic/claude-haiku-5-5",
+        "agent": "docent-silver",
+        "input_tokens": 821,
+        "output_tokens": 667,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 558,
+        "cost_microusd": 416,
+        "cost_basis": "measured",
+        "validation_passed": true,
+        "result": "accepted",
+        "failure_class": null
+      }
+    }
+  ],
+  "stability": [
+    {
+      "question": "Who led this",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "e8254f1d-5e7e-4658-a8c4-8e1e6892d265",
+        "5d6ec2d7-1425-4375-8b44-8ed949fc8153",
+        "fefc9cf6-5cd3-406d-a4df-f2729bf247e5"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What is this Place?",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "acf2369e-eaf3-4918-9dc3-288faacbcfd2",
+        "ad58f927-2966-4be2-9233-2b5df74cbf8a",
+        "a03cfb75-dfef-48ff-a4b7-efb4a905e969"
+      ],
+      "agree": true
+    },
+    {
+      "question": "Did it work?",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "8960e7d8-a5f1-4628-a313-e4d4985de138",
+        "be9ff972-e39d-4eb8-8c99-c721d0f12029",
+        "f2f5a121-0acb-481e-9ed1-65a9c704d926"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What needs verification?",
+      "depth": "Standard",
+      "verdicts": [
+        "no-supported-answer",
+        "no-supported-answer",
+        "no-supported-answer"
+      ],
+      "receipts": [
+        "6f2e7266-d053-4953-9979-d03870e10154",
+        "430ccc41-01e9-476e-b829-1c031f2567fc",
+        "d167ab13-06e3-4040-ac88-05b17103de2f"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What can this helper do?",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "82a4bf0b-a135-4ae9-852c-ca22bf67c1cf",
+        "87cc606b-2e4f-4e45-abfc-856b1c6f679c",
+        "dfeea695-4afe-45f9-8069-ec1befca5cf8"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What needs verification?",
+      "depth": "Deep",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "c3834131-a27e-4c35-99d5-8e6a04c0356a",
+        "d4bae37a-fedb-4759-89fc-b0d03cef9f69",
+        "4579d5be-7108-41bb-a91d-d0ab255b8e59"
+      ],
+      "agree": true
+    }
+  ],
+  "unsupportedAbstained": true,
+  "passed": true,
+  "finishedAt": "2026-11-28T19:17:57.339Z",
+  "totalMeasuredMicrousd": 5319
+}

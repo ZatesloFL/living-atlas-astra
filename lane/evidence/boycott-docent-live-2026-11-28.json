@@ -1,0 +1,783 @@
+{
+  "deployment": {
+    "id": "daff4a58-b8b3-45d9-8723-2c0df8f52819",
+    "slug": "ai-proxy",
+    "name": "ai-proxy",
+    "status": "ACTIVE",
+    "version": 11,
+    "created_at": 1794595242986,
+    "updated_at": 1795893051839,
+    "verify_jwt": false,
+    "import_map": true,
+    "entrypoint_path": "file:///tmp/user_fn_ftnxmuenqfqkodizyekk_daff4a58-b8b3-45d9-8723-2c0df8f52819_11/source/index.ts",
+    "import_map_path": "file:///tmp/user_fn_ftnxmuenqfqkodizyekk_daff4a58-b8b3-45d9-8723-2c0df8f52819_11/source/deno.json",
+    "ezbr_sha256": "84a704a0a37490b178dfe64a73ac80591e2119994c306525dc281920c050077f"
+  },
+  "base": {
+    "version": 10,
+    "updated_at": 1795892491921,
+    "ezbr_sha256": "04136aa974d35f646748b22da1b9e3c19eb395702d5c67f9931236c2df780054"
+  },
+  "files": [
+    {
+      "name": "index.ts",
+      "changedFromV10": false
+    },
+    {
+      "name": "store.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "core.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "photo.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "stored-original.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "audio.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "protocol.js",
+      "changedFromV10": true
+    },
+    {
+      "name": "catalog-v9.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "catalog-v8.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "catalog-previous.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "catalog-legacy.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "catalog.js",
+      "changedFromV10": true
+    },
+    {
+      "name": "builder-cases.json",
+      "changedFromV10": false
+    },
+    {
+      "name": "builder-schema.json",
+      "changedFromV10": false
+    },
+    {
+      "name": "kit.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "handler.js",
+      "changedFromV10": true
+    },
+    {
+      "name": "providers.js",
+      "changedFromV10": false
+    },
+    {
+      "name": "deno.json",
+      "changedFromV10": false
+    },
+    {
+      "name": "boycott-question-policy.js",
+      "changedFromV10": true
+    },
+    {
+      "name": "catalog-boycott-evidence.js",
+      "changedFromV10": true
+    },
+    {
+      "name": "deno.lock",
+      "changedFromV10": true
+    }
+  ],
+  "checkedAt": "2026-11-28T19:12:45.710996+00:00",
+  "evidenceCommit": "99a69e560f7d5f3d64d266f83068387a80b6ef4a",
+  "deployedCommit": "43174b4",
+  "validatorByteIdenticalTo": "6fd6a91",
+  "validatorSHA256": "841b8be7acc27f94f268b07239007faa58b4159e91ca4d59f9791d2e511f00e8",
+  "scopeDiffFromEvidenceCommit": [
+    "lane/evidence/boycott-arrival-2026-11-28.png",
+    "lane/evidence/boycott-hall-upgrade-2026-11-28.json",
+    "lane/evidence/boycott-leadership-answer-2026-11-28.png",
+    "lane/evidence/boycott-leadership-bay-2026-11-28.png",
+    "lane/evidence/boycott-outcome-answer-2026-11-28.png",
+    "lane/evidence/boycott-outcome-passage-2026-11-28.png",
+    "lane/reports/2026-11-28-04.md",
+    "scripts/build-ai-catalog.mjs",
+    "scripts/verify-boycott-stability-live.mjs",
+    "src/ai-catalog-revision.js",
+    "src/ai-proxy.js",
+    "src/ai.js",
+    "src/boycott-question-policy.js",
+    "src/docent-grant-evidence.js",
+    "src/docent-questions.js",
+    "src/page.js",
+    "src/runtime.js",
+    "src/staff-ui.js",
+    "src/staff.js",
+    "supabase/functions/ai-proxy/boycott-question-policy.js",
+    "supabase/functions/ai-proxy/catalog-boycott-evidence.js",
+    "supabase/functions/ai-proxy/catalog.js",
+    "supabase/functions/ai-proxy/handler.js",
+    "supabase/functions/ai-proxy/protocol.js",
+    "tests/ai-client.test.js",
+    "tests/ai-proxy.test.js",
+    "tests/boycott-stability-browser.cjs",
+    "tests/boycott-stability.test.js",
+    "tests/docent-asking.test.js",
+    "tests/kit-regression-browser.cjs"
+  ],
+  "environment": {
+    "supabaseAccessToken": "present; value never printed or recorded",
+    "hosts": {
+      "api.supabase.com": {
+        "httpsReachable": true,
+        "rootStatus": 404
+      },
+      "ftnxmuenqfqkodizyekk.supabase.co": {
+        "httpsReachable": true,
+        "rootStatus": 404
+      },
+      "zateslofl.github.io": {
+        "httpsReachable": true,
+        "rootStatus": 404
+      }
+    }
+  },
+  "guideConfiguration": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "inputTokenCap": 6000,
+    "outputTokenCap": 2048,
+    "changed": false
+  },
+  "startedAt": "2026-11-28T19:11:02.706Z",
+  "finishedAt": "2026-11-28T19:17:57.339Z",
+  "sessions": [
+    {
+      "at": "2026-11-28T19:11:03.840Z",
+      "httpStatus": 200,
+      "renewingSameHolder": false
+    },
+    {
+      "at": "2026-11-28T19:14:30.635Z",
+      "httpStatus": 200,
+      "renewingSameHolder": true
+    }
+  ],
+  "stability": [
+    {
+      "question": "Who led this",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "e8254f1d-5e7e-4658-a8c4-8e1e6892d265",
+        "5d6ec2d7-1425-4375-8b44-8ed949fc8153",
+        "fefc9cf6-5cd3-406d-a4df-f2729bf247e5"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What is this Place?",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "acf2369e-eaf3-4918-9dc3-288faacbcfd2",
+        "ad58f927-2966-4be2-9233-2b5df74cbf8a",
+        "a03cfb75-dfef-48ff-a4b7-efb4a905e969"
+      ],
+      "agree": true
+    },
+    {
+      "question": "Did it work?",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "8960e7d8-a5f1-4628-a313-e4d4985de138",
+        "be9ff972-e39d-4eb8-8c99-c721d0f12029",
+        "f2f5a121-0acb-481e-9ed1-65a9c704d926"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What needs verification?",
+      "depth": "Standard",
+      "verdicts": [
+        "no-supported-answer",
+        "no-supported-answer",
+        "no-supported-answer"
+      ],
+      "receipts": [
+        "6f2e7266-d053-4953-9979-d03870e10154",
+        "430ccc41-01e9-476e-b829-1c031f2567fc",
+        "d167ab13-06e3-4040-ac88-05b17103de2f"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What can this helper do?",
+      "depth": "Standard",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "82a4bf0b-a135-4ae9-852c-ca22bf67c1cf",
+        "87cc606b-2e4f-4e45-abfc-856b1c6f679c",
+        "dfeea695-4afe-45f9-8069-ec1befca5cf8"
+      ],
+      "agree": true
+    },
+    {
+      "question": "What needs verification?",
+      "depth": "Deep",
+      "verdicts": [
+        "grounded-answer",
+        "grounded-answer",
+        "grounded-answer"
+      ],
+      "receipts": [
+        "c3834131-a27e-4c35-99d5-8e6a04c0356a",
+        "d4bae37a-fedb-4759-89fc-b0d03cef9f69",
+        "4579d5be-7108-41bb-a91d-d0ab255b8e59"
+      ],
+      "agree": true
+    }
+  ],
+  "unsupportedAbstained": true,
+  "passed": true,
+  "totalMeasuredMicrousd": 5319,
+  "receipts": [
+    {
+      "question": "Who led this",
+      "round": 1,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "e8254f1d-5e7e-4658-a8c4-8e1e6892d265",
+      "time": "2026-11-28 19:11:06.202+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 922,
+      "output_tokens": 341,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 252,
+      "cost_microusd": 263,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What is this Place?",
+      "round": 1,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "acf2369e-eaf3-4918-9dc3-288faacbcfd2",
+      "time": "2026-11-28 19:11:28.746+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 833,
+      "output_tokens": 429,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 336,
+      "cost_microusd": 298,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "Did it work?",
+      "round": 1,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "8960e7d8-a5f1-4628-a313-e4d4985de138",
+      "time": "2026-11-28 19:11:53.118+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 1289,
+      "output_tokens": 859,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 691,
+      "cost_microusd": 559,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What needs verification?",
+      "round": 1,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "no-supported-answer",
+      "id": "6f2e7266-d053-4953-9979-d03870e10154",
+      "time": "2026-11-28 19:12:14.86+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 530,
+      "output_tokens": 48,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 36,
+      "cost_microusd": 77,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What can this helper do?",
+      "round": 1,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "82a4bf0b-a135-4ae9-852c-ca22bf67c1cf",
+      "time": "2026-11-28 19:12:37.981+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 633,
+      "output_tokens": 439,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 349,
+      "cost_microusd": 283,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "Who led this",
+      "round": 2,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "5d6ec2d7-1425-4375-8b44-8ed949fc8153",
+      "time": "2026-11-28 19:13:00.46+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 922,
+      "output_tokens": 367,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 278,
+      "cost_microusd": 276,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What is this Place?",
+      "round": 2,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "ad58f927-2966-4be2-9233-2b5df74cbf8a",
+      "time": "2026-11-28 19:13:22.911+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 833,
+      "output_tokens": 383,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 290,
+      "cost_microusd": 275,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "Did it work?",
+      "round": 2,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "be9ff972-e39d-4eb8-8c99-c721d0f12029",
+      "time": "2026-11-28 19:13:47.156+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 1289,
+      "output_tokens": 696,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 528,
+      "cost_microusd": 477,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What needs verification?",
+      "round": 2,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "no-supported-answer",
+      "id": "430ccc41-01e9-476e-b829-1c031f2567fc",
+      "time": "2026-11-28 19:14:10.028+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 530,
+      "output_tokens": 48,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 36,
+      "cost_microusd": 77,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What can this helper do?",
+      "round": 2,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "87cc606b-2e4f-4e45-abfc-856b1c6f679c",
+      "time": "2026-11-28 19:14:33.867+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 633,
+      "output_tokens": 394,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 304,
+      "cost_microusd": 261,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "Who led this",
+      "round": 3,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "fefc9cf6-5cd3-406d-a4df-f2729bf247e5",
+      "time": "2026-11-28 19:14:56.334+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 922,
+      "output_tokens": 351,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 262,
+      "cost_microusd": 268,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What is this Place?",
+      "round": 3,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "a03cfb75-dfef-48ff-a4b7-efb4a905e969",
+      "time": "2026-11-28 19:15:18.522+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 833,
+      "output_tokens": 333,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 240,
+      "cost_microusd": 250,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "Did it work?",
+      "round": 3,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "f2f5a121-0acb-481e-9ed1-65a9c704d926",
+      "time": "2026-11-28 19:15:41.967+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 1289,
+      "output_tokens": 586,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 418,
+      "cost_microusd": 422,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What needs verification?",
+      "round": 3,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "no-supported-answer",
+      "id": "d167ab13-06e3-4040-ac88-05b17103de2f",
+      "time": "2026-11-28 19:16:03.707+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 530,
+      "output_tokens": 48,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 36,
+      "cost_microusd": 77,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What can this helper do?",
+      "round": 3,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "dfeea695-4afe-45f9-8069-ec1befca5cf8",
+      "time": "2026-11-28 19:16:26.001+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 633,
+      "output_tokens": 333,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 243,
+      "cost_microusd": 230,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What is the airspeed of a swallow?",
+      "round": 1,
+      "depth": "Standard",
+      "httpStatus": 200,
+      "verdict": "no-supported-answer",
+      "id": "3dcf4e27-37e0-4ef8-bd0c-76fcc1ccb983",
+      "time": "2026-11-28 19:16:47.937+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 565,
+      "output_tokens": 57,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 45,
+      "cost_microusd": 85,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What needs verification?",
+      "round": 1,
+      "depth": "Deep",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "c3834131-a27e-4c35-99d5-8e6a04c0356a",
+      "time": "2026-11-28 19:17:10.915+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 821,
+      "output_tokens": 516,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 434,
+      "cost_microusd": 341,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What needs verification?",
+      "round": 2,
+      "depth": "Deep",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "d4bae37a-fedb-4759-89fc-b0d03cef9f69",
+      "time": "2026-11-28 19:17:33.778+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 821,
+      "output_tokens": 602,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 493,
+      "cost_microusd": 384,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    },
+    {
+      "question": "What needs verification?",
+      "round": 3,
+      "depth": "Deep",
+      "httpStatus": 200,
+      "verdict": "grounded-answer",
+      "id": "4579d5be-7108-41bb-a91d-d0ab255b8e59",
+      "time": "2026-11-28 19:17:57.257+00",
+      "job": "guide",
+      "model": "anthropic/claude-haiku-5-5",
+      "agent": "docent-silver",
+      "input_tokens": 821,
+      "output_tokens": 667,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 558,
+      "cost_microusd": 416,
+      "cost_basis": "measured",
+      "validation_passed": true,
+      "result": "accepted",
+      "failure_class": null
+    }
+  ],
+  "deployedSourceVerification": {
+    "version": 11,
+    "allMatch": true,
+    "files": [
+      {
+        "name": "index.ts",
+        "match": true
+      },
+      {
+        "name": "store.js",
+        "match": true
+      },
+      {
+        "name": "core.js",
+        "match": true
+      },
+      {
+        "name": "photo.js",
+        "match": true
+      },
+      {
+        "name": "stored-original.js",
+        "match": true
+      },
+      {
+        "name": "audio.js",
+        "match": true
+      },
+      {
+        "name": "protocol.js",
+        "match": true
+      },
+      {
+        "name": "catalog-v9.js",
+        "match": true
+      },
+      {
+        "name": "catalog-v8.js",
+        "match": true
+      },
+      {
+        "name": "catalog-previous.js",
+        "match": true
+      },
+      {
+        "name": "catalog-legacy.js",
+        "match": true
+      },
+      {
+        "name": "catalog.js",
+        "match": true
+      },
+      {
+        "name": "builder-cases.json",
+        "match": true
+      },
+      {
+        "name": "builder-schema.json",
+        "match": true
+      },
+      {
+        "name": "kit.js",
+        "match": true
+      },
+      {
+        "name": "handler.js",
+        "match": true
+      },
+      {
+        "name": "providers.js",
+        "match": true
+      },
+      {
+        "name": "deno.json",
+        "match": true
+      },
+      {
+        "name": "boycott-question-policy.js",
+        "match": true
+      },
+      {
+        "name": "catalog-boycott-evidence.js",
+        "match": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "evidenceCommit": "99a69e560f7d5f3d64d266f83068387a80b6ef4a",
+  "edgeFunctionVersion": 11,
+  "method": "Desktop Chromium; real proxy response replay, no live model calls; physical phone acceptance remains Nic’s",
+  "answers": [
+    {
+      "question": "Who led this",
+      "depth": "Standard",
+      "receipt": "e8254f1d-5e7e-4658-a8c4-8e1e6892d265",
+      "face": "Live · grounded answer\n\nAnswer from Mara\n\nThe Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.\n\nQuoted from: The Inter-Civic Council and C. K. Steele.\n\nInspect answer record\nKeep this answer in my visit",
+      "sourceNames": [
+        "The Inter-Civic Council and C. K. Steele"
+      ],
+      "recordClosedInitially": true,
+      "recordContainsReceiptAndModel": true,
+      "sourceOpened": "oral-history"
+    },
+    {
+      "question": "What is this Place?",
+      "depth": "Standard",
+      "receipt": "acf2369e-eaf3-4918-9dc3-288faacbcfd2",
+      "face": "Live · grounded answer\n\nAnswer from Mara\n\nIn 1956, Black residents of Tallahassee boycotted the city’s segregated public bus service. Follow the students who sparked the protest, the people who kept it going and the struggle over who could sit where.\n\nQuoted from: The 1956 bus boycott.\n\nInspect answer record\nKeep this answer in my visit",
+      "sourceNames": [
+        "The 1956 bus boycott"
+      ],
+      "recordClosedInitially": true,
+      "recordContainsReceiptAndModel": true
+    },
+    {
+      "question": "Did it work?",
+      "depth": "Standard",
+      "receipt": "8960e7d8-a5f1-4628-a313-e4d4985de138",
+      "face": "Live · grounded answer\n\nAnswer from Mara\n\nThe Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.\n\nQuoted from: From repeal to integrated buses.\n\nInspect answer record\nKeep this answer in my visit",
+      "sourceNames": [
+        "From repeal to integrated buses"
+      ],
+      "recordClosedInitially": true,
+      "recordContainsReceiptAndModel": true,
+      "sourceOpened": "outcomes"
+    },
+    {
+      "question": "What needs verification?",
+      "depth": "Standard",
+      "receipt": "6f2e7266-d053-4953-9979-d03870e10154",
+      "face": "Live · no supported answer\n\nAnswer from Mara\n\nI don't know from the blocks available in this view.\n\nInspect answer record\nKeep this answer in my visit",
+      "sourceNames": [],
+      "recordClosedInitially": true,
+      "recordContainsReceiptAndModel": true
+    },
+    {
+      "question": "What can this helper do?",
+      "depth": "Standard",
+      "receipt": "82a4bf0b-a135-4ae9-852c-ca22bf67c1cf",
+      "face": "Live · grounded answer\n\nAnswer from Mara\n\nMara may answer questions and propose tours in this Place under a look grant. This grant is standing, revocable, and does not allow changes to the Place. Travel still checks every door and your Lens.\n\nQuoted from: Mara’s helper grant.\n\nInspect answer record\nKeep this answer in my visit",
+      "sourceNames": [
+        "Mara’s helper grant"
+      ],
+      "recordClosedInitially": true,
+      "recordContainsReceiptAndModel": true
+    },
+    {
+      "question": "What is the airspeed of a swallow?",
+      "depth": "Standard",
+      "receipt": "3dcf4e27-37e0-4ef8-bd0c-76fcc1ccb983",
+      "face": "Live · no supported answer\n\nAnswer from Mara\n\nI don't know from the blocks available in this view.\n\nInspect answer record\nKeep this answer in my visit",
+      "sourceNames": [],
+      "recordClosedInitially": true,
+      "recordContainsReceiptAndModel": true
+    },
+    {
+      "question": "What needs verification?",
+      "depth": "Deep",
+      "receipt": "c3834131-a27e-4c35-99d5-8e6a04c0356a",
+      "face": "Live · grounded answer\n\nAnswer from Mara\n\nThe Florida historical marker gives May 26 for the students’ arrest. The FSU Department of History account gives May 27. This exhibit uses late May where the accounts differ\n\nQuoted from: Reading dates in the record.\n\nInspect answer record\nKeep this answer in my visit",
+      "sourceNames": [
+        "Reading dates in the record"
+      ],
+      "recordClosedInitially": true,
+      "recordContainsReceiptAndModel": true
+    }
+  ],
+  "errors": [],
+  "outbound": []
+}

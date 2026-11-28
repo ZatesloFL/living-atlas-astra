@@ -1,0 +1,79 @@
+{
+  "checked_at": "2026-11-28T19:16:51.538732+00:00",
+  "commit": "7ac5e188324b054492900e554af901c1057cd6cd",
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "tls_verification": true,
+  "files": [
+    {
+      "path": "src/ai-catalog-revision.js",
+      "expected_sha256": "0635df97aaafe62af7c73223d207698ac248d91a3575b77d5f582fc5ff5eeb53",
+      "status": 200,
+      "served_sha256": "0635df97aaafe62af7c73223d207698ac248d91a3575b77d5f582fc5ff5eeb53",
+      "match": true
+    },
+    {
+      "path": "src/ai-proxy.js",
+      "expected_sha256": "6b04a51d4b39044c645aa70c7b6500cfd17372ed309c0308f77578c4776bc87f",
+      "status": 200,
+      "served_sha256": "6b04a51d4b39044c645aa70c7b6500cfd17372ed309c0308f77578c4776bc87f",
+      "match": true
+    },
+    {
+      "path": "src/ai.js",
+      "expected_sha256": "3f2188877f3e53e6654ffd403e13660ec6a4937d9a407d8a91673e43248a74ca",
+      "status": 200,
+      "served_sha256": "3f2188877f3e53e6654ffd403e13660ec6a4937d9a407d8a91673e43248a74ca",
+      "match": true
+    },
+    {
+      "path": "src/boycott-question-policy.js",
+      "expected_sha256": "d5cba2e932ea0cd9bb3d56e0eb3fc4b06629d4c9301615d79dd25270ad3b1337",
+      "status": 200,
+      "served_sha256": "d5cba2e932ea0cd9bb3d56e0eb3fc4b06629d4c9301615d79dd25270ad3b1337",
+      "match": true
+    },
+    {
+      "path": "src/docent-grant-evidence.js",
+      "expected_sha256": "0b8411b826e5a2e71de533f2c8a840d84eb8abf970c4667ed71335ba3e9edfb7",
+      "status": 200,
+      "served_sha256": "0b8411b826e5a2e71de533f2c8a840d84eb8abf970c4667ed71335ba3e9edfb7",
+      "match": true
+    },
+    {
+      "path": "src/docent-questions.js",
+      "expected_sha256": "77ce1a0ca88c7f769c1fd8bbd4284b67f93c52f9d09b5913bfc198229875ecd8",
+      "status": 200,
+      "served_sha256": "77ce1a0ca88c7f769c1fd8bbd4284b67f93c52f9d09b5913bfc198229875ecd8",
+      "match": true
+    },
+    {
+      "path": "src/page.js",
+      "expected_sha256": "5f0f985c2fe118089aa50863ddfc747301541bacf29bf226b5c8b21bf669b9d6",
+      "status": 200,
+      "served_sha256": "5f0f985c2fe118089aa50863ddfc747301541bacf29bf226b5c8b21bf669b9d6",
+      "match": true
+    },
+    {
+      "path": "src/runtime.js",
+      "expected_sha256": "78cfdc0c548d4ff077e43125d35bcd1b86f39c2e64a2df1697461b889c83094b",
+      "status": 200,
+      "served_sha256": "78cfdc0c548d4ff077e43125d35bcd1b86f39c2e64a2df1697461b889c83094b",
+      "match": true
+    },
+    {
+      "path": "src/staff-ui.js",
+      "expected_sha256": "f72c9df4245a38704cfccd3ab506091605b7910d59c20d7b5f7036971f25537d",
+      "status": 200,
+      "served_sha256": "f72c9df4245a38704cfccd3ab506091605b7910d59c20d7b5f7036971f25537d",
+      "match": true
+    },
+    {
+      "path": "src/staff.js",
+      "expected_sha256": "1142e4736c2bc4ed83253b52a82a0f985c494d7ab8b70493d667389dc9eb6dcb",
+      "status": 200,
+      "served_sha256": "1142e4736c2bc4ed83253b52a82a0f985c494d7ab8b70493d667389dc9eb6dcb",
+      "match": true
+    }
+  ],
+  "all_match": true
+}
