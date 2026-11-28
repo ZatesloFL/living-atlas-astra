@@ -9,7 +9,7 @@ import {StandingUI} from './standing-ui.js';
 const options=(list,selected)=>list.map(([v,t])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(t)}</option>`).join('');
 export function readingDialog(){
  const root=document.createElement('section');root.className='access-overlay';root.hidden=true;root.innerHTML='<div class="access-sheet" role="dialog" aria-modal="true"><header><h2></h2><button data-dialog-close aria-label="Close panel">×</button></header><div class="access-content"></div></div>';document.body.append(root);
- return {content:root.querySelector('.access-content'),open(mode,sub,title){this.mode=mode;root.hidden=false;root.querySelector('h2').textContent=title;root.querySelector('[data-dialog-close]').onclick=()=>this.close();},close(){this.mode=null;root.hidden=true;},destroy(){root.remove();},toast(text){const p=document.createElement('p');p.className='reason';p.textContent=text;this.content.prepend(p);}};
+ return {content:root.querySelector('.access-content'),open(mode,sub,title){this.mode=mode;root.hidden=false;root.querySelector('[data-dialog-close]').hidden=mode==='arrival-paused';root.querySelector('h2').textContent=title;root.querySelector('[data-dialog-close]').onclick=()=>this.close();root.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();this.close();}};},close(){if(this.mode==='setup'&&this.leaveSetup?.())return;if(this.mode==='arrival-paused')return;this.mode=null;root.hidden=true;},destroy(){root.remove();},toast(text){const p=document.createElement('p');p.className='reason';p.textContent=text;this.content.prepend(p);}};
 }
 export class AccessUI {
  constructor(ui,store,api){this.ui=ui;this.store=store;this.api=api;this.standingUI=new StandingUI(ui,store,api);}

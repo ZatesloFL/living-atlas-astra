@@ -1,3 +1,4 @@
+import {openSavedRecords} from './saved-records-ui.js';
 import {recordDetails,optionalCardFields} from './record-card.js';
 import {recordLabel} from './record-copy.js';
 import {thingSubject,thingTitle,recoveredHall} from './thing-subject.js';
@@ -40,11 +41,11 @@ export class UI {
   }
   open(mode,eyebrow,title){
     if(!this.mode)this.lastFocus=document.activeElement;
-    this.api.pause();this.mode=mode;$('sheet-close').hidden=mode==='setup';$('sheet-title').textContent=title;$('sheet-eyebrow').textContent=eyebrow;this.sheet.hidden=false;$('veil').hidden=false;document.body.classList.add('panel-open');
+    this.api.pause();this.mode=mode;$('sheet-close').hidden=mode==='arrival-paused';$('sheet-close').setAttribute('aria-label',mode==='setup'?'Pause setup':'Close panel');$('sheet-title').textContent=title;$('sheet-eyebrow').textContent=eyebrow;this.sheet.hidden=false;$('veil').hidden=false;document.body.classList.add('panel-open');
     for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=true;
     this.content.scrollTop=0;$('sheet-close').focus({preventScroll:true});this.api.panelChanged?.();
   }
-  close(){if(this.mode==='setup'&&!this.api.state().profiles.completed)return;const closedMode=this.mode;this.mode=null;this.sheet.hidden=true;this.content.replaceChildren();$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();this.api.panelClosed?.(closedMode);}
+  close(){if(this.mode==='setup'&&!this.api.state().profiles.completed){this.leaveSetup?.();return;}if(this.mode==='arrival-paused'&&!this.api.state().profiles.completed)return;const closedMode=this.mode;this.mode=null;this.sheet.hidden=true;this.content.replaceChildren();$('veil').hidden=true;document.body.classList.remove('panel-open');for(const id of ['topbar','bottom-bar','joystick','edge-prompt'])$(id).inert=false;this.lastFocus?.focus?.({preventScroll:true});this.api.pause();this.api.panelChanged?.();this.api.panelClosed?.(closedMode);}
   toast(message,options){if(this.api.hud)this.api.hud.notify(message,options);else {$('toast').textContent=message;$('toast').hidden=false;}}
   location(context){
     if(this.mode==='atlas'&&this.mapContext!==context.room)this.renderAtlas(true);
@@ -141,14 +142,15 @@ export class UI {
   atlas(){
     this.mapSelected=null;this.open('atlas','Live Places and Things through your Lens','Atlas Map');this.renderAtlas();
   }
+  savedRecords(){openSavedRecords(this,this.api.state().access,()=>this.api.state().lens,{go:id=>this.api.travel(id)});}
   renderAtlas(preserve=false){
     const {lens,context,access}=this.api.state(),model=atlasMapModel(lens,context.room,{showOthers:this.showOthers,columns:innerWidth<600?1:2}),byId=new Map(model.places.map(p=>[p.id,p]));
     const scroll=this.content.scrollTop,focus=document.activeElement?.id,address=this.content.querySelector('[name=address]')?.value??'',selected=this.mapSelected;
     const places=access?.places(lens)??{pins:[],recent:[]},list=ids=>ids.filter(id=>byId.get(id)?.visible).map(id=>`<button data-place="${escapeHTML(id)}">${escapeHTML(byId.get(id).title)}</button>`).join('')||'<span class="muted">No places yet.</span>';
-    this.content.innerHTML=`<p id="map-here" role="status"><strong>You are here · ${escapeHTML(roomTitle(ROOMS[context.room],lens))}</strong></p><div class="atlas-saved"><button id="atlas-home">My home</button><button id="atlas-ask-destination">Ask where to go</button></div><div id="map-detail" aria-live="polite" hidden></div>${atlasGraphHTML(model)}<p class="muted">Live Places, their Things and connections. Local positions come from published placements; this graph is not a floor plan.</p><button id="atlas-square">Town Square</button><div class="atlas-saved"><details><summary>Pins</summary>${list(places.pins)}</details><details><summary>Recent places</summary>${list(places.recent)}</details></div><div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}">${this.showOthers?'On':'Off'}</button></div><details class="address-manual"><summary>Exact address · manual</summary><form id="atlas-address" class="address-form"><label>Room address<input name="address" placeholder="tlh/tallahassee/1956" required></label><button type="submit">Go</button></form></details>`;
+    this.content.innerHTML=`<p id="map-here" role="status"><strong>You are here · ${escapeHTML(roomTitle(ROOMS[context.room],lens))}</strong></p><div class="atlas-saved"><button id="atlas-records">Your pins, recent Places & kept answers</button><button id="atlas-home">My home</button><button id="atlas-ask-destination">Ask where to go</button></div><div id="map-detail" aria-live="polite" hidden></div>${atlasGraphHTML(model)}<p class="muted">Live Places, their Things and connections. Local positions come from published placements; this graph is not a floor plan.</p><button id="atlas-square">Town Square</button><div class="atlas-saved"><details><summary>Pins</summary>${list(places.pins)}</details><details><summary>Recent places</summary>${list(places.recent)}</details></div><div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}">${this.showOthers?'On':'Off'}</button></div><details class="address-manual"><summary>Exact address · manual</summary><form id="atlas-address" class="address-form"><label>Room address<input name="address" placeholder="tlh/tallahassee/1956" required></label><button type="submit">Go</button></form></details>`;
     this.mapContext=context.room;this.mapModel=model;this.content.querySelector('[name=address]').value=address;
     $('atlas-ask-destination').onclick=()=>this.api.askAtlas();$('atlas-address').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;try{const r=await this.api.address(form.elements.address.value);if(!r?.ok)showAddressFailure(form,r?.message??'The address could not be opened. Nothing has been crossed.');}catch(error){showAddressFailure(form,error.message);}};
-    $('atlas-square').onclick=()=>this.api.travel('square');$('atlas-home').onclick=()=>this.api.home();$('show-others').onclick=()=>{this.showOthers=!this.showOthers;this.renderAtlas(true);};
+    $('atlas-records').onclick=()=>this.savedRecords();$('atlas-square').onclick=()=>this.api.travel('square');$('atlas-home').onclick=()=>this.api.home();$('show-others').onclick=()=>{this.showOthers=!this.showOthers;this.renderAtlas(true);};
     const bind=(selector,action)=>this.content.querySelectorAll(selector).forEach(el=>{el.onclick=()=>action(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();action(el);}};});
     bind('[data-place]',e=>this.mapRoom(e.dataset.place));bind('[data-map-node]',e=>this.mapRoom(e.dataset.mapNode));bind('[data-map-edge]',e=>this.mapRoom(model.edges.find(x=>x.id===e.dataset.mapEdge).to));bind('[data-map-thing]',e=>this.thing(e.dataset.thingRoom,e.dataset.mapThing));
     if(preserve&&selected&&byId.get(selected)?.visible)this.mapRoom(selected,false);if(preserve){this.content.scrollTop=scroll;if(focus)document.getElementById(focus)?.focus({preventScroll:true});}

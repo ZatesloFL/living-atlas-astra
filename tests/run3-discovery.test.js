@@ -17,3 +17,8 @@ test('publication, update and schedule dates retain their actual meanings; missi
  const node={publishedAt:'2026-11-20T12:00:00Z',updatedAt:'2026-11-27T12:00:00Z'};assert.equal(recordDates(node).dateLabel,'Updated');assert.equal(recordDates(node).dateAt,Date.parse(node.updatedAt));
  assert.equal(recordDates({start:1795872000000}).dateLabel,'Scheduled');assert.equal(recordDates({start:1795872000000}).publishedAt,null);
 });
+test('starting curator selections do not claim the holder chose them',async()=>{
+ const {queryIndex}=await import('../src/discovery-index.js');const {discoveryDefaults}=await import('../src/discovery-state.js');
+ const view={...lens,discovery:discoveryDefaults()},cards=queryIndex(view,{board:'noticeboard'}).results;assert(cards.length);assert(cards.every(c=>!c.why.includes('You chose')));assert(cards.some(c=>c.why.includes('starting board selection')));
+ view.discovery.curatorChoice='holder';assert(queryIndex(view,{board:'noticeboard'}).results.some(c=>c.why.includes('You selected these board settings')));
+});

@@ -48,7 +48,7 @@ export class AtlasUI {
  }
  async run(action){try{await action();}catch(error){const status=this.ui.content.querySelector('#atlas-message');if(status)status.textContent=error.message;else this.ui.toast(error.message);}}
  async ask(words){return this.run(async()=>{
-  this.sync();this.records.holder(this.lens());await this.records.ensureStarter(this.lens());
+  this.sync();this.records.holder(this.lens());if(!String(words).trim())throw new Error('Type a request first.');const input=this.ui.content.querySelector('#atlas-ask');if(input)input.value='';await this.records.ensureStarter(this.lens());
   const holder=this.holder;this.destinations=null;this.returnOffer=null;this.controller?.abort();this.controller=new AbortController();this.messages.push({who:'you',text:words});
   const result=await this.brain.request({job:'guide',agentId:'atlas',schema:ATLAS_INTENT_SCHEMA,context:{action:'personal-intent',question:words,lensLimits:structuredClone(this.lens().limits),place:{key:this.api.room?.()??'studio'},blocks:[]},signal:this.controller.signal,isCurrent:()=>personId(this.lens())===holder&&this.ui.mode==='ask-atlas'});
   if(this.pending){if(['revoke','narrow'].includes(result.proposal.kind)){await this.records.decline(this.lens(),this.pending.id);this.pending=null;}else throw new Error('Confirm or decline the open proposal first.');}
