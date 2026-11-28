@@ -6,12 +6,12 @@ let environment=()=>true;
 export function setMediaGuard(fn){environment=fn;}
 export function stopMedia(){for(const p of players.values())p.leave();}
 export function subscribeMedia(fn){listeners.add(fn);return()=>listeners.delete(fn);}
-export function mediaPlayer(room,component){
+export function mediaPlayer(room,component,{editorial=false}={}){
  const key=room+':'+component.id;if(players.has(key))return players.get(key);
- const p=new Player(room,component);players.set(key,p);return p;
+ const p=new Player(room,component,editorial);players.set(key,p);return p;
 }
 class Player{
- constructor(room,c){this.room=room;this.component=c;this.playing=false;this.time=0;this.cue=0;this.status=c.kind==='listening'?'Device speech synthesis · no witness recording':'Ready · captions on';this.views=new Set();this.duration=(c.settings.slides?.length??1)*(c.settings.secondsPerSlide??3);this.generation=0;}
+ constructor(room,c,editorial){this.room=room;this.editorial=editorial;this.component=c;this.playing=false;this.time=0;this.cue=0;this.status=c.kind==='listening'?'Device speech synthesis · no witness recording':'Ready · captions on';this.views=new Set();this.duration=(c.settings.slides?.length??1)*(c.settings.secondsPerSlide??3);this.generation=0;}
  pruneViews(checkGuard=false){
   for(const view of this.views)if(!view.root.isConnected){view.dispose?.();this.views.delete(view);}
   // The 3D screen uses its atlas, so an abandoned reader needs no capture track.
@@ -51,7 +51,7 @@ class Player{
  speak(index,token){
   if(!globalThis.speechSynthesis||!globalThis.SpeechSynthesisUtterance||!speechSynthesis.getVoices().length){this.pause('Speech unavailable on this device · read the transcript');return;}
   this.cue=index;this.emit();const u=new SpeechSynthesisUtterance(this.component.settings.cues[index]);u.rate=.9;
-  u.onstart=()=>{if(token===this.generation){this.cue=index;this.status='Speaking · sample narration';this.emit();}};
+  u.onstart=()=>{if(token===this.generation){this.cue=index;this.status=this.editorial?'Speaking · exhibit narration':'Speaking · sample narration';this.emit();}};
   u.onend=()=>{
    if(token!==this.generation)return;if(!environment(this)){this.leave();return;}
    if(index+1<this.component.settings.cues.length)this.speak(index+1,token);

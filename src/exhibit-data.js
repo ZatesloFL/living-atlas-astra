@@ -1,27 +1,70 @@
 import {scores,pair} from './scores.js';
 import {behavior,validateComponent} from './kit.js';
+import {BOYCOTT_PASSAGES} from './boycott-history.js';
+
 export const SAMPLE_LABEL='Sample media · real archive to connect';
-const credit='Generated illustration by Living Atlas · not an archival photograph';
+const illustrationCredit='Original exhibit illustration by Living Atlas';
+const photo=(title,scene,alt,caption)=>({title,scene,alt,caption,credit:illustrationCredit});
 const slides=[
- {title:'A city on the move',caption:'SAMPLE · TO VERIFY. Public transport connects everyday journeys.',scene:0},
- {title:'A collective choice',caption:'SAMPLE · TO VERIFY. In 1956, residents organized a boycott of segregated buses.',scene:1},
- {title:'The work of organizing',caption:'SAMPLE · TO VERIFY. Walking and shared rides helped people make daily journeys.',scene:2},
- {title:'Read the records',caption:'SAMPLE · TO VERIFY. Compare sources and listen for perspectives missing from the archive.',scene:3}
+ {title:'Riding under segregation',caption:'Tallahassee’s city buses separated riders by race.',scene:0},
+ {title:'Two students refuse to move',caption:'In late May 1956, Wilhelmina Jakes and Carrie Patterson refused to move to the back of a crowded bus.',scene:1},
+ {title:'The campus responds',caption:'After police arrested the two riders, Florida A&M students voted to stop using the city buses.',scene:2},
+ {title:'The citywide boycott begins',caption:'Black residents met at Bethel Baptist Church and voted to extend the boycott.',scene:3},
 ];
-const cues=['Sample narration, written for this prototype. This is not a recording of a witness.','In 1956, Black residents of Tallahassee organized a bus boycott to challenge segregation. This summary is to verify.','A boycott depends on daily work: sharing rides, walking, and helping people reach their destinations. Details require source review.','Whose daily work appears in the archive? Whose account is missing? These are research questions, not historical quotations.'];
-const define=(id,type,kind,title,settings,position,content={})=>({id,type,importance:'supporting',body:title+' · sample content to verify',content:scores(content),sources:[],reps:{text:SAMPLE_LABEL+'. '+(settings.transcript??'Generated educational illustration; historical details to verify.'),alt:title+' · generated sample, not archival media',transcript:settings.transcript??''},source:{sourceId:'archive-to-connect',itemId:id+'-sample',syncedAt:null,rights:'Generated prototype material; real archive rights unresolved'},exhibit:{id,kind,settings:{title,...settings},position,facing:0,behaviors:[behavior('leave','pause'),...(['screen','listening'].includes(kind)?[behavior('tap','toggle'),behavior('seek','seek')]:kind==='photoWall'?[behavior('photo','photo')]:kind==='newspaper'?[behavior('zoom','zoom')]:[behavior('seat','seat')])]}});
+const photos=[
+ photo('The bus network',0,'Stylized city bus on a road','Riders’ fares financed the bus service. Withholding those fares put pressure on the transit company.'),
+ photo('The daily journey',1,'Illustration of a passenger shelter','People still needed a way to get to work when they stopped taking the bus.'),
+ photo('Walking together',2,'Illustration of several people walking','Walking and sharing private rides let people stay off the buses.'),
+ photo('Organizing the carpool',3,'Illustration of a meeting table and lists','The Inter-Civic Council organized a carpool. Its meeting reports record transport costs and requests for donations.'),
+ photo('Meetings and records',4,'Illustration of an open book','Church meetings provided a place to plan and raise money. The surviving reports describe that work.'),
+ photo('Service returns',5,'Stylized city buildings','The company resumed bus service in August 1956 and hired Black drivers on the FAMU–Frenchtown run.'),
+];
+const cues=[
+ 'The Inter-Civic Council led the citywide Tallahassee bus boycott.',
+ 'Its elected president was Reverend C. K. Steele, pastor of Bethel Baptist Church.',
+ 'The student protest began with Wilhelmina Jakes and Carrie Patterson. Students and residents made it a citywide effort.',
+ 'The council called for seating on a first-come basis, courteous treatment and the hiring of Black drivers. Reverend Daniel B. Speed helped lead the campaign.',
+];
+const columns=[
+ 'The carpool helped people get to work while they stayed off the city buses. Police targeted the drivers and organizers.',
+ 'In October 1956, a municipal court convicted 21 people over the operation of the carpool.',
+ 'On October 23, Rev. C. K. Steele wrote to Martin Luther King Jr. about the convictions. He reported that the boycott was still going.',
+];
+const seats=[
+ {label:'Before the boycott',caption:'Tallahassee required segregated seating. The driver of the bus boarded by Jakes and Patterson ordered them to leave the seats they had taken near the front.'},
+ {label:'January 1957',caption:'The city repealed the explicit segregation ordinance and replaced it with driver-assigned seating.'},
+ {label:'Testing the rule',caption:'Riders challenged those assignments. A petition preserved by the Library of Congress describes how police enforced the replacement ordinance.'},
+ {label:'Returning to the buses',caption:'Black riders gradually returned as enforcement of assigned seating eased. Florida Memory dates integration on the buses to the summer of 1957.'},
+];
+
+function define(id,type,kind,settings,position,content={}){
+ const history=BOYCOTT_PASSAGES[id];
+ const actions=['screen','listening'].includes(kind)?[behavior('tap','toggle'),behavior('seek','seek')]:
+  kind==='photoWall'?[behavior('photo','photo')]:kind==='newspaper'?[behavior('zoom','zoom')]:[behavior('seat','seat')];
+ return {...history,id,type,importance:'supporting',content:scores(content),exhibitEditorial:true,
+  reps:{text:history.body,alt:history.title,transcript:settings.transcript??''},
+  exhibit:{id,kind,settings:{title:history.title,...settings},position,facing:0,behaviors:[behavior('leave','pause'),...actions]}};
+}
 export const EXHIBITS=[
- define('film','video','screen','01 / The daily journey',{slides,transcript:slides.map(s=>s.caption).join('\n'),secondsPerSlide:3},[-2,1.4]),
- define('archive-image','image','photoWall','02 / An illustrated city',{photos:['A road under the canopy','The shared bus stop','Walking together','A community table','Researching the record','A city remembered'].map((title,i)=>({title,scene:i,alt:title+' rendered as simple geometric illustration',caption:'SAMPLE · TO VERIFY. '+['An imagined city street, not a documented location.','A fictional bus stop used to discuss access to transport.','A symbol of cooperation, not a scene from a recorded event.','An imagined organizing table; no historical meeting is depicted.','Books and records stand for research still to do.','An imagined skyline, not a historical photograph.'][i],credit}))},[1,-3]),
- define('oral-history','audio','listening','03 / Listen & reflect',{cues,transcript:cues.join('\n'),voice:'device speech synthesis'},[-2,-1.8],{disturbing:pair(1,1),viewpoint:pair(1,1)}),
- define('sample-clipping','image','newspaper','04 / Reading the news',{headline:'A community finds another way',columns:['FICTIONAL SAMPLE COPY. This newspaper layout was created for the prototype. It is not a recovered newspaper, a quotation or a contemporary report. The headline is invented.','An exhibition can bring records into conversation: a newspaper, a route map, an interview, a photograph. Each offers a particular view. Publication dates and authors need verification.','Questions for the archive: Who wrote this account? Who could speak in it? What can another source confirm? Real reporting and licensed scans will replace this fictional layout after sources are connected.']},[3.1,1.5],{disturbing:pair(1,1),viewpoint:pair(1,1)}),
- define('bus-model','model','seatMap','05 / A bus, a set of rules',{seats:[{label:'Front seats',caption:'SAMPLE · TO VERIFY. Segregated seating restricted where Black riders could sit. This diagram is conceptual; it does not reconstruct a particular vehicle or rule.'},{label:'Middle seats',caption:'SAMPLE · TO VERIFY. Seating rules could involve moving boundaries and unequal treatment. Verify local ordinances and contemporary accounts before specifying exact arrangements.'},{label:'Rear seats',caption:'SAMPLE · TO VERIFY. Black riders were directed toward rear seating under segregation. Exact Tallahassee practices and their enforcement need primary-source review.'},{label:'Door / aisle',caption:'SAMPLE · TO VERIFY. Ask how boarding, payment and seating were controlled. No specific arrest is reenacted here.'}]},[.5,-.3])
+ define('film','video','screen',{slides,transcript:slides.map(s=>s.caption).join('\n'),secondsPerSlide:7},[-2,1.4]),
+ define('archive-image','image','photoWall',{photos},[1,-3]),
+ define('oral-history','audio','listening',{cues,transcript:cues.join('\n'),voice:'device speech synthesis'},[-2,-1.8],{disturbing:pair(1,1),viewpoint:pair(1,1)}),
+ define('sample-clipping','image','newspaper',{headline:'Police prosecute carpool organizers',columns},[3.1,1.5],{disturbing:pair(1,1),viewpoint:pair(1,1)}),
+ define('bus-model','model','seatMap',{seats},[.5,-.3]),
 ];
 for(const block of EXHIBITS)validateComponent(block.exhibit);
 export const KIDS_EXHIBITS=EXHIBITS.filter(b=>['film','archive-image','bus-model'].includes(b.id));
 export function addExhibits(rooms){
- const room=rooms.boycott,old=new Set(EXHIBITS.map(b=>b.id));room.blocks=room.blocks.filter(b=>!old.has(b.id));room.blocks.splice(3,0,...EXHIBITS);
- for(const v of room.versions){if(v.id==='textbook'){v.blocks.push(...KIDS_EXHIBITS);v.layout={...v.layout,model:'none'};}else{v.blocks=v.blocks.filter(b=>!old.has(b.id));v.blocks.splice(3,0,...EXHIBITS);}}
+ const room=rooms.boycott;
+ room.blocks=[...room.blocks.slice(0,3),...EXHIBITS,...room.blocks.slice(3)];
+ for(const version of room.versions){
+  if(version.id==='textbook'){
+   version.blocks=[...version.blocks.slice(0,3),...KIDS_EXHIBITS,...version.blocks.slice(3)];
+   version.layout={...version.layout,model:'none'};
+  }else if(version.id==='immersive'){
+   version.blocks=[...version.blocks.slice(0,3),...EXHIBITS,...version.blocks.slice(3)];
+  }else version.blocks=room.blocks;
+ }
  room.layout.model='none';room.layout.components=EXHIBITS.map(b=>({block:b.id,position:b.exhibit.position,facing:b.exhibit.facing}));room.layout.approach=[9.5,-3.4];room.layout.sign=['1956 · BUS BOYCOTT','FIVE SAMPLE EXHIBITS · TAP TO EXPLORE',[-.3,3.8,.5]];
- room.presentation={theme:'exhibition',accent:'#b66740',heroBlock:'archive-image'};
+ room.presentation={theme:'exhibition',accent:'#b66740',heroBlock:'archive-image',exhibitEditorial:true};
 }

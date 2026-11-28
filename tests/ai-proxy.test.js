@@ -10,6 +10,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import {Store} from '../supabase/functions/ai-proxy/store.js';
 import {createHandler} from '../supabase/functions/ai-proxy/handler.js';
 import {ORIGIN,GUIDE_SCHEMA,MODEL_SCHEMA,BUILDER_SCHEMA,FAILURE_CLASSES,id,token,digest,envelope} from '../supabase/functions/ai-proxy/core.js';
+import v9Catalog from '../supabase/functions/ai-proxy/catalog-v9.js';
 import {catalog,builderSchema,prepare,validateBuilder,validateAnswer,allowedBlocks} from '../supabase/functions/ai-proxy/protocol.js';
 import {modelCheck,normalizeUsage,generate} from '../supabase/functions/ai-proxy/providers.js';
 import {prepareModelCheck} from '../supabase/operators/prepare-model-check.mjs';
@@ -39,6 +40,12 @@ const validateBuilderSchema=new Ajv2020({strict:false}).compile(builderSchema);
 const dimensions=['violence','sexual','language','disturbing','viewpoint','sensory'];
 const lens=()=>({limits:Object.fromEntries(dimensions.map(d=>[d,pair(1,1)])),hard:Object.fromEntries(dimensions.map(d=>[d,pair(2,2)])),depth:'Deep',trustFrom:'Author',show:{real:true,pseudonym:true,anonymous:true,agents:true},audience:'teen'});
 const request=()=>({requestId:id(),job:'guide',agentId:'docent-silver',schemaId:GUIDE_SCHEMA,context:{placeId:'boycott',catalogRevision:catalog.revision,visibleBlockIds:['lead'],lens:lens(),question:'What is this Place?'}});
+// These provider fixtures quote the preserved published v9 copy verbatim.
+const fixtureRequest=()=>{
+ const spec=request();
+ spec.context.catalogRevision=v9Catalog.revision;
+ return spec;
+};
 const usage={input_tokens:100,output_tokens:20,cache_read_tokens:0,cache_write_tokens:0,reasoning_tokens:0};
 const secrets=n=>n==='ALLOWED_ORIGINS'?ORIGIN:'mock-value-never-a-provider-key';
 const req=(path,body={},credential=null,origin=ORIGIN)=>new Request('https://example.test/functions/v1/ai-proxy'+path,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',...(credential?{Authorization:'Bearer '+credential}:{})},body:JSON.stringify(body)});
@@ -133,7 +140,7 @@ test('guide headroom reaches provider and accounting without relaxing incomplete
   return Response.json({...docentThinkingFixture,stop_reason:stop,content:[docentThinkingFixture.content[0],{type:'text',text}],usage:{input_tokens:600,output_tokens:stop==='max_tokens'?expectedCap:768,output_tokens_details:{thinking_tokens:458}}});
  });
  const run=async(expected,status)=>{
-  const response=await h(req('/request',request(),s.session)),json=await response.json();assert.equal(response.status,status);
+  const response=await h(req('/request',fixtureRequest(),s.session)),json=await response.json();assert.equal(response.status,status);
   const [receipt]=await sql`SELECT * FROM atlas_ai.call_receipts WHERE id=${json.receiptData?.receiptId??json.receiptId}`;
   assert.equal(receipt.failure_class,expected);assert.equal(receipt.reasoning_tokens,458);
   assert.equal(Number(receipt.cost_microusd),600+2*receipt.output_tokens);assert.equal(receipt.cost_basis,'measured');
@@ -156,13 +163,13 @@ test('new bundle refuses requests before a paid dispatch when its diagnostic mig
  await enabled();const s=await store.bootstrap();await sql.unsafe(diagnosticsRollback);
  const counters=await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`;let calls=0;
  const h=handler(async()=>{calls++;return Response.json(docentFixture);});
- for(const response of [await h(req('/request',request(),s.session)),await h(req('/session'))]){
+ for(const response of [await h(req('/request',fixtureRequest(),s.session)),await h(req('/session'))]){
   assert.equal(response.status,503);assert.equal((await response.json()).code,'LIVE_UNAVAILABLE');
  }
  assert.equal(calls,0);assert.equal((await sql`SELECT * FROM atlas_ai.call_leases`).length,0);assert.equal((await sql`SELECT * FROM atlas_ai.call_receipts`).length,0);
  assert.deepEqual(await sql`SELECT * FROM atlas_ai.quota_windows ORDER BY bucket`,counters);
  assert.equal((await sql`SELECT * FROM atlas_ai.session_leases`).length,1);
- await sql.unsafe(diagnosticsMigration);assert.equal((await h(req('/request',request(),s.session))).status,200);assert.equal(calls,1);
+ await sql.unsafe(diagnosticsMigration);assert.equal((await h(req('/request',fixtureRequest(),s.session))).status,200);assert.equal(calls,1);
 });
 test('off state returns clean AI_OFF for session and request without a provider call or new lease',async()=>{
  for(const path of ['/request','/session']){const r=await handler()(req(path));assert.equal(r.status,503);assert.equal((await r.json()).message,'AI is off');}
@@ -299,7 +306,7 @@ test('Docent grounded provider fixtures traverse reserved spend, dispatch, valid
  await enabled();await sql`UPDATE atlas_ai.routing_config SET model_id=${docentFixture.model} WHERE route_key='guide'`;
  const variants=[['bare',docentJSON],['json-fence',docentFixture.content[0].text],['unlabelled-fence','```\r\n'+docentJSON+'\r\n```']];
  for(const [name,text] of variants){
-  const s=await store.bootstrap(),spec=request();let calls=0,attemptId;
+  const s=await store.bootstrap(),spec=fixtureRequest();let calls=0,attemptId;
   const h=handler(async(url,options)=>{
    calls++;assert.equal(String(url),'https://api.anthropic.com/v1/messages');assert.equal(options.method,'POST');
    const outgoing=JSON.parse(options.body),prompt=JSON.parse(outgoing.messages[0].content);
@@ -360,7 +367,7 @@ test('Docent thinking envelopes accept only grounded answer text and bill total 
   ['unknown thinking count',docentThinkingFixture.content,null]
  ];
  for(const [name,content,reasoning] of variants){
-  const s=await store.bootstrap(),spec=request();spec.context.question='VISITOR_QUESTION_CANARY';let calls=0,attemptId;
+  const s=await store.bootstrap(),spec=fixtureRequest();spec.context.question='VISITOR_QUESTION_CANARY';let calls=0,attemptId;
   const h=handler(async(url,options)=>{
    calls++;assert.equal(String(url),'https://api.anthropic.com/v1/messages');
    const outgoing=JSON.parse(options.body);assert.deepEqual(Object.keys(outgoing).sort(),['max_tokens','messages','model']);

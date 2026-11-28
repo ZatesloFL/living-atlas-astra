@@ -1,2 +1,2 @@
 // Generated public catalog revision; no server configuration.
-export const AI_CATALOG_REVISION="9deec77b9df6c74a537ec86ac4e6959afd66f31f9e5a3000eef0f883d0b542a0";
+export const AI_CATALOG_REVISION="b7a2c53635374f9d9f1b8cef824ec60b9658b1a175036cc1efb85011527762b2";

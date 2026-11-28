@@ -6,6 +6,7 @@ import {addExhibits} from './exhibit-data.js';
 import {addArrivals} from './arrivals.js';
 import {addAudienceData} from './audience-data.js';
 import {enrichRooms} from './content-data.js';
+import {BOYCOTT_SUMMARY} from './boycott-history.js';
 import {DIMENSIONS,scores,pair} from './scores.js';
 export {DIMENSIONS,scores} from './scores.js';
 export const DISTRICTS = {
@@ -49,7 +50,7 @@ export const ROOMS = {
   canopy:room('tallahassee/canopy','Canopy roads','history','Live oaks shelter the road. A city seen at walking speed.',{substance:sample('Live oaks shelter the road. A city seen at walking speed.','https://www.leoncountyfl.gov/'),authors:[nic,named('Local contributor (sample)')]}),
   capitol:room('tallahassee/capitol','The two Capitols','history','The historic Capitol and the modern tower share a skyline.',{substance:sample('The historic Capitol and the modern tower share a skyline.','https://www.flhistoriccapitol.gov/'),authors:[nic,anonymous]}),
   mission:room('tallahassee/mission','Mission San Luis','history','A place to learn about Apalachee and Spanish life in the seventeenth century.',{substance:sample('A place to learn about Apalachee and Spanish life in the seventeenth century.','https://www.missionsanluis.org/'),authors:[nic,named('History contributor (sample)')]}),
-  boycott:room('tallahassee/1956','The 1956 bus boycott','history','A community’s campaign against segregated public transport. This sample discusses racial injustice.',{content:scores({disturbing:pair(2,1),viewpoint:pair(1,1)}),measured:scores({disturbing:pair(2,1),viewpoint:pair(1,1)}),aliases:['tlh/tallahassee/boycott'],substance:sample('A community’s campaign against segregated public transport. This sample discusses racial injustice.','https://www.floridamemory.com/'),authors:[nic,named('Archive contributor (sample)'),anonymous]}),
+  boycott:room('tallahassee/1956','The 1956 bus boycott','history',BOYCOTT_SUMMARY,{content:scores({disturbing:pair(2,1),viewpoint:pair(1,1)}),measured:scores({disturbing:pair(2,1),viewpoint:pair(1,1)}),aliases:['tlh/tallahassee/boycott']}),
   cascades:room('tallahassee/cascades','Cascades Park','history','Water, open sky, and a place to gather.',{substance:sample('Water, open sky, and a place to gather.','https://www.talgov.com/'),authors:[nic,anonymous]}),
 };
 enrichRooms(ROOMS);addAudienceData(ROOMS);

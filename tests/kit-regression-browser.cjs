@@ -41,7 +41,7 @@ const assert=require('node:assert/strict');
    assert.equal(await page.evaluate(async()=>{const {players}=await import('./src/kit-media.js');return players.get('boycott:film').playing;}),false);
    await visit('boycott');
    await page.evaluate(async()=>{const {players}=await import('./src/kit-media.js'),p=players.get('boycott:film');p.time=p.duration;p.cue=3;});
-   await film().locator('[data-kit-event=tap]').click();assert.match(await film().locator('.kit-captions').innerText(),/Public transport/);
+   await film().locator('[data-kit-event=tap]').click();assert.match(await film().locator('.kit-captions').innerText(),/separated riders by race/);
    await film().locator('[data-kit-event=tap]').click();
   });
   await check('Changing a soft Lens limit stops playback and requires a fresh tap',async()=>{
@@ -51,9 +51,10 @@ const assert=require('node:assert/strict');
    await film().locator('[data-kit-event=tap]').click();assert.equal(await film().getAttribute('data-playing'),'true');
    await film().locator('[data-kit-event=tap]').click();
   });
-  await check('A removed gallery closes its lightbox; source pointer follows the selected Thing',async()=>{
+  await check('A removed gallery closes its lightbox; the illustration and passage carry their own credits',async()=>{
    await page.locator('[data-kind=photoWall] button').nth(4).click();
-   assert.match(await page.locator('.kit-lightbox').innerText(),/archive-image-sample.*Not synced/s);
+   assert.match(await page.locator('.kit-lightbox').innerText(),/Original exhibit illustration by Living Atlas/);
+   assert.match(await page.locator('[data-block-id=archive-image] .block-sources').innerText(),/Reports of Inter-Civic Council meetings/);
    await page.evaluate(()=>{__atlasPage.lens.depth='Glance';__atlasPage.render(true);});await page.waitForFunction(()=>!document.querySelector('.kit-lightbox'));
    await page.locator('#page-depth-quick').click();assert.equal(await page.locator('[data-kit]').count(),5);
   });
@@ -67,10 +68,10 @@ const assert=require('node:assert/strict');
    assert.equal(await page.evaluate(async()=>{const {players}=await import('./src/kit-media.js');return players.get('boycott:oral-history').playing;}),false);
    await page.evaluate(()=>{Object.defineProperty(window,'speechSynthesis',{value:realSpeech,configurable:true});__atlasPage.lens.trustFrom='Author';__atlasPage.render(true);});
   });
-  await check('Child sees three scored exhibits; all retained readers show sample and unsynced labels',async()=>{
+  await check('Child sees three scored exhibits with original illustration credits and named references',async()=>{
    await page.evaluate(async()=>{const {seedProfiles}=await import('./src/profiles.js');__atlasPage.lens=seedProfiles().find(p=>p.id==='seed-child');__atlasPage.render(true);});
    assert.equal(await page.locator('[data-kit]').count(),3);
-   const entries=await page.locator('.content-block:has([data-kit])').allTextContents();assert.ok(entries.every(t=>t.includes('Sample media · real archive to connect')&&t.includes('Not synced')));
+   const entries=await page.locator('.content-block:has([data-kit])').allTextContents();assert.ok(entries.every(t=>t.includes('Original exhibit illustration by Living Atlas')&&!t.includes('Not synced')));
   });
   await check('Six generated illustrations use the same scene in Page images and canvas media',async()=>{
    const difference=await page.evaluate(async()=>{
