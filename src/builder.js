@@ -9,13 +9,14 @@ import {scores} from './scores.js';
 import {LOOKS} from './item-style.js';
 import {makeSourcePiece, sourcedRoom} from './source-catalog.js';
 import {composeBuilderRoom, prepareBuilderStructures, withBuilderRoom} from './build-projection.js';
-import {builderHallIdentity, materializeBuilderHall, validateBuilderHallPlacement} from './builder-hall.js';
+import {builderHallIdentity, builderHallPlacementFits, materializeBuilderHall, validateBuilderHallPlacement} from './builder-hall.js';
 import {materializeRecoveredBuilderHall} from './builder-hall-recovery.js';
 import {BUILDER_DRAW_CEILING, BUILDER_PIECES, builderPieceCost, makeBuilderPiece, snapBuilderPosition, validateBuilderPiece} from './builder-pieces.js';
 import {builderPublication, builderPublications, builderSubject, stampBuilderProvenance, submissionFor} from './builder-provenance.js';
 import {AtlasRecords} from './atlas-records.js';
 import {atlasActionBoundary} from './atlas-action-policy.js';
 import {crossing} from './rules.js';
+import {exhibitSpace} from './interior-kit.js';
 
 export const BUILDER_STORAGE = 'living-atlas.builder.v1';
 export const ROOM_BUDGET = Object.freeze({instances:80,atlasTiles:12,liveTextures:2,drawCalls:BUILDER_DRAW_CEILING,behaviors:16});
@@ -52,6 +53,14 @@ function hallPlan(base,piece,visibility,slab) {
   const keepLegacyPosition=slab&&same(slab.transform,piece.transform);
   const materialize=keepLegacyPosition?materializeRecoveredBuilderHall:materializeBuilderHall;
   return materialize(base,piece,{visibility});
+}
+
+function checkHallPosition(room,piece,{placing=false}={}) {
+  if(!isHall(piece))return;
+  const {room:hall}=materializeBuilderHall(room,piece);
+  if(placing){
+    if(!builderHallPlacementFits(room,hall))throw new Error('That spot is outside your Place. Choose an inside spot with room for the hall’s entrance.');
+  }else validateBuilderHallPlacement(room,hall);
 }
 
 function publicContainment(roomKey,lens,rooms,host) {
@@ -238,6 +247,7 @@ export class Builder {
     piece.block??={id:piece.id,title:piece.settings.title,type:'text',importance:'core',body:piece.settings.title,
       content:scores(),backing_ref:null,sources:[]};
     if (options.label) piece.block.title = options.label;
+    checkHallPosition(room,piece,{placing:true});
     draft.pieces.push(piece);
     return piece;
   }
@@ -276,12 +286,14 @@ export class Builder {
   }
 
   update(roomKey,lens,pieceId,patch) {
-    return this.edit(roomKey,lens,draft=>{
+    return this.edit(roomKey,lens,(draft,room)=>{
       const piece = draft.pieces.find(item=>item.id===pieceId);
       if (!piece) throw new Error('Choose a piece in this draft.');
       if (patch.transform) {
-        piece.transform = {...piece.transform,...patch.transform};
-        piece.transform.position = snapBuilderPosition(piece.transform.position);
+        const transform = {...piece.transform,...patch.transform};
+        transform.position = snapBuilderPosition(transform.position);
+        if(!same(piece.transform,transform))checkHallPosition(room,{...piece,transform});
+        piece.transform = transform;
       }
       if(piece.kind.startsWith('hosted-'))return;
       if (patch.settings) piece.settings={...piece.settings,...patch.settings};
@@ -314,6 +326,7 @@ export class Builder {
       piece.id=piece.block.id=id();
       if(!piece.kind.startsWith('hosted-'))piece.ref=BUILDER_PIECES[piece.kind].recordKind==='Place'?{placeId:room.id}:{placeId:room.id,thingId:piece.id};
       piece.transform.position=placePosition(draft.pieces);
+      checkHallPosition(room,piece,{placing:true});
       draft.pieces.push(piece);
     });
   }
@@ -339,10 +352,13 @@ export class Builder {
     const placement=/^(?:please\s+)?(?:place|add|build) (?:an? |the )?(.+?)[.!]?$/i.exec(text);
     const wanted=placement&&Object.values(BUILDER_PIECES).find(def=>['Thing','Place'].includes(def.recordKind)&&placement[1].toLowerCase()===def.label.toLowerCase());
     const tuning=/^(?:please\s+)?move (?:the )?(.+?) (left|right|forward|back)[.!]?$/i.exec(text);
-    const matches=tuning?draft.pieces.filter(p=>p.block.title.toLowerCase()===tuning[1].toLowerCase()):[];
+    const name=tuning?.[1].toLowerCase();
+    let matches=name?draft.pieces.filter(piece=>piece.block.title.toLowerCase()===name):[];
+    if(name&&!matches.length)matches=draft.pieces.filter(piece=>
+      BUILDER_PIECES[piece.kind]?.label.toLowerCase()===name || name==='hall'&&isHall(piece));
     if(matches.length>1)throw new Error('Several draft pieces have that name. Select the one you want to move.');
     const [piece]=matches;
-    if(tuning&&!piece)throw new Error('That Thing is no longer in this draft.');
+    if(tuning&&!piece)throw new Error('I couldn’t match that name to a draft piece. Select the piece in the Inspector to move it.');
     if(!wanted&&!piece)throw new Error('Try “Place a bench” or “Move the bench left”.');
     const direction=tuning?.[2].toLowerCase();
     const move={left:[-1,0],right:[1,0],forward:[0,-1],back:[0,1]}[direction];
@@ -379,6 +395,7 @@ export class Builder {
           if(!piece)throw new Error('The proposed Thing is no longer in the draft.');
           const [x,y,z]=piece.transform.position,[dx,dz]=change.move;
           piece.transform.position=snapBuilderPosition([x+dx,y,z+dz]);
+          checkHallPosition(room,piece);
         }
         normalizePieces(draft.pieces,room);
         const receipt=await appendEntry(data.receipts,room.ownerId,'build_proposal_accepted',{roomKey,proposalId,...refs});
@@ -451,7 +468,14 @@ export class Builder {
       const entry=roomEntry(roomKey,targetLens,EDGES);
       const canEnter=entry.state!=='hidden'&&entry.state!=='private'&&!entry.admission?.blocked&&!!entry.rights?.canEnter&&entry.type!=='window';
       const view=sourcedRoom(viewRoom(staged,targetLens),targetLens);
-      const shown=canEnter?selectContent(view,targetLens).blocks.filter(block=>!block.filtered&&!blockNeedsPreview(block,view,targetLens,{approved:true})).map(block=>block.id):[];
+      const assigned=new Set([
+        ...(exhibitSpace(view).components??[]).map(piece=>piece.block),
+        ...(view.builderFixtures??[]).map(piece=>piece.block)
+      ]);
+      const feedIds=new Set((view.sourcePlacements??[]).filter(piece=>['alcove','plinth'].includes(piece.kind)).map(piece=>piece.blockId));
+      for(const block of view.blocks)if(block.state==='ready'&&feedIds.has(block.id))assigned.add(block.id);
+      const shown=canEnter?selectContent(view,targetLens).blocks.filter(block=>assigned.has(block.id)&&!block.filtered&&
+        !blockNeedsPreview(block,view,targetLens,{approved:true})).map(block=>block.id):[];
       const structures=staged.draftStructures??[];
       if(canEnter&&structures.length){
         const catalog={...ROOMS,...Object.fromEntries(structures.map(({path,room})=>[path.to,room]))};
@@ -461,7 +485,7 @@ export class Builder {
         }
       }
       return {canEnter,description:entry.admission?.description??(canEnter?'Entry is available for this Lens.':'Entry is unavailable for this Lens.'),
-        shown,withheld:[...view.blocks.map(block=>block.id),...structures.map(structure=>structure.pieceId)].filter(id=>!shown.includes(id)),reasons:entry.reasons??[]};
+        shown,withheld:[...assigned,...structures.map(structure=>structure.pieceId)].filter(id=>!shown.includes(id)),reasons:entry.reasons??[]};
     });
   }
 

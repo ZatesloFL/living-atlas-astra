@@ -24,7 +24,7 @@ export function builderHallPlacementFits(parent, hallRoom) {
 
 export function validateBuilderHallPlacement(parent, hallRoom) {
   if (!builderHallPlacementFits(parent,hallRoom)) {
-    throw new Error('Move the Exhibit hall so its frontage and arrival points fit inside the containing Place.');
+    throw new Error('The Exhibit hall is outside your Place. Move it inside so the frontage and arrival points fit.');
   }
 }
 

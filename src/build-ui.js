@@ -17,6 +17,7 @@ import {AXES,DIMENSIONS,scores,scoreText} from './scores.js';
 import {BUILDER_PIECES,describeBuilderBehavior} from './builder-pieces.js';
 import {LOOKS} from './item-style.js';
 import {artURL} from './kit-art.js';
+import {formatRecordDateTime,shortReceipt} from './record-display.js';
 
 const panels = [['ask','Ask the Atlas'],['kit','Kit'],['inspect','Inspector'],['outline','Outline'],['audience','Preview the audience'],['sources','Sources']];
 const cameras = [['orbit','Orbit'],['fly','Fly'],['top-down','Top-down']];
@@ -33,7 +34,6 @@ const title = piece => piece?.block?.title ?? piece?.settings?.title ?? BUILDER_
 const click = (label,action,value,extra = '') =>
   `<button type="button" data-builder-action="${action}"${value === undefined ? '' : ` data-value="${esc(value)}"`} ${extra}>${esc(label)}</button>`;
 const option = (label,value,selected) => `<option value="${esc(value)}"${selected ? ' selected' : ''}>${esc(label)}</option>`;
-const shortReceipt = id => id?.split(':').at(-1).slice(0,8);
 const receiptCode = id => id.match(/.{1,10}/g).map(esc).join('<wbr>');
 
 function mayAdmitOutsideProfiles(room,lens,known,now) {
@@ -208,6 +208,16 @@ export class BuildUI {
       <div class="builder-panel" id="builder-panel"></div></section>`;
     this.root = root;
     this.header = root.querySelector('.builder-top');
+    this.header.innerHTML = `<div class="builder-ribbon"></div><nav class="builder-camera" aria-label="Build camera" hidden>
+      <div class="builder-camera-options"></div>
+      ${click('Review & publish','review',undefined,'class="builder-primary"')}
+      ${click('Return to sketch','return-draft',undefined,'hidden')}
+    </nav>`;
+    this.ribbon = this.header.querySelector('.builder-ribbon');
+    this.cameraBar = this.header.querySelector('.builder-camera');
+    this.cameraOptions = this.header.querySelector('.builder-camera-options');
+    this.reviewButton = this.header.querySelector('[data-builder-action=review]');
+    this.returnButton = this.header.querySelector('[data-builder-action=return-draft]');
     this.statusLine = root.querySelector('.builder-status');
     this.tabs = root.querySelector('.builder-tabs');
     this.drawer = root.querySelector('.builder-panel');
@@ -321,8 +331,11 @@ export class BuildUI {
     this.busy = true;
     this.root.setAttribute('aria-busy','true');
     this.drawer.inert = true;
+    let completed=false;
     try {
-      return await action();
+      const result=await action();
+      completed=true;
+      return result;
     } catch(error) {
       this.status(error?.message ?? 'Build could not complete that action.',true);
     } finally {
@@ -330,6 +343,9 @@ export class BuildUI {
       this.root.removeAttribute('aria-busy');
       this.drawer.inert = false;
       if (this.active) this.render();
+      const reviewRoom=this.reviewAfterSave;
+      this.reviewAfterSave=null;
+      if(completed&&this.active&&reviewRoom&&this.draft?.roomKey===reviewRoom&&this.panel!=='review')this.openReview();
     }
   }
 
@@ -347,14 +363,15 @@ export class BuildUI {
     const oldScroll = this.drawer.scrollTop;
     this.root.dataset.camera = this.camera;
     const name = this.draft?.title ?? ROOMS[this.entry?.roomKey]?.title ?? 'Places you can edit';
-    this.header.innerHTML = `<div class="builder-ribbon"><div class="builder-title">
+    this.ribbon.innerHTML = `<div class="builder-title">
       <h2>${this.previewState ? (this.previewState.blocked?'Audience preview unavailable':'Audience preview') : 'Build'}</h2>
       <p>${esc(name)}${this.draft?.dirty && !this.previewState ? ' · Draft' : ''}</p></div>
-      ${click('Back to visiting','exit',undefined,'class="builder-exit"')}</div>
-      ${this.draft ? `<nav class="builder-camera" aria-label="Build camera">${(this.previewState?.blocked?[]:cameras).map(([key,label])=>
-        click(label,'camera',key,`aria-pressed="${this.camera===key}"`)).join('')}
-        ${this.previewState ? click('Return to sketch','return-draft') : click('Review & publish','review',undefined,'class="builder-primary"')}
-      </nav>` : ''}`;
+      ${click('Back to visiting','exit',undefined,'class="builder-exit"')}`;
+    this.cameraBar.hidden=!this.draft;
+    this.cameraOptions.innerHTML=(this.previewState?.blocked?[]:cameras).map(([key,label])=>
+      click(label,'camera',key,`aria-pressed="${this.camera===key}"`)).join('');
+    this.reviewButton.hidden=!!this.previewState;
+    this.returnButton.hidden=!this.previewState;
     const available = this.draft ? panels : panels.filter(([id])=>['outline','audience','sources'].includes(id));
     this.tabs.innerHTML = available.map(([key,label])=>click(label,'panel',key,`aria-pressed="${this.panel===key}" aria-controls="builder-panel"`)).join('');
     const renderPanel = {
@@ -482,7 +499,7 @@ export class BuildUI {
       ${pieces.length ? `<ul class="builder-outline">${pieces.map(piece=>`<li>${click(title(piece),'select',piece.id,`aria-pressed="${piece.id===this.selectedId}"`)}<small>${esc(BUILDER_PIECES[piece.kind]?.label??piece.kind)}</small></li>`).join('')}</ul>`:''}
       ${this.draft ? `<div class="builder-actions">${click('Undo','undo',undefined,this.draft.canUndo?'':'disabled')}${click('Redo','redo',undefined,this.draft.canRedo?'':'disabled')}</div>${this.renderBudget()}` : ''}
       ${history?.length ? `<details class="builder-record" data-publication-record><summary>Published versions and Receipts</summary>
-        <ul class="builder-outline">${history.map(revision=>`<li><div><p>${esc(revision.receipt?.time ?? revision.revisionId)}</p>${revision.receipt?.id?`<code>${receiptCode(revision.receipt.id)}</code>`:''}</div>
+        <ul class="builder-outline">${history.map(revision=>`<li><div><p>${esc(formatRecordDateTime(revision.receipt?.time)??'Publication date unavailable')}</p>${revision.receipt?.id?`<code>${receiptCode(revision.receipt.id)}</code>`:''}</div>
           ${click('Restore as draft','restore',revision.revisionId)}</li>`).join('')}</ul></details>` : ''}`;
   }
 
@@ -541,7 +558,7 @@ export class BuildUI {
     if (!checks) return '';
     return `<div data-audience-counts>
       ${empty ? `<p>${esc(empty)}</p>` : checks.description ? `<p>${esc(checks.description)}</p>` : ''}
-      ${Array.isArray(checks.shown) && Array.isArray(checks.withheld) ? `<p>${label?`${esc(label)} · `:''}${checks.shown.length} shown · ${checks.withheld.length} withheld</p>` : ''}
+      ${Array.isArray(checks.shown) && Array.isArray(checks.withheld) ? `<p>${label?`${esc(label)} · `:''}${checks.shown.length} shown · ${checks.withheld.length} withheld</p><small>Things and Places in the 3D preview</small>` : ''}
     </div>`;
   }
 
@@ -589,7 +606,7 @@ export class BuildUI {
         ${this.reviewImage(piece)}
         <span class="builder-review-kind">${esc(BUILDER_PIECES[piece.kind]?.label??piece.kind)}</span>
         <strong>${esc(label)} · ${esc(title(piece))}</strong>${details?`<p>${esc(details)}</p>`:''}</li>`).join('')}</ul>` : '<p>No changes from the published version.</p>'}
-      ${this.renderBudget()}
+      ${!budget?.valid?this.renderBudget():''}
       ${click('Publish this draft','publish',undefined,`class="builder-primary"${!budget?.valid||!this.draft.dirty?' disabled':''}`)}
     `;
   }
@@ -672,8 +689,19 @@ export class BuildUI {
     });
   }
 
+  openReview() {
+    if(!this.draft||this.previewState||this.panel==='review')return;
+    if(this.busy){this.reviewAfterSave=this.draft.roomKey;return;}
+    return this.run(async()=>{
+      await this.builder.preview(this.draft.roomKey,this.lens,this.selectedLens());
+      this.panel='review';
+      this.status('');
+    });
+  }
+
   command(action,value) {
     if(action==='atlas-grants'){this.exit();this.ui.api.askAtlas?.();return;}
+    if(action==='review')return this.openReview();
     if (this.busy) return;
     if (action==='exit') {this.exit();return;}
     if (action==='hide-panel') {this.panel=null;this.render();return;}
@@ -723,14 +751,6 @@ export class BuildUI {
     if (action==='preview-profile') {this.left=value;this.preview();return;}
     if (action==='view-preview') {this.preview(true);return;}
     if (action==='return-draft') {this.returnToDraft();return;}
-    if (action==='review') {
-      this.run(async()=>{
-        await this.builder.preview(this.draft.roomKey,this.lens,this.selectedLens());
-        this.panel='review';
-        this.status('');
-      });
-      return;
-    }
     if (action==='publish') {
       this.run(async()=>{
         const {draft,receipt}=await this.builder.publish(this.draft.roomKey,this.lens);

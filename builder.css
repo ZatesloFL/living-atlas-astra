@@ -1,6 +1,9 @@
 /* Build sits on the scene. Only its tool regions take pointer events. */
 .build-mode #hud-shell,.build-mode #bottom-bar,.build-mode #scene-title,.build-mode #walk-hint,.build-mode #aim,.build-mode #navigation-return { display:none!important; }
 .builder-visit-draft { padding:8px 12px;border:1px solid #88ada9;border-radius:9px;background:#1b3442e8;color:#defaf5;text-align:center;font-size:12px; }
+#builder-find-work { pointer-events:auto;justify-self:start;min-height:44px;padding:6px 11px;font-size:.8rem; }
+.builder-find-list { display:grid;gap:8px;list-style:none;padding:0; }
+.builder-find-list button { width:100%;text-align:left; }
 .builder-hud {
   --builder-panel: #132333;
   --builder-edge: #395e75;
@@ -45,6 +48,7 @@
   white-space: nowrap;
 }
 .builder-camera { margin-top: 6px; overflow-x: auto; }
+.builder-camera-options { display: contents; }
 .builder-camera button { flex: 0 0 auto; }
 .builder-camera .builder-primary,.builder-camera [data-builder-action=return-draft] { margin-left: auto; }
 .builder-status {

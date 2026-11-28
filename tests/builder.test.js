@@ -30,7 +30,7 @@ test('Owner draft, scripted proposal, preview and publish keep their distinct re
   assert.throws(()=>builder.open(roomKey,{...lens,isAgent:true}),/owner/);
   const grant=await builder.atlasRecords.propose(lens,{kind:'grant',areas:['build'],scope:'edit',durationMs:null},'Standing Build edit');
   await builder.atlasRecords.confirm(lens,grant.id);
-  await assert.rejects(builder.propose(roomKey,lens,'Move the bench left'),/no longer/);
+  await assert.rejects(builder.propose(roomKey,lens,'Move the bench left'),/couldn’t match/);
   const proposal=await builder.propose(roomKey,lens,'Place a bench');
   assert.equal(builder.open(roomKey,lens).pieces.length,0);
   const draft=await builder.accept(roomKey,lens,proposal.id), [bench]=draft.pieces;
@@ -43,7 +43,8 @@ test('Owner draft, scripted proposal, preview and publish keep their distinct re
   assert.deepEqual(outsider.checks.shown,[]);
   const ownView=await builder.preview(roomKey,lens,lens);
   assert.equal(ownView.checks.canEnter,true);
-  assert.ok(ownView.checks.shown.includes(bench.id));
+  assert.deepEqual(ownView.checks.shown,[bench.id]);
+  assert.deepEqual(ownView.checks.withheld,[]);
   const publication=await builder.publish(roomKey,lens);
   assert.equal(publication.receipt.actor,ownerId);
   assert.equal(publication.draft.dirty,false);
