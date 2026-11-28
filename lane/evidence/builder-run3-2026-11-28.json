@@ -1,0 +1,1259 @@
+{
+  "base": "189b316",
+  "verifiedPagesBuild": "5e2daab796bdf3e9b2834c97022156f87371393d",
+  "changedRuntimeSha256": {
+    "builder.css": "31758ce34b6a2210099047c672239ed1d58e19b51ad2d2ac1fbb06df3198ac34",
+    "sources.css": "1d8cb79e52d52445a039e9eb9e70d588e9ae892d84707b778b783d5078cbf163",
+    "src/build-ui.js": "ad7795ca65f19aa493e2c325b5cb1700bd55fc8b3a97d4eb7140dbd4c549d5c5",
+    "src/builder-find.js": "2a84362c9b7ce83fe2c7a32ab10c6e58e19195bd7821b774b165c9adc58a7407",
+    "src/builder-fixtures.js": "43d9f01e98b0bc870da9ece27ca14b1ca59754afd9c87b0fbaefb34d77603a93",
+    "src/builder-hall.js": "d7132f74f2a5efb156abcdde11b1f055c4ab0265f0a8cd652bf37bb3b951f22b",
+    "src/builder.js": "b334e160acfec44b589a81d98e48588d8e5baff1a80398cd5246c4272729cbd3",
+    "src/interior-world.js": "ff401fcdf28cf5db3c13b9a8ce6508c5588f657f52f8ec693ffd0c80bf7fb03b",
+    "src/record-display.js": "ee87b35b7ea89c60e7d5f9672521767e4ac6c46728c9ff359d5c104342e84e8d",
+    "src/runtime.js": "686b29bcab1a50a52365407a3f71ab4e3fd8f172f56e19dbba631dc13f2e228e",
+    "src/source-conversation-ui.js": "a8b9207655bdac82ce98d08ceaec7a7b5f38ba64c989e179eaca7a341a7a3121",
+    "src/source-media.js": "a2f99fc41605bb24873b14fd1027c24946f663aace203d56b3101ee710f14d06",
+    "src/sources-ui.js": "bf4146b504fcebe629c8c4ca2dffb3deb3ac31a16755b52fa92705f3374fffee"
+  },
+  "builderPortraitPages": {
+    "arrivalSource": {
+      "place": "starter Home",
+      "state": "https://drive.google.com/drive/folders/synthetic-builder-experience\nInbox · Not connected",
+      "url": "https://drive.google.com/drive/folders/synthetic-builder-experience"
+    },
+    "outsidePlacement": "That spot is outside your Place. Choose an inside spot with room for the hall’s entrance.",
+    "reviewDuringSave": {
+      "previewReceipts": 1,
+      "counts": "No interior view for this profile.\n\nUnverified visitor · 0 shown · 1 withheld\n\nThings and Places in the 3D preview"
+    },
+    "ownerDraft": {
+      "marked": "Trail NoticeDraft · READ THING",
+      "thingTitle": "Trail Notice",
+      "signFace": {
+        "id": "exhibit:home/e9ca9316-3e46-4dd9-96c0-dad290ce2586:kit-6bf7e2d1-48aa-4815-9d90-bda0eec10a0b",
+        "text": "BLUE GATE",
+        "lines": [
+          "BLUE GATE"
+        ],
+        "center": [
+          0,
+          1.1,
+          3.2840000000000003
+        ]
+      },
+      "spot": {
+        "position": [
+          0,
+          1.88,
+          5.574292151447752
+        ],
+        "yaw": 0,
+        "pitch": -0.3282474766064712,
+        "aim": [
+          0,
+          1.1,
+          3.2840000000000003
+        ]
+      },
+      "pixels": {
+        "board": {
+          "center": [
+            262,
+            578.8606949581305
+          ],
+          "clip": {
+            "x": 55,
+            "y": 475,
+            "width": 413,
+            "height": 207
+          },
+          "withinViewport": true
+        },
+        "ink": {
+          "center": [
+            263.17394957504405,
+            579.6447910566051
+          ],
+          "clip": {
+            "x": 118,
+            "y": 562,
+            "width": 288,
+            "height": 33
+          },
+          "withinViewport": true
+        }
+      },
+      "inkWidthFraction": 0.6973365617433414
+    },
+    "headline": "Only you — this place is private",
+    "publicationLocation": "Synthetic Builder experience owner’s space",
+    "receipt": {
+      "status": "Published · Receipt b3fe9aa9",
+      "id": "builder:b3fe9aa9e3fb17a1c9bdb2b98113ddcc1c1327e423007fb3ef39fbe7d976f69a",
+      "time": "2026-11-28T13:13:17.923Z",
+      "chain": true
+    },
+    "ownerAfterPublish": {
+      "room": "home/e9ca9316-3e46-4dd9-96c0-dad290ce2586",
+      "signFace": {
+        "id": "exhibit:home/e9ca9316-3e46-4dd9-96c0-dad290ce2586:kit-6bf7e2d1-48aa-4815-9d90-bda0eec10a0b",
+        "text": "BLUE GATE",
+        "lines": [
+          "BLUE GATE"
+        ],
+        "center": [
+          0,
+          1.1,
+          3.2840000000000003
+        ]
+      },
+      "markedDraft": false
+    },
+    "findPublishedSign": {
+      "room": "home/e9ca9316-3e46-4dd9-96c0-dad290ce2586",
+      "title": "Trail Notice",
+      "viewpoint": "confirmed inside the same Place after return to entrance"
+    },
+    "lurkerAfterPublish": {
+      "profile": "seed-visitor",
+      "backing": "none",
+      "display": "anonymous",
+      "room": "square",
+      "foundThing": false,
+      "message": "No accessible room at that address. I tried “home/e9ca9316-3e46-4dd9-96c0-dad290ce2586” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+    },
+    "adultAfterPublish": {
+      "profile": "seed-verified",
+      "backing": "verified",
+      "display": "real",
+      "room": "square",
+      "foundThing": false,
+      "message": "No accessible room at that address. I tried “home/e9ca9316-3e46-4dd9-96c0-dad290ce2586” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+    },
+    "selectedLens": {
+      "verifiedAdult": "sign drawn",
+      "unverifiedVisitor": "entered preview; sign withheld",
+      "proposedSensoryAmount": 2
+    },
+    "build": "5e2daab796bdf3e9b2834c97022156f87371393d"
+  },
+  "hallPortraitPages": {
+    "build": "5e2daab796bdf3e9b2834c97022156f87371393d",
+    "home": "home/57421db7-afc0-43b4-9a39-f4c06d36a503",
+    "owner": "57421db7-afc0-43b4-9a39-f4c06d36a503",
+    "piece": "kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb",
+    "hall": "home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb",
+    "path": "home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb/door",
+    "publicationReceipt": "builder:3a2d980887d89d2feb7e3dbbf54dc11ff1915ff9c6c6195de343d18378c51d7b",
+    "interiorPublicationReceipt": "builder:6b2dc122e44018218ed230387427ddf4fef327f27ac009af1bd39f5ed2c3fbc1",
+    "crossing": {
+      "outside": {
+        "room": "home/57421db7-afc0-43b4-9a39-f4c06d36a503",
+        "scene": "home/57421db7-afc0-43b4-9a39-f4c06d36a503",
+        "position": {
+          "x": 8,
+          "z": -2.1000000000000005
+        },
+        "drawCalls": 9
+      },
+      "arrived": {
+        "room": "home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb",
+        "scene": "hall:builder-home-s57421db7-dafc0-d43b4-d9a39-df4c06d36a503-shall-dkit-d31f8dc11-dffeb-d4c80-d9df0-dbd83ab8d16bb",
+        "position": {
+          "x": 0,
+          "z": 8.4
+        },
+        "drawCalls": 3,
+        "inside": "Synthetic Lantern Hall",
+        "arrivalIsStandable": true,
+        "wallsBlockAnOutsidePosition": true,
+        "receipts": [
+          "dccb8f369a881346a42c75e017293caf6491561eee46eef6b4db14e37388d435"
+        ]
+      },
+      "path": "home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb/door",
+      "card": {
+        "title": "Synthetic Lantern Hall",
+        "address": "tlh/home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb",
+        "overview": "Exhibit hall",
+        "readings": {
+          "placeId": "home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb",
+          "audienceVersion": null,
+          "thingId": null
+        }
+      },
+      "located": {
+        "nameplate": "Synthetic Lantern Hall",
+        "arrival": "door",
+        "hallCrossingsBeforeEnter": 0,
+        "reset": {
+          "room": "home/57421db7-afc0-43b4-9a39-f4c06d36a503",
+          "entrance": [
+            0,
+            7.5
+          ]
+        }
+      }
+    },
+    "subject": {
+      "ref": {
+        "placeId": "home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb",
+        "audienceVersion": null,
+        "thingId": "kit-06c61861-d789-4aed-83af-e951aa41b9ef"
+      },
+      "marker": "exhibit:home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb:kit-06c61861-d789-4aed-83af-e951aa41b9ef"
+    },
+    "refused": [
+      {
+        "profile": "seed-visitor",
+        "roomBeforeRequest": "square",
+        "message": "No accessible room at that address. I tried “tlh/home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+      },
+      {
+        "profile": "seed-verified",
+        "roomBeforeRequest": "square",
+        "message": "No accessible room at that address. I tried “tlh/home/57421db7-afc0-43b4-9a39-f4c06d36a503/hall-kit-31f8dc11-ffeb-4c80-9df0-bd83ab8d16bb” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+      }
+    ],
+    "liveCalls": 0,
+    "errors": []
+  },
+  "ownerMapPublications": {
+    "catalogBlocks": 1,
+    "ownerMapEmptyBeforeSign": 0,
+    "afterPublish": 1,
+    "afterReload": 1,
+    "parentContainsHallAsThing": false,
+    "unrelatedPrivateMapHasHall": false,
+    "oneExactPublicThingResult": 1,
+    "countLabel": "1 Things",
+    "publication": "builder:11de90dc1e8e8e9cd8127bf024f9cd47e27c181ba67ffcce4c97d61f88fd920a"
+  },
+  "arrivalFraming": {
+    "baseline": {
+      "mission": {
+        "room": "mission",
+        "scene": "history",
+        "position": [
+          -9,
+          1.88,
+          -0.9
+        ],
+        "direction": [
+          0,
+          0.065,
+          -0.998
+        ],
+        "entrance": {
+          "key": "e478c21d-221d-4978-81fd-cde620d1efb7|history|mission",
+          "room": "mission",
+          "scene": "history",
+          "position": [
+            -9,
+            1.88,
+            -0.9
+          ],
+          "yaw": 0
+        },
+        "standable": true,
+        "fov": 67,
+        "authored": {
+          "room": "mission",
+          "scene": "history",
+          "position": [
+            -9,
+            -0.9
+          ],
+          "facing": 0,
+          "choice": "inside",
+          "slot": [
+            -9,
+            -4
+          ],
+          "approach": [
+            -9,
+            -0.9
+          ]
+        },
+        "center": [
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 0.802,
+            "point": [
+              -9,
+              1.932,
+              -1.7
+            ]
+          },
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 1.847,
+            "point": [
+              -9,
+              2,
+              -2.744
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 87.107,
+            "point": [
+              -9,
+              7.538,
+              -87.823
+            ]
+          }
+        ],
+        "left": [
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 0.865,
+            "point": [
+              -9.152,
+              1.935,
+              -1.749
+            ]
+          },
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 1.877,
+            "point": [
+              -9.33,
+              2,
+              -2.744
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 86.159,
+            "point": [
+              -24.138,
+              7.389,
+              -85.54
+            ]
+          }
+        ],
+        "right": [
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 0.865,
+            "point": [
+              -8.848,
+              1.935,
+              -1.749
+            ]
+          },
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 1.877,
+            "point": [
+              -8.67,
+              2,
+              -2.744
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 88.802,
+            "point": [
+              6.602,
+              7.558,
+              -88.136
+            ]
+          }
+        ],
+        "up": [
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 0.346,
+            "point": [
+              -9,
+              2,
+              -1.224
+            ]
+          },
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 0.853,
+            "point": [
+              -9,
+              2.176,
+              -1.7
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 86.648,
+            "point": [
+              -9,
+              31.956,
+              -82.161
+            ]
+          }
+        ],
+        "down": [
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 0.78,
+            "point": [
+              -9,
+              1.706,
+              -1.66
+            ]
+          },
+          {
+            "id": "mission",
+            "kind": "Mesh",
+            "distance": 0.821,
+            "point": [
+              -9,
+              1.697,
+              -1.7
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.347,
+            "point": [
+              -9,
+              0.022,
+              -9.037
+            ]
+          }
+        ],
+        "errors": [],
+        "liveCalls": []
+      },
+      "recovered": {
+        "room": "home/5c1e8ff8-ca7e-4814-ab5c-1228aae84685/hall-kit-0459152f-e774-4c2f-bc20-f710b1fb2035",
+        "scene": "hall:builder-home-s5c1e8ff8-dca7e-d4814-dab5c-d1228aae84685-shall-dkit-d0459152f-de774-d4c2f-dbc20-df710b1fb2035",
+        "position": [
+          0,
+          1.88,
+          8.4
+        ],
+        "direction": [
+          0,
+          0.065,
+          -0.998
+        ],
+        "entrance": {
+          "key": "5c1e8ff8-ca7e-4814-ab5c-1228aae84685|hall:builder-home-s5c1e8ff8-dca7e-d4814-dab5c-d1228aae84685-shall-dkit-d0459152f-de774-d4c2f-dbc20-df710b1fb2035|home/5c1e8ff8-ca7e-4814-ab5c-1228aae84685/hall-kit-0459152f-e774-4c2f-bc20-f710b1fb2035",
+          "room": "home/5c1e8ff8-ca7e-4814-ab5c-1228aae84685/hall-kit-0459152f-e774-4c2f-bc20-f710b1fb2035",
+          "scene": "hall:builder-home-s5c1e8ff8-dca7e-d4814-dab5c-d1228aae84685-shall-dkit-d0459152f-de774-d4c2f-dbc20-df710b1fb2035",
+          "position": [
+            0,
+            1.88,
+            8.4
+          ],
+          "yaw": 0
+        },
+        "standable": true,
+        "fov": 67,
+        "authored": {
+          "arrival": {
+            "position": [
+              0,
+              8.4
+            ],
+            "facing": 0
+          },
+          "exit": [
+            0,
+            11.65
+          ],
+          "depth": 24
+        },
+        "center": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.293,
+            "point": [
+              0,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "left": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.614,
+            "point": [
+              -3.622,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "right": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.614,
+            "point": [
+              3.622,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "up": [
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.124,
+            "point": [
+              0,
+              4.7,
+              0.781
+            ]
+          }
+        ],
+        "down": [
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.347,
+            "point": [
+              0,
+              0.022,
+              0.263
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.347,
+            "point": [
+              0,
+              0.022,
+              0.263
+            ]
+          }
+        ],
+        "receiptCount": 1,
+        "errorCount": 0,
+        "liveCalls": 0
+      },
+      "native": {
+        "room": "home/5a56d720-0738-4f4f-beeb-b02f8674966a/hall-kit-6a3a1785-93ac-42fa-8e79-1f8225055b4e",
+        "scene": "hall:builder-home-s5a56d720-d0738-d4f4f-dbeeb-db02f8674966a-shall-dkit-d6a3a1785-d93ac-d42fa-d8e79-d1f8225055b4e",
+        "position": [
+          0,
+          1.88,
+          8.4
+        ],
+        "direction": [
+          0,
+          0.065,
+          -0.998
+        ],
+        "entrance": {
+          "key": "5a56d720-0738-4f4f-beeb-b02f8674966a|hall:builder-home-s5a56d720-d0738-d4f4f-dbeeb-db02f8674966a-shall-dkit-d6a3a1785-d93ac-d42fa-d8e79-d1f8225055b4e|home/5a56d720-0738-4f4f-beeb-b02f8674966a/hall-kit-6a3a1785-93ac-42fa-8e79-1f8225055b4e",
+          "room": "home/5a56d720-0738-4f4f-beeb-b02f8674966a/hall-kit-6a3a1785-93ac-42fa-8e79-1f8225055b4e",
+          "scene": "hall:builder-home-s5a56d720-d0738-d4f4f-dbeeb-db02f8674966a-shall-dkit-d6a3a1785-d93ac-d42fa-d8e79-d1f8225055b4e",
+          "position": [
+            0,
+            1.88,
+            8.4
+          ],
+          "yaw": 0
+        },
+        "standable": true,
+        "fov": 67,
+        "authored": {
+          "arrival": {
+            "position": [
+              0,
+              8.4
+            ],
+            "facing": 0
+          },
+          "exit": [
+            0,
+            11.65
+          ],
+          "depth": 24
+        },
+        "center": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.293,
+            "point": [
+              0,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "left": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.614,
+            "point": [
+              -3.622,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "right": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.614,
+            "point": [
+              3.622,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "up": [
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.124,
+            "point": [
+              0,
+              4.7,
+              0.781
+            ]
+          }
+        ],
+        "down": [
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.347,
+            "point": [
+              0,
+              0.022,
+              0.263
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.347,
+            "point": [
+              0,
+              0.022,
+              0.263
+            ]
+          }
+        ],
+        "receiptCount": 1,
+        "errorCount": 0,
+        "liveCalls": 0
+      }
+    },
+    "hallMapChoices": {
+      "home": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+      "selectedByDefault": "door",
+      "defaultContext": {
+        "room": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0"
+      },
+      "defaultFrame": {
+        "room": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+        "scene": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+        "position": [
+          8,
+          1.88,
+          -2.1000000000000005
+        ],
+        "direction": [
+          0,
+          0.065,
+          -0.998
+        ],
+        "entrance": {
+          "key": "8f26c1df-28ed-46dd-ae0f-1bdc5354eae0|home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0|home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+          "room": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+          "scene": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+          "position": [
+            8,
+            1.88,
+            -2.1000000000000005
+          ],
+          "yaw": 0
+        },
+        "standable": true,
+        "fov": 67,
+        "authored": null,
+        "center": [
+          {
+            "id": "edge:home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed/door",
+            "kind": "Mesh",
+            "distance": 2.706,
+            "point": [
+              8,
+              2.056,
+              -4.8
+            ]
+          },
+          {
+            "id": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+            "kind": "Mesh",
+            "distance": 5.672,
+            "point": [
+              8,
+              2.248,
+              -7.76
+            ]
+          },
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 7.366,
+            "point": [
+              8,
+              2.358,
+              -9.45
+            ]
+          }
+        ],
+        "left": [
+          {
+            "id": "edge:home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed/door",
+            "kind": "Mesh",
+            "distance": 2.748,
+            "point": [
+              7.517,
+              2.056,
+              -4.8
+            ]
+          },
+          {
+            "id": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+            "kind": "Mesh",
+            "distance": 5.762,
+            "point": [
+              6.988,
+              2.248,
+              -7.76
+            ]
+          },
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 7.482,
+            "point": [
+              6.685,
+              2.358,
+              -9.45
+            ]
+          }
+        ],
+        "right": [
+          {
+            "id": "edge:home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed/door",
+            "kind": "Mesh",
+            "distance": 2.748,
+            "point": [
+              8.483,
+              2.056,
+              -4.8
+            ]
+          },
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 7.482,
+            "point": [
+              9.315,
+              2.358,
+              -9.45
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 85.411,
+            "point": [
+              23.006,
+              7.341,
+              -86.005
+            ]
+          }
+        ],
+        "up": [
+          {
+            "id": "edge:home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed/door",
+            "kind": "Mesh",
+            "distance": 2.879,
+            "point": [
+              8,
+              2.879,
+              -4.8
+            ]
+          },
+          {
+            "id": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+            "kind": "Mesh",
+            "distance": 6.035,
+            "point": [
+              8,
+              3.975,
+              -7.76
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 7.001,
+            "point": [
+              8,
+              4.31,
+              -8.666
+            ]
+          }
+        ],
+        "down": [
+          {
+            "id": "edge:home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed/door",
+            "kind": "Mesh",
+            "distance": 2.769,
+            "point": [
+              8,
+              1.264,
+              -4.8
+            ]
+          },
+          {
+            "id": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0",
+            "kind": "Mesh",
+            "distance": 5.806,
+            "point": [
+              8,
+              0.588,
+              -7.76
+            ]
+          },
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 7.539,
+            "point": [
+              8,
+              0.202,
+              -9.45
+            ]
+          }
+        ]
+      },
+      "insideFrame": {
+        "room": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed",
+        "scene": "hall:builder-home-s8f26c1df-d28ed-d46dd-dae0f-d1bdc5354eae0-shall-dkit-dedfda800-dbdf4-d4821-da566-d4c077ddb25ed",
+        "position": [
+          0,
+          1.88,
+          8.4
+        ],
+        "direction": [
+          0,
+          0.065,
+          -0.998
+        ],
+        "entrance": {
+          "key": "8f26c1df-28ed-46dd-ae0f-1bdc5354eae0|hall:builder-home-s8f26c1df-d28ed-d46dd-dae0f-d1bdc5354eae0-shall-dkit-dedfda800-dbdf4-d4821-da566-d4c077ddb25ed|home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed",
+          "room": "home/8f26c1df-28ed-46dd-ae0f-1bdc5354eae0/hall-kit-edfda800-bdf4-4821-a566-4c077ddb25ed",
+          "scene": "hall:builder-home-s8f26c1df-d28ed-d46dd-dae0f-d1bdc5354eae0-shall-dkit-dedfda800-dbdf4-d4821-da566-d4c077ddb25ed",
+          "position": [
+            0,
+            1.88,
+            8.4
+          ],
+          "yaw": 0
+        },
+        "standable": true,
+        "fov": 67,
+        "authored": {
+          "arrival": {
+            "position": [
+              0,
+              8.4
+            ],
+            "facing": 0
+          },
+          "exit": [
+            0,
+            11.65
+          ],
+          "depth": 24
+        },
+        "center": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.293,
+            "point": [
+              0,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "left": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.614,
+            "point": [
+              -3.622,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "right": [
+          {
+            "id": "wall",
+            "kind": "Mesh",
+            "distance": 20.614,
+            "point": [
+              3.622,
+              3.198,
+              -11.85
+            ]
+          }
+        ],
+        "up": [
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.124,
+            "point": [
+              0,
+              4.7,
+              0.781
+            ]
+          }
+        ],
+        "down": [
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.347,
+            "point": [
+              0,
+              0.022,
+              0.263
+            ]
+          },
+          {
+            "id": null,
+            "kind": "Mesh",
+            "distance": 8.347,
+            "point": [
+              0,
+              0.022,
+              0.263
+            ]
+          }
+        ]
+      },
+      "frontage": {
+        "width": 6.4,
+        "height": 4.4,
+        "depth": 4.8,
+        "door": [
+          8,
+          -4.800000000000001
+        ],
+        "arrival": [
+          8,
+          -2.1000000000000005
+        ],
+        "outside": [
+          8,
+          -0.7000000000000011
+        ],
+        "facing": 0
+      }
+    },
+    "missionScratchCandidate": {
+      "room": "mission",
+      "scene": "history",
+      "position": [
+        -7.5,
+        1.88,
+        3
+      ],
+      "direction": [
+        -0.209,
+        0.065,
+        -0.976
+      ],
+      "entrance": {
+        "key": "d1700f86-af23-4476-8fea-c1aa383f317c|history|mission",
+        "room": "mission",
+        "scene": "history",
+        "position": [
+          -7.5,
+          1.88,
+          3
+        ],
+        "yaw": -6.07209197395684
+      },
+      "standable": true,
+      "fov": 67,
+      "authored": null,
+      "center": [
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 4.692,
+          "point": [
+            -8.481,
+            2.185,
+            -1.578
+          ]
+        },
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 4.97,
+          "point": [
+            -8.539,
+            2.203,
+            -1.85
+          ]
+        },
+        {
+          "id": null,
+          "kind": "Mesh",
+          "distance": 89.788,
+          "point": [
+            -26.273,
+            7.712,
+            -84.61
+          ]
+        }
+      ],
+      "left": [
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 4.902,
+          "point": [
+            -9.351,
+            2.193,
+            -1.528
+          ]
+        },
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 5.259,
+          "point": [
+            -9.486,
+            2.216,
+            -1.858
+          ]
+        },
+        {
+          "id": null,
+          "kind": "Mesh",
+          "distance": 88.331,
+          "point": [
+            -40.856,
+            7.528,
+            -78.595
+          ]
+        }
+      ],
+      "right": [
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 4.898,
+          "point": [
+            -7.667,
+            2.193,
+            -1.886
+          ]
+        },
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 5.144,
+          "point": [
+            -7.675,
+            2.209,
+            -2.13
+          ]
+        },
+        {
+          "id": null,
+          "kind": "Mesh",
+          "distance": 90.832,
+          "point": [
+            -10.592,
+            7.688,
+            -87.593
+          ]
+        }
+      ],
+      "up": [
+        {
+          "id": null,
+          "kind": "Mesh",
+          "distance": 89.098,
+          "point": [
+            -25.008,
+            32.806,
+            -78.704
+          ]
+        }
+      ],
+      "down": [
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 4.888,
+          "point": [
+            -8.499,
+            0.792,
+            -1.66
+          ]
+        },
+        {
+          "id": "mission",
+          "kind": "Mesh",
+          "distance": 5.087,
+          "point": [
+            -8.539,
+            0.748,
+            -1.85
+          ]
+        },
+        {
+          "id": null,
+          "kind": "Mesh",
+          "distance": 8.347,
+          "point": [
+            -9.205,
+            0.022,
+            -4.957
+          ]
+        }
+      ]
+    }
+  },
+  "civicWatch": {
+    "base": "189b316",
+    "viewport": [
+      524,
+      1166
+    ],
+    "unexpectedRequests": [],
+    "errors": [],
+    "taps": {
+      "label": {
+        "panelVisible": true,
+        "title": "Civic table",
+        "body": "tlh/studio/civic\n\nCivic contributors (sample)\nPseudonymous · Unverified · age unknown\nDeclared · Steward · Audience\n\nA community-owned civic data hub: a place to put public knowledge together.\n\nSUBSTANCE\nOpen to substance edits\nSTYLE\nOpen · restyle your own view\n\n0 fork records on file. Available now: 3D · this card · Page.\n\nStyle · Open · restyle your own view\nHelpers · helpers for this PlaceAccess & room receiptsRead in Page formBack to the walk",
+        "pointer": {
+          "trusted": true,
+          "target": "world",
+          "x": 262,
+          "y": 437,
+          "type": "mouse"
+        },
+        "pointerTarget": {
+          "id": "world",
+          "html": "<canvas id=\"world\" aria-label=\"Living Atlas 3D campus. Left joystick to walk; drag the scene to look; tap an object to read.\" tabindex=\"0\" data-engine=\"three.js r181\" width=\"445\" h"
+        }
+      },
+      "window": {
+        "panelVisible": true,
+        "title": "Lab bench",
+        "body": "tlh/studio/lab\n\nEntrance threshold · no additional minimum set. Visitor previews still apply.\n\nDeclaration record · unmeasured\n\nAdjust dimensions for this Place only\n\nSixteen mesh nodes, one wave. Look through the observation window; this edge is view-only.\n\nA view-only connection. You can look through and read the card; you cannot cross.\n\nRead the room cardKnock / manage access",
+        "pointer": {
+          "trusted": true,
+          "target": "world",
+          "x": 349,
+          "y": 658,
+          "type": "mouse"
+        },
+        "pointerTarget": {
+          "id": "world",
+          "html": "<canvas id=\"world\" aria-label=\"Living Atlas 3D campus. Left joystick to walk; drag the scene to look; tap an object to read.\" tabindex=\"0\" data-engine=\"three.js r181\" width=\"445\" h"
+        }
+      }
+    },
+    "civic": {
+      "scene": "studio",
+      "room": "civic",
+      "position": {
+        "x": 6,
+        "z": 6
+      },
+      "direction": [
+        0,
+        0.0649542388347826,
+        -0.9978882436713011
+      ],
+      "district": "MAKERS ROW",
+      "breadcrumb": "tlh / studio / civic",
+      "standable": true
+    },
+    "signs": {
+      "civic": {
+        "text": "CIVIC TABLE",
+        "box": {
+          "x": 199,
+          "y": 414,
+          "width": 126,
+          "height": 46
+        }
+      },
+      "lab": {
+        "text": "Lab bench",
+        "box": {
+          "x": 286,
+          "y": 486,
+          "width": 126,
+          "height": 46
+        }
+      }
+    },
+    "mission": {
+      "scene": "history",
+      "room": "mission",
+      "position": {
+        "x": -9,
+        "z": -0.9
+      },
+      "direction": [
+        0,
+        0.0649542388347826,
+        -0.9978882436713011
+      ],
+      "district": "HISTORY QUARTER",
+      "breadcrumb": "tlh / tallahassee / mission",
+      "standable": true
+    }
+  }
+}
