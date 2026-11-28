@@ -10,7 +10,12 @@ export function normalizeQuestion(value){
 const stop=new Set('a an the i me my we you your it its this that these those to of for from in on at with and or is are was were be been do does did can could would should what which who when where why how please tell about'.split(' '));
 const words=s=>String(s).toLowerCase().match(/[\p{L}\p{N}]+/gu)??[];
 const stem=s=>s.length>4?s.replace(/(?:ing|ed|es|s)$/,'').replace(/e$/,''):s;
+// A narrowly named outcome question retrieves the authored outcomes passage.
+// It does not infer success: the answer remains an exact, provisional excerpt.
+export const asksOutcome=question=>/^(?:did (?:it|the boycott|the campaign) (?:actually )?work|was (?:it|the boycott) successful|what (?:changed|were the outcomes|was the outcome))[?.!]*$/i.test(question.trim());
 export function rankedQuestionBlocks(context){
+ if(asksOutcome(context.question))return context.blocks.flatMap((block,index)=>block.id==='outcomes'?[{block,index,score:1,terms:1}]:[]);
+
  const terms=[...new Set(words(context.question).filter(w=>!stop.has(w)).map(stem))];
  if(!terms.length)return [];
  return context.blocks.map((block,index)=>{const body=new Set(words(block.body??'').map(stem));return {block,index,score:terms.filter(w=>body.has(w)).length,terms:terms.length};})
@@ -19,7 +24,7 @@ export function rankedQuestionBlocks(context){
 export function localQuestionAnswer(context){
  // Conservative extractive lookup, not generated prose or invented facts.
  // All meaningful question terms must occur in the same readable block.
- const passages=context.blocks.flatMap(b=>typeof b.body==='string'?(b.body.match(/[^\n]{1,800}/gu)??[]).map(body=>({...b,body})):[]);
+ const passages=context.blocks.flatMap(b=>typeof b.body==='string'?(b.body.match(/[^\n]{1,800}/gu)??[]).filter(body=>body!==b.title).map(body=>({...b,body})):[]);
  const match=rankedQuestionBlocks({...context,blocks:passages}).find(x=>x.score===x.terms);
  if(!match)return {text:DONT_KNOW,citations:[]};
  return {text:match.block.body.slice(0,800),citations:[match.block.id]};

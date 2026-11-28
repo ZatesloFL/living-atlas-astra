@@ -1,3 +1,4 @@
+import {readableAnswer} from './place-evidence.js';
 import {validPair,scoreText} from './scores.js';
 import {ATLAS_INTENT_SCHEMA,atlasIntent,validateAtlasIntent} from './atlas-intents.js';
 // One provider boundary with validated simulation when live help is unavailable.
@@ -66,7 +67,7 @@ export function createAI({transport=null,requestPhotoScores,requestAudioScores,l
    if(result.agentId!==agentId||result.proposal.kind!=='answer'||result.proposal.room!==copy.place.key||result.proposal.citations.some(id=>!copy.blocks.some(b=>b.id===id))||typeof result.model!=='string'||result.model.length>200||typeof result.receiptData?.receiptId!=='string'||!/^[a-f0-9-]{36}$/.test(result.receiptData.receiptId))throw new Error('Invalid live proposal');
    const cited=copy.blocks.filter(b=>result.proposal.citations.includes(b.id));
    if(cited.length?!result.proposal.text.split('\n\n').every(part=>part.trim()&&cited.some(b=>typeof b.body==='string'&&b.body.includes(part))):result.proposal.text!=="I don't know from the blocks available in this view.")throw new Error('Live answer no longer matches visible Things');
-   const known=result.proposal.text!==DONT_KNOW,covered=known&&quotedQuestionCoverage(copy,result.proposal);
+   const known=result.proposal.text!==DONT_KNOW,covered=known&&readableAnswer(result.proposal.text)&&quotedQuestionCoverage(copy,result.proposal);
    const proposal=known&&!covered?{...result.proposal,text:DONT_KNOW,citations:[],reason:'The live response contained exact source quotations, but coverage of this question was not established. The client withheld those excerpts as an answer.'}:result.proposal;
    return {proposal,model:result.model,agentId,receiptData:{provider:'proxy',job,model:result.model,agentId,result:'proposed',receiptId:result.receiptData.receiptId,...(!known?{answerEvidence:'none'}:!covered?{answerEvidence:'coverage-not-established'}:{})}};
   }catch(error){current();transport.failed?.(error);fallback=error.code==='LIVE_LIMIT_REACHED'?'LIVE_LIMIT_REACHED':'LIVE_UNAVAILABLE';}
@@ -76,7 +77,7 @@ export function createAI({transport=null,requestPhotoScores,requestAudioScores,l
 }};}
 export function provenanceLabel(data,proposal){
  if(data?.provider==='proxy'&&(data.answerEvidence||proposal?.text===DONT_KNOW))return data.answerEvidence==='coverage-not-established'?'Live response · answer withheld':'Live · no supported answer';
- if(data?.provider==='proxy')return 'Live · grounded answer';
+ if(data?.provider==='proxy')return proposal?.citations?.length&&readableAnswer(proposal.text)?'Live · grounded answer':'Live · no supported answer';
  if(data?.fallbackReason==='LIVE_LIMIT_REACHED')return 'Simulated · live limit reached';
  if(data?.fallbackReason==='LIVE_UNAVAILABLE')return 'Simulated · live helper unavailable';
  return 'Simulated · local helper';

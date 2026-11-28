@@ -17,7 +17,7 @@ test('AI off, unreachable, quota and provider errors fall back automatically and
   let calls=0;const t=transport(async()=>{calls++;if(status==='offline')throw new TypeError('network unavailable');return new Response('{}',{status});});
   const client=createAI({transport:t});const a=await client.request(request());assert.equal(a.model,'simulated-v1');assert.equal(a.receiptData.fallbackReason,status===429?'LIVE_LIMIT_REACHED':'LIVE_UNAVAILABLE');
   const second=await client.request(request());assert.equal(calls,1);assert.equal(second.receiptData.fallbackReason,a.receiptData.fallbackReason);
-  assert.equal(provenanceLabel(second.receiptData),status===429?'Simulated · live limit reached':'Simulated · live helper unavailable');
+  assert.equal(provenanceLabel(second.receiptData,second.proposal),status===429?'Simulated · live limit reached':'Simulated · live helper unavailable');
  }
 });
 test('live envelope carries only structured public IDs and narrower lens; response remains a proposal',async()=>{
@@ -25,12 +25,12 @@ test('live envelope carries only structured public IDs and narrower lens; respon
  const c=context();c.identity={privateName:'PRIVATE_CANARY'};c.blocks[0].body+=' LOCAL_ONLY_CANARY';c.lens.show={real:true,pseudonym:false,anonymous:true,agent:false};
  const a=await createAI({transport:t}).request(request(c));assert.equal(a.model,'anthropic/mock');assert.equal(a.receiptData.result,'proposed');
  assert(!JSON.stringify(sent).includes('CANARY'));assert.deepEqual(sent[1].context.visibleBlockIds,['lead']);assert.equal(sent[1].context.lens.audience,'teen');
- assert.equal(provenanceLabel(a.receiptData),'Live · grounded answer');
+ assert.equal(provenanceLabel(a.receiptData,a.proposal),'Live · grounded answer');
  assert.deepEqual(sent[1].context.lens.show,{real:true,pseudonym:false,anonymous:true,agents:false});
 });
 test('guide context selects relevant visible IDs without adding hidden Things or sending a whole article',()=>{
  const c=context();c.blocks.push({id:'sample'},{id:'facts'},...Array.from({length:50},(_,i)=>({id:'unrelated-'+i})));
- assert.deepEqual(docentBlockIds(c),['lead','facts','sample']);
+ assert.deepEqual(docentBlockIds(c),['lead','sample']);
  c.question='sources';assert.deepEqual(docentBlockIds(c),['sample']);
  c.question='rules';c.blocks=[];assert.deepEqual(docentBlockIds(c),[]);
  c.question='overview';c.blocks=[{id:'kids-lead'},{id:'kids-label'}];assert.deepEqual(docentBlockIds(c),['kids-lead','kids-label']);
@@ -89,11 +89,11 @@ test('real deployed proxy captures replay through client evidence and provenance
    // Captures retain their real historical wire shape. Only this replay request
    // is upgraded to the current paired catalog; the recorded response stays exact.
    const expected=structuredClone(capture.request);delete expected.requestId;expected.context.catalogRevision=catalog.revision;expected.context.lens.limits=Object.fromEntries(DIMENSIONS.map(([k])=>[k,asPair(expected.context.lens.limits[k])]));expected.context.lens.hard=Object.fromEntries(DIMENSIONS.map(([k])=>[k,asHard(expected.context.lens.hard[k])]));
-   assert.deepEqual(sent,expected);return Response.json(capture.response);
+   expected.context.visibleBlockIds=docentBlockIds(c);assert.deepEqual(sent,expected);return Response.json(capture.response);
   }})});
   const result=await client.request(request(c));
   assert.equal(calls,1);assert.deepEqual(result,currentEvidenceLabel(capture.clientResult));
-  assert.equal(provenanceLabel(result.receiptData),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');
+  assert.equal(provenanceLabel(result.receiptData,result.proposal),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');
  }
 });
 
@@ -107,11 +107,11 @@ test('six real paired-Lens v5 captures replay with their exact proposal and rece
   let dispatched=0;
   const client=createAI({transport:createProxyTransport({endpoint:AI_PROXY_ENDPOINT,fetchImpl:async(url,opts)=>{
    if(url.endsWith('/session'))return session();dispatched++;
-   const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;expected.context.catalogRevision=catalog.revision;assert.deepEqual(sent,expected);return Response.json(wire.response);
+   const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;expected.context.catalogRevision=catalog.revision;expected.context.visibleBlockIds=docentBlockIds(c);assert.deepEqual(sent,expected);return Response.json(wire.response);
   }})});
   const result=await client.request(request(c));assert.equal(dispatched,1);assert.equal(result.agentId,wire.response.agentId);
   // The browser capture stores the UI's proposal/model/provenance projection.
-  assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},currentEvidenceLabel(capture.clientResults[index]));assert.equal(provenanceLabel(result.receiptData),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');
+  assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},currentEvidenceLabel(capture.clientResults[index]));assert.equal(provenanceLabel(result.receiptData,result.proposal),result.proposal.citations.length?'Live · grounded answer':'Live · no supported answer');
   if(index===5)assert.equal(result.proposal.text,"I don't know from the blocks available in this view.");else assert.deepEqual(result.proposal.citations,['lead']);
  }
 });
@@ -123,7 +123,7 @@ test('seven real v8 hall captures replay exact quoted answers and the unsupporte
  for(const [index,wire] of capture.captures.entries()){
   const c={place:{key:'boycott'},action:'answer',question:wire.request.context.question,blocks:allowedBlocks(wire.request.context),lens:{...wire.request.context.lens,ageBand:wire.request.context.lens.audience}};
   const client=createAI({transport:createProxyTransport({endpoint:AI_PROXY_ENDPOINT,fetchImpl:async(url,opts)=>{
-   if(url.endsWith('/session'))return session();const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;expected.context.catalogRevision=catalog.revision;assert.deepEqual(sent,expected);return Response.json(wire.response);
+   if(url.endsWith('/session'))return session();const expected=structuredClone(wire.request),sent=JSON.parse(opts.body);delete expected.requestId;delete sent.requestId;expected.context.catalogRevision=catalog.revision;expected.context.visibleBlockIds=docentBlockIds(c);assert.deepEqual(sent,expected);return Response.json(wire.response);
   }})});
   const result=await client.request(request(c));assert.deepEqual({proposal:result.proposal,model:result.model,receiptData:result.receiptData},currentEvidenceLabel(capture.clientResults[index]));
   if(index===5)assert.deepEqual(result.proposal.citations,['place-overview']);if(index===6)assert.deepEqual(result.proposal.citations,[]);

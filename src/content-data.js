@@ -2,7 +2,7 @@
 const citation=(label,url)=>({label,url,status:'to verify'});
 const sources=[citation('Florida Memory: civil-rights collections','https://www.floridamemory.com/'),citation('Florida A&M University: historical research starting point','https://www.famu.edu/'),citation('Tallahassee historical research starting point','https://www.talgov.com/')];
 const b=(id,type,importance,body,extra={})=>({id,type,importance,body,reps:{text:typeof body==='string'?body:'',alt:''},sources:[],...extra});
-export const BOYCOTT_BLOCKS=[
+const boycottArticle=[
  b('sample','text','core','SAMPLE ARTICLE · TO VERIFY. This is a draft for testing the Atlas, not a reviewed historical account. Dates, descriptions and source matches need checking against primary records.'),
  b('facts','infobox','core',{Topic:'Tallahassee bus boycott',Period:'1956–1957 (to verify)',Place:'Tallahassee, Florida',Focus:'Community organizing against segregated public transport',Status:'Sample content · every historical claim to verify'}),
  b('lead','text','core','In 1956, Black residents of Tallahassee organized a boycott of the city’s segregated bus service. The campaign linked students, church communities and other residents in a sustained challenge to unequal treatment. This draft follows the everyday work of organizing transport as well as the public dispute over segregation. It avoids graphic detail and requires source review before use as a historical reference.',{sources}),
@@ -33,6 +33,14 @@ export const BOYCOTT_BLOCKS=[
  b('references-heading','heading','detail','Sources to verify'),
  ...sources.map((s,i)=>b('citation-'+i,'citation','detail',{...s,note:'Research starting point only. Locate item-level evidence before marking any claim verified.'},{sources:[s]}))
 ];
+// A chapter is one Thing: its authored heading and passage travel together.
+export const BOYCOTT_BLOCKS=boycottArticle.flatMap((block,index)=>{
+ const next=boycottArticle[index+1],previous=boycottArticle[index-1];
+ if(block.type==='heading'&&next?.type==='text')return [];
+ if(block.type==='text'&&previous?.type==='heading')return [{...block,title:previous.body,sectionHeading:true,aliases:[previous.id]}];
+ return [{...block,title:block.title??({sample:'About this sample',lead:'The boycott at a glance',facts:'Exhibition facts','research-note':'Research note'}[block.id])}];
+});
+
 // slot is [x,z] in scene metres; facing is radians; approach is a walkable reader return point.
 export const LAYOUTS={
  studio:{root:true,kind:'courtyard',slot:[0,0],approach:[0,5.6],scene:'studio',landmark:'none',sign:false},

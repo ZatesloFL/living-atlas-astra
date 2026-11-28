@@ -1,3 +1,4 @@
+import {thingTitle} from './thing-subject.js';
 import {helperIdentityLabel} from './identity.js';
 import {StandingUI} from './standing-ui.js';
 import {scoreText} from './scores.js';
@@ -47,7 +48,8 @@ export class StaffUI {
    try{
     const p=await this.propose(id,place,'answer',{question});if(!p||generation!==this.generation||this.ui.mode!=='docent')return;
     const diagnostic=p.provenance.diagnostic;
-    answer.innerHTML=`<article class="helper-answer"><p class="helper-badge" data-ai-source>${esc(provenanceLabel(p.provenance,p.proposal))}</p><p class="helper-badge">Proposed answer · ${esc(p.agentName)} · ${esc(p.model)}</p><p class="helper-excerpt">${esc(p.proposal.text)}</p><p class="muted">${esc(p.proposal.reason)}</p>${p.provenance.localReason?`<p class="muted">${esc(routeExplanation(p.provenance.localReason))}</p>`:''}${diagnostic?`<details><summary>Live connection details</summary><p>Stopped at ${esc(diagnostic.stage)}${diagnostic.status?' · HTTP '+esc(diagnostic.status):' · no response'}. A local answer is shown.</p></details>`:''}<p class="muted">Scoped block references: ${p.proposal.citations.map(esc).join(', ')||'No supporting block'} · Receipt recorded.${p.provenance.receiptId?' Live receipt: '+esc(p.provenance.receiptId):''}</p><button id="docent-keep">Keep this answer in my visit</button></article>`;
+    const sources=p.proposal.citations.map(ref=>context.blocks.find(b=>b.id===ref)).filter(Boolean);
+    answer.innerHTML=`<article class="helper-answer"><p class="helper-badge" data-ai-source>${esc(provenanceLabel(p.provenance,p.proposal))}</p><p>Answer from ${esc(p.agentName)}</p><p class="helper-excerpt">${esc(p.proposal.text)}</p>${sources.length?`<p>Quoted from: ${sources.map(b=>esc(b.id==='place-overview'?ROOMS[place].title:thingTitle(b))).join(' · ')}.</p>`:''}<details class="answer-record"><summary>Inspect answer record</summary><p>${esc(p.proposal.reason)}</p><dl><dt>Recorded</dt><dd>${esc(p.created?new Date(p.created).toLocaleString():'Time not on file')}</dd><dt>Model</dt><dd>${esc(p.model)}</dd><dt>Receipt</dt><dd>${esc(p.provenance.receiptId??p.id)}</dd><dt>Source references</dt><dd>${p.proposal.citations.map(esc).join(', ')||'None'}</dd></dl>${p.provenance.localReason?`<p>${esc(routeExplanation(p.provenance.localReason))}</p>`:''}${diagnostic?`<p>Connection stopped at ${esc(diagnostic.stage)}${diagnostic.status?' · HTTP '+esc(diagnostic.status):' · no response'}.</p>`:''}</details><button id="docent-keep">Keep this answer in my visit</button></article>`;
     answer.scrollIntoView({block:'start'});
     answer.querySelector('#docent-keep').onclick=()=>this.run(async()=>{await this.staff.acceptOffer(p.id,this.lens());const keep=answer.querySelector('#docent-keep');keep.disabled=true;keep.textContent='Kept · receipt recorded';});
    }catch(error){if(error.name==='AbortError'&&generation===this.generation&&this.ui.mode==='docent')answer.textContent='Your view changed. Ask again to use the current blocks.';throw error;}
@@ -58,7 +60,7 @@ export class StaffUI {
   this.ui.content.querySelector('#docent-ask-form')?.addEventListener('submit',e=>{e.preventDefault();ask(this.ui.content.querySelector('#docent-question').value);});
   this.ui.content.querySelector('#docent-tour')?.addEventListener('click',()=>this.run(async()=>{
    const p=await this.propose(id,place,'tour');if(!p||generation!==this.generation||this.ui.mode!=='docent')return;
-   this.ui.content.querySelector('#docent-answer').innerHTML=`<article class="helper-answer"><p class="helper-badge" data-ai-source>${esc(provenanceLabel(p.provenance,p.proposal))}</p><p>Proposed tour · ${esc(p.agentName)} · ${esc(p.proposal.trail)} · ${esc(p.model)}</p><p>${esc(p.proposal.reason)}</p><button id="start-helper-tour">Accept tour · start trail</button></article>`;
+   this.ui.content.querySelector('#docent-answer').innerHTML=`<article class="helper-answer"><p class="helper-badge" data-ai-source>${esc(provenanceLabel(p.provenance,p.proposal))}</p><p>Proposed tour · ${esc(p.agentName)} · ${esc(p.proposal.trail)}</p><p>${esc(p.proposal.reason)}</p><button id="start-helper-tour">Accept tour · start trail</button></article>`;
    this.ui.content.querySelector('#start-helper-tour').onclick=()=>this.run(async()=>{await this.staff.acceptOffer(p.id,this.lens());this.api.trail(p.proposal.trail);this.ui.close();});
   }));
   this.ui.content.querySelector('#docent-staff').onclick=()=>this.open(place);this.ui.content.querySelector('#docent-discovery')?.addEventListener('click',()=>{this.cancelPending();this.ui.close();this.api.discovery();});

@@ -39,7 +39,7 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  const sourcedMedia=connectedMediaHTML(block,room);
  if(sourcedMedia!==null)html+=sourcedMedia;else if(block.exhibit)html+=kitHTML(block,room);else switch(block.type){
  case 'heading':html+=`<h2>${esc(body)}</h2>`;break;
- case 'text':html+=`<p>${esc(body??block.reps?.text??'Content not yet available.')}</p>`;break;
+ case 'text':html+=`${block.sectionHeading?`<h2>${esc(block.title)}</h2>`:''}<p>${esc(body??block.reps?.text??'Content not yet available.')}</p>`;break;
  case 'infobox':html+=`<dl class="article-infobox">${Object.entries(body??{}).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;break;
  case 'timeline':html+=`<ol class="article-timeline">${(Array.isArray(body)?body:[]).map(e=>`<li><strong>${esc(e.date)}</strong><p>${esc(e.text)}</p></li>`).join('')}</ol>`;break;
  case 'quote':html+=`<blockquote><p>${esc(body?.text??body)}</p><footer>${esc(body?.attribution??'')}</footer></blockquote>`;break;

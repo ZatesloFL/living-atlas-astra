@@ -11,7 +11,7 @@ export function docentBlockIds(context){
  // Narrow to authored Things relevant to the selected question. Sending the
  // entire article exceeds the approved input envelope; never raise that cap.
  const priorities=context.question==='sources'?['sample','research-note','kids-label','kids-citation','citation-0','citation-1','citation-2']:
-  context.question==='rules'?['sample','kids-label']:['lead','kids-lead','facts','kids-info','sample','kids-label'];
+  context.question==='rules'?['sample','kids-label']:['place-overview','lead','kids-lead','sample','kids-label'];
  return priorities.filter(id=>context.blocks.some(b=>b.id===id)).slice(0,6);
 }
 export function createProxyTransport({endpoint,fetchImpl=globalThis.fetch,storage=null,now=Date.now,timeoutMs=20000}){

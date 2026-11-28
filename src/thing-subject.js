@@ -29,7 +29,7 @@ export function pickedRecoveredHall(marker,lens){
 export function thingSubject(roomKey,blockId,lens){
  const original=ROOMS[roomKey];if(!original||!roomVisible(roomKey,lens)||!permission(original,lens).canLook)return null;
  const room=sourcedRoom(viewRoom(original,lens),lens);if(doorPolicy(room,lens).blocked)return null;
- const block=selectContent(room,lens,contentStore.blocks(roomKey,room.blocks)).blocks.find(b=>b.id===blockId&&!b.filtered);
+ const block=selectContent(room,lens,contentStore.blocks(roomKey,room.blocks)).blocks.find(b=>(b.id===blockId||b.aliases?.includes(blockId))&&!b.filtered);
  return block&&sourceVisible(block,room,lens)?{roomKey,room,block}:null;
 }
 export function pickedThing(marker,lens){
@@ -37,7 +37,7 @@ export function pickedThing(marker,lens){
  for(const roomKey of Object.keys(ROOMS).sort((a,b)=>b.length-a.length)){
   const prefix='exhibit:'+roomKey+':';if(!marker.startsWith(prefix))continue;
   const original=ROOMS[roomKey],room=sourcedRoom(viewRoom(original,lens),lens),suffix=marker.slice(prefix.length);
-  for(const block of [...room.blocks??[]].sort((a,b)=>b.id.length-a.id.length))if(suffix===block.id||suffix.startsWith(block.id+':')&&/^\d+$/.test(suffix.slice(block.id.length+1))){
+  for(const block of [...room.blocks??[]].sort((a,b)=>b.id.length-a.id.length))if(suffix===block.id||block.aliases?.includes(suffix)||suffix.startsWith(block.id+':')&&/^\d+$/.test(suffix.slice(block.id.length+1))){
    const subject=thingSubject(roomKey,block.id,lens);return subject?{...subject,photo:suffix===block.id?null:suffix.slice(block.id.length+1)}:null;
   }
  }
@@ -46,5 +46,6 @@ export function pickedThing(marker,lens){
 
 export function thingTitle(block){
  for(const title of [block?.title,block?.exhibit?.settings?.title,...(['image','video','audio','model','heading'].includes(block?.type)?[block?.body]:[])])if(typeof title==='string'&&title.trim())return title;
- return 'Untitled Thing';
+ if(typeof block?.body==='string'&&block.body.trim())return block.body.trim().split(/(?<=[.!?])\s|\n/)[0].slice(0,100);
+ return block?.body?.label??({infobox:'Facts',timeline:'Timeline',quote:'Quotation',citation:'Source reference',links:'Related Places',map:'Map'}[block?.type]??'Thing · details not on file');
 }
