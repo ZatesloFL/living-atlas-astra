@@ -29,11 +29,11 @@ test('live envelope carries only structured public IDs and narrower lens; respon
  assert.deepEqual(sent[1].context.lens.show,{real:true,pseudonym:false,anonymous:true,agents:false});
 });
 test('guide context selects relevant visible IDs without adding hidden Things or sending a whole article',()=>{
- const c=context();c.blocks.push({id:'sample'},{id:'facts'},...Array.from({length:50},(_,i)=>({id:'unrelated-'+i})));
- assert.deepEqual(docentBlockIds(c),['lead','sample']);
+ const c=context();c.blocks.push({id:'sample',body:'Dates and source matches need checking against primary records.'},{id:'facts'},...Array.from({length:50},(_,i)=>({id:'unrelated-'+i})));
+ assert.deepEqual(docentBlockIds(c),['lead']);
  c.question='sources';assert.deepEqual(docentBlockIds(c),['sample']);
  c.question='rules';c.blocks=[];assert.deepEqual(docentBlockIds(c),[]);
- c.question='overview';c.blocks=[{id:'kids-lead'},{id:'kids-label'}];assert.deepEqual(docentBlockIds(c),['kids-lead','kids-label']);
+ c.question='overview';c.blocks=[{id:'kids-lead',body:'An introduction to the bus boycott.'},{id:'kids-label'}];assert.deepEqual(docentBlockIds(c),['kids-lead']);
 });
 test('ineligible helpers and Places stay simulated without requesting a session',async()=>{
  let n=0;const a=createAI({transport:transport(async()=>{n++;return session();})});

@@ -9,7 +9,7 @@ export const AI_PROXY_ENDPOINT='https://ftnxmuenqfqkodizyekk.supabase.co/functio
 const unavailable=(code,retry=60)=>Object.assign(new Error(code),{code,retry});
 export function docentBlockIds(context){
  const kind=boycottQuestionKind(context.question);
- if(kind==='capabilities')return context.blocks.some(b=>b.id==='helper-grant')?['helper-grant']:[];
+ if(kind&&context.place?.key==='boycott')return typedQuestionBlockIds(context);
  if(!Object.hasOwn(PRESET_QUESTIONS,context.question))return typedQuestionBlockIds(context);
  // Narrow to authored Things relevant to the selected question. Sending the
  // entire article exceeds the approved input envelope; never raise that cap.

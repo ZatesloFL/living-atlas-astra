@@ -49,3 +49,18 @@ test('Mara’s checked grant is citable, scoped, exact, and absent after revocat
  assert.equal(docentGrantEvidence(actor,{scope:'look',revokedAt:'2026-11-28'},{}),null);
  await staff.revoke(actor.id,lens);assert.throws(()=>staff.context(actor,'boycott','answer',lens),/revoked|Grant/);
 });
+test('typed questions and presets share evidence; the date discrepancy only enters a Deep view',async()=>{
+ const map=new Map(),staff=new Staff(new AccessStore(()=>({getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)})));await staff.ready;
+ const profile=seedProfiles().find(p=>p.id==='seed-me'),actor=staff.actor('docent-silver');
+ for(const depth of ['Standard','Deep']){
+  const lens={...profile,profileId:profile.id,depth};
+  for(const [typed,preset] of [['What is this Place?','overview'],['What needs verification?','sources'],['What can this helper do?','rules']]){
+   const ctx=staff.context(actor,'boycott','answer',lens,{question:typed});
+   assert.deepEqual(docentBlockIds(ctx),docentBlockIds({...ctx,question:preset}));
+   if(preset==='sources'){
+    if(depth==='Standard'){assert.deepEqual(docentBlockIds(ctx),[]);assert.equal(localQuestionAnswer(ctx).text,DONT_KNOW);}
+    else{assert.deepEqual(docentBlockIds(ctx),['memory']);assert.match(localQuestionAnswer(ctx).text,/May 26.*May 27/);}
+   }
+  }
+ }
+});
