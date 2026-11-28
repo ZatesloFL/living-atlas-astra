@@ -17,5 +17,7 @@ export function accountSubject(subject){
 export function authorshipSnapshot(profile){
  const snapshot=accountSnapshot(accountSubject(profile)),i=snapshot.identity;
  const name=i.display==='anonymous'?'Anonymous':i.display==='pseudonym'?(i.pseudonym||snapshot.name):snapshot.name;
- return {...snapshot,name,authorship:{display:i.display,name,...(i.pseudonym?{pseudonym:i.pseudonym}:{})}};
+ const {pseudonym,...identity}=i;
+ if(i.display==='pseudonym')identity.pseudonym=name;
+ return {...snapshot,name,identity,authorship:{display:i.display,name,...(i.display==='pseudonym'?{pseudonym:name}:{})}};
 }

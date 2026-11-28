@@ -14,7 +14,7 @@ test('all newly created profiles start Named, recorded as a starting state, incl
 test('presentation words change immediately, survive reload and leave historical bylines and receipts intact',async()=>{
  const storage=memory(),s=new ProfileStore(()=>storage);await s.setup({name:'Synthetic holder',age:34});const named=authorshipSnapshot(s.current()),original=JSON.stringify(s.entries[0]);
  await s.changePresentation('Use the name Fern');assert.equal(s.current().profileName,'Fern');const pseudonymous=authorshipSnapshot(s.current());assert.equal(authorName(pseudonymous),'Fern');
- await s.changePresentation('Show no name');assert.equal(s.current().identity.display,'anonymous');assert.equal(authorName(authorshipSnapshot(s.current())),'Anonymous');
+ await s.changePresentation('Show no name');assert.equal(s.current().identity.display,'anonymous');const anonymous=authorshipSnapshot(s.current());assert.equal(authorName(anonymous),'Anonymous');assert.doesNotMatch(JSON.stringify(anonymous),/Fern|Synthetic holder/);
  assert.equal(authorName(named),'Synthetic holder');assert.match(identityBadge(named),/^Named/);assert.equal(authorName(pseudonymous),'Fern');assert.match(identityBadge(pseudonymous),/^Pseudonymous/);assert.equal(JSON.stringify(s.entries[0]),original);
  const reload=new ProfileStore(()=>storage);await reload.ready;assert.equal(reload.current().identity.display,'anonymous');await reload.changePresentation('Pseudonymous');assert.equal(reload.current().profileName,'Fern');
  assert.equal((await verifyChain(reload.entries)).valid,true);assert.equal(reload.entries.filter(e=>e.action==='presentation_changed').length,3);
