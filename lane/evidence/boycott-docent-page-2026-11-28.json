@@ -1,0 +1,20 @@
+{
+  "mode": "Page, local-only, synthetic profile",
+  "answers": [
+    {
+      "question": "Who led this",
+      "face": "Simulated · local helper\n\nAnswer from Mara\n\nThe Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church. Students Wilhelmina Jakes and Carrie Patterson sparked the protest, and students and residents helped sustain it. The council called for seating on a first-come basis, courteous treatment and the hiring of Black drivers. Rev. Daniel B. Speed was among the other organizers who helped lead the campaign.\n\nQuoted from: The Inter-Civic Council and C. K. Steele.\n\nInspect answer record\nKeep this answer in my visit",
+      "source": "oral-history",
+      "sourceOpened": true
+    },
+    {
+      "question": "Did it work?",
+      "face": "Simulated · local helper\n\nAnswer from Mara\n\nThe boycott helped end the city’s explicit racial seating rule. The question then became who decided where a passenger could sit. Tallahassee’s January 7, 1957 ordinance gave that decision to the driver. Riders challenged the replacement rule, and police arrested some of them. Over the following months Black riders gradually returned as seat assignments were enforced less strictly. Florida Memory dates integration on the city buses to the summer of 1957.\n\nQuoted from: What the boycott changed.\n\nInspect answer record\nKeep this answer in my visit",
+      "source": "bus-model",
+      "sourceOpened": true
+    }
+  ],
+  "deepPresetOpenedDateDiscrepancy": true,
+  "errors": [],
+  "outbound": []
+}
