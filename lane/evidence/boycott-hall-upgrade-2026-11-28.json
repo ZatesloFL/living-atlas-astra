@@ -1,0 +1,855 @@
+{
+  "base": "6fd6a914dbd2cd7edb2a69640c43f301dfbd5e25",
+  "scope": {
+    "unmodifiedOtherPlaces": 29,
+    "unmodifiedPaths": 28,
+    "hallMeters": [
+      18,
+      24,
+      4.8
+    ],
+    "bayOriginsAndApproachesPreserved": true
+  },
+  "servedRuntime": {
+    "commit": "99a69e560f7d5f3d64d266f83068387a80b6ef4a",
+    "sha256": {
+      "kit.css": "d5ac2e09e952e4495d03088877aefc62661510445135f57e72aed2e8203a59c5",
+      "src/ai-catalog-revision.js": "b0b2076a2e5bf6d231f481204f69f7e2df57ab0ad67d1f1240c60ee697e7106e",
+      "src/audience-data.js": "d7d84b5b99bb165e431ddf6cb30990f0ae001261a17937f243ae1242efb68ad1",
+      "src/block-renderer.js": "12a9a80dff89a1e216624ab9e8614b70096fd7c8cbc9b0286e27e2feb931cb68",
+      "src/boycott-hall-world.js": "d02c3b0e1aa761514c007155424d606a444ac9bd91dadbaf25d7781c5f074a2a",
+      "src/boycott-history.js": "ba5a02ae0410b59499c106c30b4fe3783d6bd06df9c1a44bb122bf7dbb617826",
+      "src/content-data.js": "da18b8ec927c578b6f5b36de2a761355ce460ffc576a3819f82ccea1d8238d91",
+      "src/data.js": "7654da73c1eab1caf365509c89f69f168b973d12524d1cdd35f8c173c2ba681f",
+      "src/exhibit-data.js": "4bf66e52dc895d56093f7567c4769ee63aac4f1aa030f1cfa2ac2ce20d05126a",
+      "src/interior-data.js": "ec15448d29d6c8d2cf55b0394e7ec94943b704dd5783c672fbd20b07e8e80617",
+      "src/interior-world.js": "abc671fdf91654be8a1aa63be8311e352d921b816ca360ac6473c75e30e0bf0e",
+      "src/kit-art.js": "98a58ee08a430c483b4cd7f3713daa4b6dba7836b53aa6ec57e5bd42d4383bc6",
+      "src/kit-media.js": "8533c3a22c9b7023f3dc9ab65acc607dddb991045954da2c8e0bf02d014e4fb9",
+      "src/kit-ui.js": "3245b29d1ac8fcccf8d3aa824081c55af2b441a0fb715862bb3abe057be146ff",
+      "src/kit-world.js": "39e41ae45c14649303a13da75117d3218007d169a10f2469e132cf7d21198289",
+      "src/presentation.js": "6f94cbf48f78b8fc1b2501e0423637f86546963358b588ccb548ea2887e7b26a"
+    }
+  },
+  "servedPortraitBrowser": {
+    "ref": "99a69e560f7d5f3d64d266f83068387a80b6ef4a",
+    "viewport": {
+      "width": 393,
+      "height": 852
+    },
+    "externalRequests": [],
+    "errors": [],
+    "servedBuild": "99a69e560f7d5f3d64d266f83068387a80b6ef4a",
+    "fresh": {
+      "store": 1,
+      "hasSetup": true
+    },
+    "start": {
+      "scene": "home/0dd948ec-ed14-42c6-a895-f321bcb3b6c6",
+      "room": "home/0dd948ec-ed14-42c6-a895-f321bcb3b6c6",
+      "pose": [
+        0,
+        1.88,
+        7.5
+      ],
+      "direction": [
+        0,
+        0.0649542388347826,
+        -0.9978882436713011
+      ],
+      "fov": 67,
+      "inside": null,
+      "profile": "0dd948ec-ed14-42c6-a895-f321bcb3b6c6",
+      "backing": "none",
+      "appliedPreset": null,
+      "audience": null,
+      "exhibits": [],
+      "entryReceipts": [],
+      "presence": "home/0dd948ec-ed14-42c6-a895-f321bcb3b6c6"
+    },
+    "doorAgreements": 0,
+    "frontage": {
+      "scene": "history",
+      "room": "tallahassee",
+      "pose": [
+        8,
+        1.88,
+        3.1
+      ],
+      "direction": [
+        0.15173607653276872,
+        0.06495423883478262,
+        -0.9862844974629966
+      ],
+      "fov": 67,
+      "inside": null,
+      "profile": "0dd948ec-ed14-42c6-a895-f321bcb3b6c6",
+      "backing": "none",
+      "appliedPreset": null,
+      "audience": "textbook",
+      "exhibits": [],
+      "entryReceipts": [],
+      "presence": "tallahassee"
+    },
+    "frontageClick": {
+      "world": [
+        9,
+        1.55,
+        -3.4
+      ],
+      "screen": {
+        "x": 196,
+        "y": 500,
+        "visible": true
+      },
+      "pointer": {
+        "trusted": true,
+        "type": "mouse",
+        "target": "world",
+        "x": 196,
+        "y": 500
+      },
+      "card": "The 1956 bus boycott"
+    },
+    "insideCrossing": {
+      "automatic": true,
+      "agreements": 0
+    },
+    "inside": {
+      "scene": "hall:boycott",
+      "room": "boycott",
+      "pose": [
+        0,
+        1.88,
+        8.4
+      ],
+      "direction": [
+        0,
+        0.0649542388347826,
+        -0.9978882436713011
+      ],
+      "fov": 67,
+      "inside": "The 1956 bus boycott",
+      "profile": "0dd948ec-ed14-42c6-a895-f321bcb3b6c6",
+      "backing": "none",
+      "appliedPreset": null,
+      "audience": "textbook",
+      "exhibits": [
+        "archive-image",
+        "bus-model",
+        "film"
+      ],
+      "entryReceipts": [
+        {
+          "hash": "67ae178c004c326f8b756e4e6443a3b637b903097161b0a919c08b5c311901fb",
+          "via": "fast travel",
+          "arrival": "inside",
+          "room": "boycott",
+          "position": [
+            0,
+            8.4
+          ]
+        }
+      ],
+      "presence": "tallahassee/1956"
+    },
+    "busClick": {
+      "world": [
+        0,
+        1.06,
+        -7.7
+      ],
+      "screen": {
+        "x": 197,
+        "y": 501,
+        "visible": true
+      },
+      "pointer": {
+        "trusted": true,
+        "type": "mouse",
+        "target": "world",
+        "x": 197,
+        "y": 501
+      },
+      "title": "What the boycott changed",
+      "record": "Riders challenged those assignments. A petition preserved by the Library of Congress describes how police enforced the replacement ordinance.",
+      "sources": [
+        {
+          "label": "Charles U. Smith and Lewis M. Killian · The Tallahassee Bus Protest (1958) ↗",
+          "href": "https://www.bjpa.org/content/upload/bjpa/fiel/FIELD%20REPORTS%20ON%20DESEGREGATION%20IN%20THE%20SOUTH%20TALLAHASSEE%20FL.pdf"
+        },
+        {
+          "label": "Library of Congress · Bus seating petition of Johnny Herndon and Leonard Daniel Speed ↗",
+          "href": "https://tile.loc.gov/storage-services/service/mss/mss65570/ms/s6/55/70/-2/19/13/mss65570-21913/mss65570-21913.pdf"
+        },
+        {
+          "label": "FSU Department of History · The Story of the Tallahassee Bus Boycott ↗",
+          "href": "https://history.fsu.edu/article/black-history-month-story-tallahassee-bus-boycott"
+        },
+        {
+          "label": "Florida Memory · The Tallahassee Bus Boycott ↗",
+          "href": "https://www.floridamemory.com/learn/classroom/learning-units/civil-rights/tallahasseebusboycott/"
+        }
+      ]
+    },
+    "localAnswers": [
+      {
+        "question": "Who led this",
+        "title": "The Inter-Civic Council and C. K. Steele",
+        "text": "Simulated · local helper\n\nAnswer from Mara\n\nThe Inter-Civic Council led the citywide Tallahassee bus boycott. Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church. Students Wilhelmina Jakes and Carrie Patterson sparked the protest, and students and residents helped sustain it. The council called for seating on a first-come basis, courteous treatment and the hiring of Black drivers. Rev. Daniel B. Speed was among the other organizers who helped lead the campaign.\n\nQuoted from: The Inter-Civic Council and C. K. Steele.\n\nInspect answer record\nKeep this answer in my visit"
+      },
+      {
+        "question": "Did it work?",
+        "title": "From repeal to integrated buses",
+        "text": "Simulated · local helper\n\nAnswer from Mara\n\nThe Tallahassee bus boycott helped end legally segregated seating on the city’s buses. On January 7, 1957, the city repealed its explicit segregation ordinance and gave drivers the power to assign seats. Riders who challenged that rule still faced arrest. Enforcement of assigned seating eased over the following months as Black riders returned. Florida Memory dates integration on Tallahassee’s buses to summer 1957.\n\nQuoted from: From repeal to integrated buses.\n\nInspect answer record\nKeep this answer in my visit"
+      }
+    ],
+    "verified": {
+      "scene": "hall:boycott",
+      "room": "boycott",
+      "pose": [
+        0,
+        1.88,
+        8.4
+      ],
+      "direction": [
+        0,
+        0.0649542388347826,
+        -0.9978882436713011
+      ],
+      "fov": 67,
+      "inside": "The 1956 bus boycott",
+      "profile": "seed-me",
+      "backing": "verified",
+      "appliedPreset": "Adult",
+      "audience": "immersive",
+      "exhibits": [
+        "archive-image",
+        "bus-model",
+        "film",
+        "oral-history",
+        "sample-clipping"
+      ],
+      "entryReceipts": [],
+      "presence": null
+    },
+    "geometry": {
+      "arrival": {
+        "position": [
+          0,
+          8.4
+        ],
+        "facing": 0
+      },
+      "exit": [
+        0,
+        11.65
+      ],
+      "dimensions": [
+        18,
+        24,
+        4.8
+      ],
+      "labels": [
+        {
+          "title": "The 1956 bus boycott",
+          "id": "boycott",
+          "position": [
+            0,
+            3.27,
+            -1.7
+          ]
+        },
+        {
+          "title": "Return to the Quarter",
+          "id": "edge:hall-exit:boycott",
+          "position": [
+            0,
+            2.65,
+            11.69
+          ]
+        },
+        {
+          "title": "1956 · BUS BOYCOTT",
+          "id": "boycott",
+          "position": [
+            0,
+            4,
+            11.8
+          ]
+        },
+        {
+          "title": "The students who sparked the boycott",
+          "id": "exhibit:boycott:film",
+          "position": [
+            -8.36,
+            3.46,
+            5.5
+          ]
+        },
+        {
+          "title": "How Tallahassee kept moving",
+          "id": "exhibit:boycott:archive-image",
+          "position": [
+            8.32,
+            4.06,
+            5.3
+          ]
+        },
+        {
+          "title": "The Inter-Civic Council and C. K. Steele",
+          "id": "exhibit:boycott:oral-history",
+          "position": [
+            -8.67,
+            2.46,
+            -3.8
+          ]
+        },
+        {
+          "title": "Pressure, prosecution and resistance",
+          "id": "exhibit:boycott:sample-clipping",
+          "position": [
+            8.67,
+            2.46,
+            -3.8
+          ]
+        },
+        {
+          "title": "What the boycott changed",
+          "id": "exhibit:boycott:bus-model",
+          "position": [
+            0,
+            2.8,
+            -11.72
+          ]
+        }
+      ],
+      "aisle": true,
+      "bays": [
+        {
+          "block": "film",
+          "position": [
+            -8.55,
+            5.5
+          ],
+          "facing": 1.5707963267948966,
+          "approach": [
+            -2.5,
+            5.5
+          ],
+          "standable": true,
+          "walkingPath": [
+            [
+              -2.5,
+              5.5
+            ]
+          ]
+        },
+        {
+          "block": "archive-image",
+          "position": [
+            8.55,
+            5.3
+          ],
+          "facing": -1.5707963267948966,
+          "approach": [
+            0,
+            5.3
+          ],
+          "standable": true,
+          "walkingPath": [
+            [
+              0,
+              5.3
+            ]
+          ]
+        },
+        {
+          "block": "oral-history",
+          "position": [
+            -7.9,
+            -3.8
+          ],
+          "facing": 1.5707963267948966,
+          "approach": [
+            -3.4,
+            -3.8
+          ],
+          "standable": true,
+          "walkingPath": [
+            [
+              -3.4,
+              -3.8
+            ]
+          ]
+        },
+        {
+          "block": "sample-clipping",
+          "position": [
+            7.2,
+            -3.8
+          ],
+          "facing": -1.5707963267948966,
+          "approach": [
+            3.2,
+            -3.8
+          ],
+          "standable": true,
+          "walkingPath": [
+            [
+              3.2,
+              -3.8
+            ]
+          ]
+        },
+        {
+          "block": "bus-model",
+          "position": [
+            0,
+            -8.5
+          ],
+          "facing": 0,
+          "approach": [
+            0,
+            0.5
+          ],
+          "standable": true,
+          "walkingPath": [
+            [
+              0,
+              0.5
+            ]
+          ]
+        }
+      ]
+    },
+    "appDiagnostics": [],
+    "result": "pass"
+  },
+  "portraitGeometry": {
+    "foyer": {
+      "drawCalls": 8,
+      "label": {
+        "title": "The 1956 bus boycott",
+        "sub": "TALLAHASSEE",
+        "fits": true,
+        "screen": [
+          196.5,
+          337.1151563291478
+        ],
+        "inView": true,
+        "picked": "boycott"
+      }
+    },
+    "bays": [
+      {
+        "block": "film",
+        "approach": [
+          -2.5,
+          5.5
+        ],
+        "path": [
+          [
+            -2.5,
+            5.5
+          ]
+        ],
+        "label": {
+          "title": "The students who sparked the boycott",
+          "sub": "READ THE PASSAGE",
+          "fits": true,
+          "screen": [
+            196.49999999999991,
+            251.42266916423728
+          ],
+          "inView": true,
+          "picked": "exhibit:boycott:film"
+        },
+        "drawCalls": 7
+      },
+      {
+        "block": "archive-image",
+        "approach": [
+          0,
+          5.3
+        ],
+        "path": [
+          [
+            0,
+            5.3
+          ]
+        ],
+        "label": {
+          "title": "How Tallahassee kept moving",
+          "sub": "READ THE PASSAGE",
+          "fits": true,
+          "screen": [
+            196.50000000000014,
+            256.64786631185444
+          ],
+          "inView": true,
+          "picked": "exhibit:boycott:archive-image"
+        },
+        "drawCalls": 7
+      },
+      {
+        "block": "oral-history",
+        "approach": [
+          -3.4,
+          -3.8
+        ],
+        "path": [
+          [
+            -3.4,
+            -3.8
+          ]
+        ],
+        "label": {
+          "title": "The Inter-Civic Council and C. K. Steele",
+          "sub": "READ THE PASSAGE",
+          "fits": true,
+          "screen": [
+            196.4999999999999,
+            354.69204209391216
+          ],
+          "inView": true,
+          "picked": "exhibit:boycott:oral-history"
+        },
+        "drawCalls": 8
+      },
+      {
+        "block": "sample-clipping",
+        "approach": [
+          3.2,
+          -3.8
+        ],
+        "path": [
+          [
+            3.2,
+            -3.8
+          ]
+        ],
+        "label": {
+          "title": "Pressure, prosecution and resistance",
+          "sub": "READ THE PASSAGE",
+          "fits": true,
+          "screen": [
+            196.50000000000009,
+            357.3160699837406
+          ],
+          "inView": true,
+          "picked": "exhibit:boycott:sample-clipping"
+        },
+        "drawCalls": 8
+      },
+      {
+        "block": "bus-model",
+        "approach": [
+          0,
+          0.5
+        ],
+        "path": [
+          [
+            0,
+            0.5
+          ]
+        ],
+        "label": {
+          "title": "What the boycott changed",
+          "sub": "READ THE PASSAGE",
+          "fits": true,
+          "screen": [
+            196.5,
+            377.4052910068484
+          ],
+          "inView": true,
+          "picked": "exhibit:boycott:bus-model"
+        },
+        "drawCalls": 8
+      }
+    ],
+    "lensFilter": [
+      "archive-image",
+      "bus-model",
+      "film"
+    ],
+    "highFlightClear": true,
+    "hdrFirst": 16,
+    "hdrSteady": 12,
+    "viewport": [
+      393,
+      852
+    ]
+  },
+  "liveProxy": {
+    "version": 10,
+    "method": "Normal Staff/client context and verified-TLS transport. Synthetic profiles, no browser test mode on the live API.",
+    "startedAt": "2026-11-28T19:02:07.681Z",
+    "captures": [
+      {
+        "at": "2026-11-28T19:02:11.053Z",
+        "httpStatus": 200,
+        "request": {
+          "requestId": "7cd9ad29-7e45-477d-8e13-538ed4966a90",
+          "job": "guide",
+          "agentId": "docent-silver",
+          "schemaId": "atlas-evidence-answer-v1",
+          "context": {
+            "placeId": "boycott",
+            "catalogRevision": "bc049b7bcc365413d4d675edfc071a17031a04a1d345fa9aa34a2713cd9fe58d",
+            "visibleBlockIds": [
+              "place-overview",
+              "oral-history"
+            ],
+            "lens": {
+              "limits": {
+                "violence": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "sexual": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "language": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "disturbing": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "viewpoint": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "sensory": {
+                  "amount": 1,
+                  "graphicness": 1
+                }
+              },
+              "hard": {
+                "violence": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "sexual": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "language": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "disturbing": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "viewpoint": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "sensory": {
+                  "amount": 2,
+                  "graphicness": 2
+                }
+              },
+              "depth": "Standard",
+              "trustFrom": "Author",
+              "show": {
+                "real": true,
+                "pseudonym": true,
+                "anonymous": true,
+                "agents": true
+              },
+              "audience": "teen"
+            },
+            "question": "Who led this"
+          }
+        },
+        "response": {
+          "proposal": {
+            "kind": "answer",
+            "room": "boycott",
+            "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+            "text": "Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+            "citations": [
+              "oral-history"
+            ]
+          },
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "receiptData": {
+            "provider": "anthropic",
+            "job": "guide",
+            "model": "anthropic/claude-haiku-5-5",
+            "agentId": "docent-silver",
+            "result": "proposed",
+            "receiptId": "3df3cbff-a80c-44d2-bce3-68297d3bb4ce"
+          }
+        },
+        "client": {
+          "text": "Its elected president was Rev. C. K. Steele, pastor of Bethel Baptist Church.",
+          "status": "Live · grounded answer",
+          "sources": [
+            "The Inter-Civic Council and C. K. Steele"
+          ],
+          "citationIds": [
+            "oral-history"
+          ],
+          "expected": "oral-history",
+          "expectedCited": true,
+          "localReceipt": "0088a69dc90754440003b6f7ba74cf5cb26b10800f9ca84fa38c76dab53b270d"
+        }
+      },
+      {
+        "at": "2026-11-28T19:02:34.844Z",
+        "httpStatus": 200,
+        "request": {
+          "requestId": "6f6dd281-00d9-46cf-a087-e76f1636d049",
+          "job": "guide",
+          "agentId": "docent-silver",
+          "schemaId": "atlas-evidence-answer-v1",
+          "context": {
+            "placeId": "boycott",
+            "catalogRevision": "bc049b7bcc365413d4d675edfc071a17031a04a1d345fa9aa34a2713cd9fe58d",
+            "visibleBlockIds": [
+              "place-overview",
+              "outcomes"
+            ],
+            "lens": {
+              "limits": {
+                "violence": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "sexual": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "language": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "disturbing": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "viewpoint": {
+                  "amount": 1,
+                  "graphicness": 1
+                },
+                "sensory": {
+                  "amount": 1,
+                  "graphicness": 1
+                }
+              },
+              "hard": {
+                "violence": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "sexual": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "language": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "disturbing": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "viewpoint": {
+                  "amount": 2,
+                  "graphicness": 2
+                },
+                "sensory": {
+                  "amount": 2,
+                  "graphicness": 2
+                }
+              },
+              "depth": "Standard",
+              "trustFrom": "Author",
+              "show": {
+                "real": true,
+                "pseudonym": true,
+                "anonymous": true,
+                "agents": true
+              },
+              "audience": "teen"
+            },
+            "question": "Did it work?"
+          }
+        },
+        "response": {
+          "proposal": {
+            "kind": "answer",
+            "room": "boycott",
+            "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+            "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses.",
+            "citations": [
+              "outcomes"
+            ]
+          },
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "receiptData": {
+            "provider": "anthropic",
+            "job": "guide",
+            "model": "anthropic/claude-haiku-5-5",
+            "agentId": "docent-silver",
+            "result": "proposed",
+            "receiptId": "428c6c24-dbef-4543-8500-8dd5f7021626"
+          }
+        },
+        "client": {
+          "text": "The Tallahassee bus boycott helped end legally segregated seating on the city’s buses.",
+          "status": "Live · grounded answer",
+          "sources": [
+            "From repeal to integrated buses"
+          ],
+          "citationIds": [
+            "outcomes"
+          ],
+          "expected": "outcomes",
+          "expectedCited": true,
+          "localReceipt": "bd4615968c3fbc9572a5b5f7f0c2f4a067ae0a09656a04845d2129f571e25813"
+        }
+      }
+    ]
+  },
+  "proxyDeploymentAndLedger": {
+    "version": 10,
+    "status": "ACTIVE",
+    "updated_at": 1795892491921,
+    "verify_jwt": false,
+    "artifact_sha256": "04136aa974d35f646748b22da1b9e3c19eb395702d5c67f9931236c2df780054",
+    "ledger": [
+      {
+        "id": "3df3cbff-a80c-44d2-bce3-68297d3bb4ce",
+        "time": "2026-11-28 19:02:10.966+00",
+        "result": "accepted",
+        "validation_passed": true,
+        "failure_class": null,
+        "cost_microusd": 249,
+        "cost_basis": "measured"
+      },
+      {
+        "id": "428c6c24-dbef-4543-8500-8dd5f7021626",
+        "time": "2026-11-28 19:02:34.76+00",
+        "result": "accepted",
+        "validation_passed": true,
+        "failure_class": null,
+        "cost_microusd": 221,
+        "cost_basis": "measured"
+      }
+    ]
+  },
+  "kitBrowser": {
+    "passed": 9,
+    "errors": [],
+    "externalRequests": 0
+  }
+}
