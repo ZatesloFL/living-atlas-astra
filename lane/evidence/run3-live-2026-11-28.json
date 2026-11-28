@@ -57,5 +57,9 @@
       "cost_basis": "measured"
     }
   ],
-  "totalCostMicrousd": 794
+  "totalCostMicrousd": 794,
+  "exactValidator": {
+    "unchangedFrom": "189b316",
+    "sha256": "a5f3317d845c2003c504677215f35dd1c18cf388327a0e18f9c6ba5f8953b0e1"
+  }
 }

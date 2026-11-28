@@ -1,0 +1,149 @@
+{
+  "paused": "You have left setup. No Place has been entered. Resume when you want to finish your local profile preview; account-less entry is not available.\n\nResume setup",
+  "furnishing": "Atlas can help with your places and settings from the start — narrow or turn off any of it anytime, in words.\n\nAll three starts include your Drive archive and Second Look workshop. Your own building begins from here.\n\nYour start\nFrom your interview\nFrom scratch\nReading garden template\nYour answers\n\nHobbies: birdwatching\nInterests: bread\nLocal area: No\n\nSystem proposals · yours to decide\nA birdwatching notebook + A recipe notebook\n\nSystem proposal · Based on the interests you wrote: birdwatching · bread. Authored locally; not a fact about you\n\nChoice: pending\n\nKeepUse my editRemove\nBring a public reference\n\nThese owners currently allow inclusion. The originals keep their owners, scores, standing and grant rules; revocation still applies.\n\n Civic table · Place Civic table · lead · Thing\n\nDrive: archive not synced. Workshop: static Second Look information; account and backing not connected.\n\nPreview my spaceBack to Lens",
+  "wren": {
+    "sign": "Agent · operator Nic · verification not connected · simulation",
+    "card": "◇ Wren · Docent · Agent · operator Nic · verification not connected · simulation\n\nHelper record · unmeasured\n\nOperator record · unmeasured · no linked identity record\n\nAnswers use readable Things in this Place under your Lens and this helper’s grant. Each answer shows whether it is live or simulated.\n\nThis Place uses local answers. Live answers are available from Mara in the boycott exhibition.\n\nAsk Wren about Wren · Docent\n\nOne question at a time · up to 600 characters. Earlier questions are not used.\n\nAsk Wren\nWhat is this Place?\nWhat needs verification?\nWhat can this helper do?\n\nTour pre-flight: every stop is reachable by you and has a current grant for its local helper. Travel previews still happen before each departure.\n\nPropose a tourHelpers & grantsFind Places, trails & events"
+  },
+  "gallery": {
+    "sign": "Organization · verification not connected · simulation",
+    "card": "tlh/source-gallery\n\nAuthor: Aster Collection Study Gallery\nOrganization · verification not connected · simulation\nDeclared · Steward · Audience\nHarbor on Paper · Simulated illustration\n\nSource: Mock gallery collection · Fed by the source · Simulated source · Synced Nov 28, 2026, 8:29 AM · Rights: public-domain\n\nDeclared · Steward · Audience · this Thing\nStudy in Cobalt · Simulated illustration\n\nSource: Mock gallery collection · Fed by the source · Simulated source · Synced Nov 28, 2026, 8:29 AM · Rights: public-domain\n\nDeclared · Steward · Audience · this Thing\nFolds at Sunset · Simulated illustration\n\nSource: Mock gallery collection · Fed by the source · Simulated source · Synced Nov 28, 2026, 8:29 AM · Rights: rights-reserved\n\nDeclared · Steward · Audience · this Thing\nSUBSTANCE\nView only · substance locked\nSTYLE\nOpen · restyle your own view\n\nFork records not supplied. Available now: 3D · this card · Page.\n\nStyle · Open · restyle your own view\nHelpers · helpers for this PlaceAccess & room receiptsRead in Page formBack to the walk"
+  },
+  "mission": [
+    "Author: Nic\nNamed · verification not connected · simulation",
+    "Author: History contributor (sample)\nPseudonymous · Unverified · age unknown"
+  ],
+  "recordAnswers": [
+    "Atlas · I have no dated earlier visit to compare with, so I cannot say what changed since you were last here. No publication or update dates are on file for the visible catalog records. Event windows are schedules, not publication dates.",
+    "Atlas · Groups with halls in your view: Writing circle — A sample made group with a public hall and a selected board. Hall: Civic table. Open Discovery → Clubs to inspect membership and the hall’s door. No membership has been granted.",
+    "Atlas · There is no connected live crowd count here, so I cannot tell you who is here now or promise a busy Place. Visible sample records you can follow: River (sample) at Town Square; Atlas editor (sample) at The 1956 bus boycott; Wren at Wren · Docent. Open Discovery → People to inspect or follow.",
+    "Atlas · There is no connected live crowd count here, so I cannot tell you who is here now or promise a busy Place. Visible sample records you can follow: River (sample) at Town Square; Atlas editor (sample) at The 1956 bus boycott; Wren at Wren · Docent. Open Discovery → People to inspect or follow."
+  ],
+  "market": {
+    "room": "market",
+    "grants": [
+      {
+        "id": "0e6812c9-8d0b-499c-b246-1b258f0ae2c1",
+        "place": "commons/market",
+        "person": "seed-me",
+        "limits": {
+          "sensory": {
+            "amount": 2,
+            "graphicness": 1
+          }
+        },
+        "state": "active",
+        "createdAt": "2026-11-28T13:30:58.095Z",
+        "expires": null
+      }
+    ],
+    "receipts": [
+      {
+        "id": 3,
+        "prevHash": "ef84a89488cb2a2210622c6825b469320911290f618672687c337bffe35b005b",
+        "actor": "seed-me",
+        "action": "door_agreed",
+        "time": "2026-11-28T13:30:58.119Z",
+        "diff": {
+          "edgeId": "commons-market",
+          "choice": "visit-raise",
+          "terms": {
+            "placeId": "commons/market",
+            "version": null,
+            "content": {
+              "violence": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sexual": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "language": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "disturbing": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "viewpoint": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "measured": {
+              "violence": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sexual": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "language": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "disturbing": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "viewpoint": {
+                "amount": 0,
+                "graphicness": 0
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 1
+              }
+            },
+            "admission": {
+              "mode": "threshold",
+              "minimum": {
+                "violence": {
+                  "amount": 0,
+                  "graphicness": 0
+                },
+                "sexual": {
+                  "amount": 0,
+                  "graphicness": 0
+                },
+                "language": {
+                  "amount": 0,
+                  "graphicness": 0
+                },
+                "disturbing": {
+                  "amount": 0,
+                  "graphicness": 0
+                },
+                "viewpoint": {
+                  "amount": 0,
+                  "graphicness": 0
+                },
+                "sensory": {
+                  "amount": 0,
+                  "graphicness": 0
+                }
+              },
+              "ageRule": null,
+              "price": null,
+              "standingRules": []
+            },
+            "minAge": 0
+          }
+        },
+        "hash": "747386b91043e6949a773d5dd8d7a6ebe33e4a695c17d6756a51838bb7dff970"
+      }
+    ]
+  },
+  "answer": "Live · no supported answer\n\nAnswer from Mara\n\nI don't know from the blocks available in this view.\n\nRelated passage · partial evidence\n\nThis local excerpt describes pressure and changes. It does not establish whether the campaign succeeded.\n\nThe campaign placed economic and political pressure on the segregated bus system. Legal disputes and changes in local transport policy unfolded over time rather than in a single moment. A full account should distinguish the boycott’s organizing milestones, court decisions and the experience of riders after formal changes. This prototype deliberately leaves that detailed chronology provisional.\n\nQuoted from 4. Pressure, negotiations and change\n\nInspect answer record\nKeep this answer in my visit",
+  "saved": "Pinned Places\nThe 1956 bus boycott\nRecent Places\nThe 1956 bus boycottNight MarketWelcome to TallahasseeMission San LuisAster Collection Study GalleryTown Square\nKept answers\nThe 1956 bus boycott\n\nI don't know from the blocks available in this view.\n\nInspect kept-answer record",
+  "ending": "Trail finished · Inside Nic’s studio\n\n0 visited · 1 marked seen · 3 skipped. Finished 11/28/2026, 8:31:18 AM.\n\nYour progress is saved. Skipped or marked-seen stops do not count as recorded visits.",
+  "events": "Sample events · simulation, repeating weekly from this browser’s first visit. These are demonstration schedules, not live gatherings. RSVP saves a bookmark to this profile; no invitation or message is sent. The reminder appears at the event’s start while the Atlas is open.\n\nOrder · Curator’s order\nCurator’s order\nNewest\nEndorsements on file\nNearest\nFrom people I follow\n\nUpcoming · sample event\n\nEVENT\nA walk through the exhibition\nScheduled\nDec 2, 2026, 8:33 AM\nEndorsements on file\nNo record on file\nConnections from here\n0\n\nBy Mara · Agent · operator Nic · verification not connected · simulation\n\nViolence\n1 × 1\nSexual content\n0 × 0\nLanguage\n0 × 0\nDisturbing themes\n1 × 1\nViewpoint\n1 × 1\nSensory\n0 × 0\n\nAmount × graphicness · each 0–3\n\nWithin current crossing limits\n\nWhy am I seeing this?\nDeclared · Steward · Audience · unmeasured\nDoor terms · review before entering\nPreview\nView event\nFollow curator\n\n12/2/2026, 8:33:21 AM – 9:18:21 AM\nThe 1956 bus boycott\n\nRSVPTravel to venue\n\nUpcoming · sample event\n\nEVENT\nAn open table for ideas\nScheduled\nDec 4, 2026, 8:31 AM\nEndorsements on file\nNo record on file\nConnections from here\n3\n\nBy Living Atlas editors · Named · Verified adult · simulated\n\nViolence\n0 × 0\nSexual content\n0 × 0\nLanguage\n0 × 0\nDisturbing themes\n0 × 0\nViewpoint\n0 × 0\nSensory\n0 × 0\n\nAmount × graphicness · each 0–3\n\nWithin current crossing limits\n\nWhy am I seeing this?\nDeclared · Steward · Audience · unmeasured\nDoor terms · review before entering\nPreview\nView event\nFollow curator\n\n12/4/2026, 8:31:21 AM – 9:31:21 AM\nCivic table\n\nRSVPTravel to venue",
+  "errors": []
+}

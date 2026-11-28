@@ -1,0 +1,12 @@
+{
+  "paused": "Setup paused\n\nYou have left setup. No Place has been entered. Resume when you want to finish your local profile preview; account-less entry is not available.\n\nResume setup",
+  "saved": "Your pins, recent Places & kept answers\n×\nBack to the entrance\nPinned Places\nMy space’s space\nRecent Places\nMy space’s space\nKept answers\n\nNo answers kept by this profile yet.",
+  "answer": "You · What clubs or groups can I join here?\n\nAtlas · Groups with halls in your view: Writing circle — A sample made group with a public hall and a selected board. Hall: Civic table. Open Discovery → Clubs to inspect membership and the hall’s door. No membership has been granted.",
+  "sameVisit": {
+    "elapsedMinutesSimulated": 13,
+    "doorAgreementCount": 1,
+    "duplicateAgreements": 0,
+    "secondGate": false
+  },
+  "errors": []
+}
