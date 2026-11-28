@@ -1,0 +1,149 @@
+{
+  "build": "f87cc944f033020fafc4604a5c4771fb852321e4",
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "sha256": {
+    "src/builder-hall-recovery.js": "160e8e93b7fa2bfcc0a8815589d0010e27c4bb23121b2073e872e894b5d7b259",
+    "src/builder-provenance.js": "a46e07757adf864560fa69646187562e516406c2c6b0b3beb26d9eb64b5fc69d",
+    "src/builder.js": "4cd12ba0fe2c86e461c20473e1c275b4e23286ef9c637431deca4187ee2eb172",
+    "src/interior-space.js": "7de630e1883daf88d1698ea81df089bdda66798beff752f4fa5981697051b17b",
+    "src/runtime.js": "7be742108921add73d6aa3110235516d95645b3ac7f04d4934b23736f1b02a02"
+  },
+  "archivedSourceCommit": "60ba1aa",
+  "native": {
+    "build": "f87cc944f033020fafc4604a5c4771fb852321e4",
+    "home": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c",
+    "owner": "9d02224d-514a-4e7e-8fe2-e2526ddd101c",
+    "piece": "kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8",
+    "hall": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8",
+    "path": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8/door",
+    "publicationReceipt": "builder:484d7dc88c286815cf3bd4223186671de8b052dd3a5ae06dba5b5f780e8c7fae",
+    "interiorPublicationReceipt": "builder:bddf501d6891453e4fc678f07b58456b34869d6fa2dab57ba3ea07d6f86da572",
+    "crossing": {
+      "outside": {
+        "room": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c",
+        "scene": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c",
+        "position": {
+          "x": 8,
+          "z": -2.1000000000000005
+        },
+        "drawCalls": 9
+      },
+      "arrived": {
+        "room": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8",
+        "scene": "hall:builder-home-s9d02224d-d514a-d4e7e-d8fe2-de2526ddd101c-shall-dkit-dee27a1a0-dc1c5-d41b3-daf90-d553e314abdf8",
+        "position": {
+          "x": 0,
+          "z": 8.4
+        },
+        "drawCalls": 3,
+        "inside": "Synthetic Lantern Hall",
+        "arrivalIsStandable": true,
+        "wallsBlockAnOutsidePosition": true,
+        "receipts": [
+          "f87201287559bfee23dd22a2014564659c96a6d310a2c1bc002acf30adef5bd1"
+        ]
+      },
+      "path": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8/door"
+    },
+    "subject": {
+      "ref": {
+        "placeId": "home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8",
+        "audienceVersion": null,
+        "thingId": "kit-4df1cff2-467d-4915-9b8e-a5556d6c2722"
+      },
+      "marker": "exhibit:home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8:kit-4df1cff2-467d-4915-9b8e-a5556d6c2722"
+    },
+    "refused": [
+      {
+        "profile": "seed-visitor",
+        "roomBeforeRequest": "square",
+        "message": "No accessible room at that address. I tried “tlh/home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+      },
+      {
+        "profile": "seed-verified",
+        "roomBeforeRequest": "square",
+        "message": "No accessible room at that address. I tried “tlh/home/9d02224d-514a-4e7e-8fe2-e2526ddd101c/hall-kit-ee27a1a0-c1c5-41b3-af90-553e314abdf8” as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+      }
+    ],
+    "liveCalls": 0,
+    "errors": []
+  },
+  "legacy": {
+    "build": "f87cc944f033020fafc4604a5c4771fb852321e4",
+    "legacyBuild": "local (unstamped)",
+    "home": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+    "piece": "kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355",
+    "hall": "home/317997ad-29af-4eb2-a061-cdd11bb4710e/hall-kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355",
+    "path": "home/317997ad-29af-4eb2-a061-cdd11bb4710e/hall-kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355/door",
+    "originalPublicationReceipt": "builder:16f3f96ed1defb6cb789c9af620596a18eea900f90d93a047ad33c43d1508e31",
+    "publicationReceipts": [
+      {
+        "id": "builder:16f3f96ed1defb6cb789c9af620596a18eea900f90d93a047ad33c43d1508e31",
+        "place": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+        "time": "2026-11-28T04:49:11.859Z",
+        "things": [
+          {
+            "placeId": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+            "thingId": "kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355",
+            "versionId": "kit-9a6c92e0-f567-4328-9c5a-009948f32bdd/kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355"
+          }
+        ]
+      },
+      {
+        "id": "builder:0fd5f152522cedb07287444dc9d2c8bc2c07369b50a9c874c8041c1838fde1bc",
+        "place": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+        "time": "2026-11-28T04:49:15.206Z",
+        "things": [
+          {
+            "placeId": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+            "thingId": "kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355",
+            "versionId": "kit-9a6c92e0-f567-4328-9c5a-009948f32bdd/kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355"
+          }
+        ]
+      }
+    ],
+    "structure": {
+      "parentPlaceId": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+      "pieceId": "kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355",
+      "recoveredFrom": {
+        "thing": {
+          "placeId": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+          "thingId": "kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355",
+          "versionId": "kit-9a6c92e0-f567-4328-9c5a-009948f32bdd/kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355"
+        },
+        "publicationReceiptRef": "builder:16f3f96ed1defb6cb789c9af620596a18eea900f90d93a047ad33c43d1508e31",
+        "placementReceiptRef": "builder:0fd5f152522cedb07287444dc9d2c8bc2c07369b50a9c874c8041c1838fde1bc"
+      },
+      "recoveredVersionId": "kit-9a6c92e0-f567-4328-9c5a-009948f32bdd/kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355"
+    },
+    "crossing": {
+      "outside": {
+        "room": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+        "scene": "home/317997ad-29af-4eb2-a061-cdd11bb4710e",
+        "position": {
+          "x": 8,
+          "z": -0.5
+        },
+        "drawCalls": 9
+      },
+      "arrived": {
+        "room": "home/317997ad-29af-4eb2-a061-cdd11bb4710e/hall-kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355",
+        "scene": "hall:builder-home-s317997ad-d29af-d4eb2-da061-dcdd11bb4710e-shall-dkit-dc13e6060-d5c9a-d4eef-dbbfc-da648cb3d8355",
+        "position": {
+          "x": 0,
+          "z": 8.4
+        },
+        "drawCalls": 3,
+        "inside": "Synthetic Lantern Hall",
+        "arrivalIsStandable": true,
+        "wallsBlockAnOutsidePosition": true,
+        "receipts": [
+          "78427b4995f20a7d24b2b5e72bd42ad5fb419a20e76ee186e9787522b6575f8d"
+        ]
+      },
+      "path": "home/317997ad-29af-4eb2-a061-cdd11bb4710e/hall-kit-c13e6060-5c9a-4eef-bbfc-a648cb3d8355/door"
+    },
+    "liveCalls": 0,
+    "errors": []
+  }
+}
