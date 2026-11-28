@@ -1,0 +1,61 @@
+{
+  "source": "Read-only deployed call_receipts lookup; synthetic questions only",
+  "deployment": {
+    "name": "ai-proxy",
+    "version": 9,
+    "updatedAt": "2026-11-28T13:09:56.110Z",
+    "commit": "8268010",
+    "status": "ACTIVE"
+  },
+  "receipts": [
+    {
+      "id": "f4512f66-a5a2-483c-941b-30cd2fb8c828",
+      "time": "2026-11-28 13:10:05.722+00",
+      "result": "accepted",
+      "validation_passed": true,
+      "failure_class": null,
+      "input_tokens": 917,
+      "output_tokens": 198,
+      "reasoning_tokens": 153,
+      "cost_microusd": 191,
+      "cost_basis": "measured"
+    },
+    {
+      "id": "37339bb7-71a9-4095-ab77-74dfcef66553",
+      "time": "2026-11-28 13:10:27.818+00",
+      "result": "accepted",
+      "validation_passed": true,
+      "failure_class": null,
+      "input_tokens": 508,
+      "output_tokens": 209,
+      "reasoning_tokens": 165,
+      "cost_microusd": 156,
+      "cost_basis": "measured"
+    },
+    {
+      "id": "14503618-5db1-495f-bb33-fcaa0de2d945",
+      "time": "2026-11-28 13:10:51.166+00",
+      "result": "accepted",
+      "validation_passed": true,
+      "failure_class": null,
+      "input_tokens": 712,
+      "output_tokens": 591,
+      "reasoning_tokens": 579,
+      "cost_microusd": 367,
+      "cost_basis": "measured"
+    },
+    {
+      "id": "d8d2bbb2-5c01-4c0b-8ad5-d8a3461a7bef",
+      "time": "2026-11-28 13:13:17.321+00",
+      "result": "accepted",
+      "validation_passed": true,
+      "failure_class": null,
+      "input_tokens": 514,
+      "output_tokens": 57,
+      "reasoning_tokens": 45,
+      "cost_microusd": 80,
+      "cost_basis": "measured"
+    }
+  ],
+  "totalCostMicrousd": 794
+}

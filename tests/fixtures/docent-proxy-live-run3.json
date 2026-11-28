@@ -1,0 +1,509 @@
+{
+  "captureType": "real deployed proxy responses, synthetic questions; not raw provider envelopes",
+  "startedAt": "2026-11-28T13:10:03.042Z",
+  "edgeFunctionVersion": 9,
+  "transport": "Application client through verified-TLS HTTP transport; not a phone browser capture",
+  "captures": [
+    {
+      "at": "2026-11-28T13:10:05.774Z",
+      "request": {
+        "requestId": "2f5782b9-944a-4a87-a8e0-55172a98da06",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "48ba3b58f49f311785d746a656d972a9f46fd14dce2d12e5231fa5acd402e65a",
+          "visibleBlockIds": [
+            "place-overview",
+            "lead",
+            "context"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What bus service did residents boycott?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "organized a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "f4512f66-a5a2-483c-941b-30cd2fb8c828"
+        }
+      },
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "organized a boycott of the city\u2019s segregated bus service",
+          "citations": [
+            "lead"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "f4512f66-a5a2-483c-941b-30cd2fb8c828"
+        }
+      },
+      "label": "Live \u00b7 grounded answer"
+    },
+    {
+      "at": "2026-11-28T13:10:27.880Z",
+      "request": {
+        "requestId": "7af891ae-5dba-49b0-bd11-f110a607df3c",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "48ba3b58f49f311785d746a656d972a9f46fd14dce2d12e5231fa5acd402e65a",
+          "visibleBlockIds": [
+            "place-overview"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is this hall about?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "A community\u2019s campaign against segregated public transport.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "37339bb7-71a9-4095-ab77-74dfcef66553"
+        }
+      },
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "A community\u2019s campaign against segregated public transport.",
+          "citations": [
+            "place-overview"
+          ]
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "37339bb7-71a9-4095-ab77-74dfcef66553"
+        }
+      },
+      "label": "Live \u00b7 grounded answer"
+    },
+    {
+      "at": "2026-11-28T13:10:51.223Z",
+      "request": {
+        "requestId": "b2276769-f52e-49fe-a030-d4d9a7f0e9aa",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "48ba3b58f49f311785d746a656d972a9f46fd14dce2d12e5231fa5acd402e65a",
+          "visibleBlockIds": [
+            "place-overview",
+            "outcomes"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "did it actually work"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "14503618-5db1-495f-bb33-fcaa0de2d945"
+        }
+      },
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "14503618-5db1-495f-bb33-fcaa0de2d945",
+          "answerEvidence": "none"
+        }
+      },
+      "label": "Live \u00b7 no supported answer"
+    },
+    {
+      "at": "2026-11-28T13:13:17.374Z",
+      "request": {
+        "requestId": "45d77e17-7b08-4bce-bbf9-77f9d1b23bba",
+        "job": "guide",
+        "agentId": "docent-silver",
+        "schemaId": "atlas-evidence-answer-v1",
+        "context": {
+          "placeId": "boycott",
+          "catalogRevision": "48ba3b58f49f311785d746a656d972a9f46fd14dce2d12e5231fa5acd402e65a",
+          "visibleBlockIds": [
+            "place-overview"
+          ],
+          "lens": {
+            "limits": {
+              "violence": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sexual": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "viewpoint": {
+                "amount": 1,
+                "graphicness": 1
+              },
+              "sensory": {
+                "amount": 1,
+                "graphicness": 1
+              }
+            },
+            "hard": {
+              "violence": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sexual": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "language": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "disturbing": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "viewpoint": {
+                "amount": 2,
+                "graphicness": 2
+              },
+              "sensory": {
+                "amount": 2,
+                "graphicness": 2
+              }
+            },
+            "depth": "Standard",
+            "trustFrom": "Author",
+            "show": {
+              "real": true,
+              "pseudonym": true,
+              "anonymous": true,
+              "agents": true
+            },
+            "audience": "teen"
+          },
+          "question": "What is the airspeed of a swallow?"
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "anthropic",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "d8d2bbb2-5c01-4c0b-8ad5-d8a3461a7bef"
+        }
+      },
+      "clientResult": {
+        "proposal": {
+          "kind": "answer",
+          "room": "boycott",
+          "reason": "Proposed excerpts from permitted public sample Things; historical claims remain to verify.",
+          "text": "I don't know from the blocks available in this view.",
+          "citations": []
+        },
+        "model": "anthropic/claude-haiku-5-5",
+        "agentId": "docent-silver",
+        "receiptData": {
+          "provider": "proxy",
+          "job": "guide",
+          "model": "anthropic/claude-haiku-5-5",
+          "agentId": "docent-silver",
+          "result": "proposed",
+          "receiptId": "d8d2bbb2-5c01-4c0b-8ad5-d8a3461a7bef",
+          "answerEvidence": "none"
+        }
+      },
+      "label": "Live \u00b7 no supported answer"
+    }
+  ],
+  "error": "The expression evaluated to a falsy value:\n\n  assert(result.proposal.citations.length)\n",
+  "acceptance": {
+    "knownAndOverview": "live exact cited answers",
+    "outcome": "live abstention retained; local related passage shown separately as partial evidence",
+    "unsupported": "live abstention",
+    "incompleteRejections": 0
+  },
+  "initialHarnessExpectation": "Expected an outcome quote; the first run stopped on the valid abstention. No retry of that question. The unsupported ask ran separately."
+}
