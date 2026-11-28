@@ -36,8 +36,9 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  if(sourceState)return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}"><p class="block-load-status" role="status">${esc(sourceState)}</p>${sourceBadgeHTML(block)}</section>`;
  const body=block.body;let html='';
  if(block.state==='pending'||block.state==='error'||block.state==='unavailable')html+=`<p class="block-load-status" role="status">${block.state==='pending'?'Content is arriving. Showing the available fallback.':block.state==='error'?'Content could not be loaded. Showing the available fallback.':'Media is not attached. Showing the available fallback.'}</p>`;
- const sourcedMedia=connectedMediaHTML(block,room);
- if(sourcedMedia!==null)html+=sourcedMedia;else if(block.exhibit)html+=kitHTML(block,room);else switch(block.type){
+ const sourcedMedia=connectedMediaHTML(block,room),provenance=sourceHTML(block);
+ const editorialKit=sourcedMedia===null&&block.exhibit&&block.exhibitEditorial===true;
+ if(sourcedMedia!==null)html+=sourcedMedia;else if(block.exhibit)html+=kitHTML(block,room,{provenance:editorialKit?provenance:''});else switch(block.type){
  case 'heading':html+=`<h2>${esc(body)}</h2>`;break;
  case 'text':html+=`${block.sectionHeading?`<h2>${esc(block.title)}</h2>`:''}<p>${esc(body??block.reps?.text??'Content not yet available.')}</p>`;break;
  case 'infobox':html+=`<dl class="article-infobox">${Object.entries(body??{}).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;break;
@@ -50,7 +51,7 @@ export function blockHTML(block,room,lens,{approved=false,softApproved=new Set()
  case 'image':case 'video':case 'audio':case 'model':html+=media(block);break;
  default:html+=`<p>${esc(block.reps?.text??block.reps?.alt??'Content representation not yet available.')}</p>`;
  }
- return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}"${sourceActivityAttributes(block,room,lens)}>${html}${block.contribution?`<p class="contributor-credit">${block.contribution.merged?'Official contribution':'Integrated layer'} · ${esc(block.contribution.type)} · credited to ${esc(block.contribution.name)}</p>`:''}${sourceHTML(block)}${block.content&&!block.contribution?readingCard(room,lens,block):''}</section>`;
+ return `<section class="content-block" data-block-id="${esc(block.id)}" data-block-type="${esc(block.type)}"${sourceActivityAttributes(block,room,lens)}>${html}${block.contribution?`<p class="contributor-credit">${block.contribution.merged?'Official contribution':'Integrated layer'} · ${esc(block.contribution.type)} · credited to ${esc(block.contribution.name)}</p>`:''}${editorialKit?'':provenance}${block.content&&!block.contribution?readingCard(room,lens,block):''}</section>`;
 }
 export function articleHTML(id,lens,options={}){
  const original=ROOMS[id],visible=original&&viewRoom(original,lens);if(!visible||visible.visibility==='private'||!permission(visible,lens).canLook)return '<p>Private space, something is here.</p>';if(!roomVisible(id,lens))return '<p>This room is outside your lens.</p>';

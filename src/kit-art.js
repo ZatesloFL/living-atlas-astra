@@ -38,11 +38,11 @@ function scene(index){
  return shapes;
 }
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function artSVG(index=0,title='Generated sample'){
+export function artSVG(index=0,title='Generated sample',credit='GENERATED SAMPLE · NOT ARCHIVAL MEDIA'){
  const shapes=scene(index).map(s=>s.kind==='rect'?`<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" fill="${s.fill}"/>`:s.kind==='ellipse'?`<ellipse cx="${s.x}" cy="${s.y}" rx="${s.rx}" ry="${s.ry}" fill="${s.fill}"/>`:`<path d="${s.d}" fill="${s.fill}"/>`).join('');
- return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440">${shapes}<rect y="378" width="720" height="62" fill="#102d36"/><text x="28" y="407" font-family="Georgia,serif" font-size="23" fill="#f6e6c9">${escape(title)}</text><text x="28" y="429" font-family="sans-serif" font-size="12" letter-spacing="2" fill="#c2d7cb">GENERATED SAMPLE · NOT ARCHIVAL MEDIA</text></svg>`;
+ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440">${shapes}<rect y="378" width="720" height="62" fill="#102d36"/><text x="28" y="407" font-family="Georgia,serif" font-size="23" fill="#f6e6c9">${escape(title)}</text><text x="28" y="429" font-family="sans-serif" font-size="12" letter-spacing="2" fill="#c2d7cb">${escape(credit)}</text></svg>`;
 }
-export const artURL=(index,title)=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(artSVG(index,title));
+export const artURL=(index,title,credit)=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(artSVG(index,title,credit));
 export function drawArt(ctx,index,x=0,y=0,w=512,h=320){
  ctx.save();ctx.translate(x,y);ctx.scale(w/720,h/440);
  for(const s of scene(index)){

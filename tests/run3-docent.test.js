@@ -5,14 +5,28 @@ import {evidenceText,readableAnswer} from '../src/place-evidence.js';
 import {localQuestionAnswer,typedQuestionBlockIds,DONT_KNOW} from '../src/docent-questions.js';
 import {thingTitle} from '../src/thing-subject.js';
 import {provenanceLabel} from '../src/ai.js';
-test('chapter heading and pressure passage are one named citable Thing; outcome asks quote, never infer success',()=>{
- const room=ROOMS.boycott,block=room.blocks.find(b=>b.id==='outcomes');
- assert.equal(block.title,'4. Pressure, negotiations and change');assert(block.aliases.includes('outcomes-heading'));assert(!room.blocks.some(b=>b.id==='outcomes-heading'));
- const context={question:'did it actually work',blocks:room.blocks.map(b=>({...b,body:evidenceText(b)}))};
- assert(typedQuestionBlockIds(context).includes('outcomes'));
- const answer=localQuestionAnswer(context);assert.deepEqual(answer.citations,['outcomes']);assert.match(answer.text,/economic and political pressure/);assert(evidenceText(block).includes(answer.text));
- assert.equal(localQuestionAnswer({...context,question:'did it actually work and how many unicorns rode the bus?'}).text,DONT_KNOW);
- for(const b of room.blocks)assert.notEqual(thingTitle(b),'Untitled Thing');
+test('Both boycott questions quote a titled Thing from the readable audience version',()=>{
+ const room=ROOMS.boycott;
+ const outcomes=room.blocks.find(block=>block.id==='outcomes');
+ assert(outcomes.aliases.includes('outcomes-heading'));
+ assert(!room.blocks.some(block=>block.id==='outcomes-heading'));
+ for(const version of room.versions){
+  const blocks=version.blocks.map(block=>({...block,body:evidenceText(block)}));
+  for(const [question,id,text] of [
+   ['Who led this','oral-history',/Inter-Civic Council led.*Rev\. C\. K\. Steele/],
+   ['Did it work?','outcomes',/January .*1957.*summer 1957/i],
+  ]){
+   const context={question,blocks};
+   assert(typedQuestionBlockIds(context).includes(id));
+   const answer=localQuestionAnswer(context);
+   assert.deepEqual(answer.citations,[id]);
+   assert.match(answer.text,text);
+   const source=version.blocks.find(block=>block.id===id);
+   assert(source.body.includes(answer.text));
+   assert.notEqual(thingTitle(source),id);
+  }
+  assert.equal(localQuestionAnswer({blocks,question:'did it actually work and how many unicorns rode the bus?'}).text,DONT_KNOW);
+ }
 });
 test('structured facts have readable authored evidence and JSON cannot be labelled grounded',()=>{
  const text=evidenceText({type:'infobox',body:{Place:'Tallahassee, Florida'}});assert.equal(text,'Place: Tallahassee, Florida');assert(readableAnswer(text));

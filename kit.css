@@ -10,3 +10,9 @@
 .source-media audio{max-width:100%}
 .source-video-frame{display:block;width:100%;aspect-ratio:16/9;border:0}
 .source-text-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:55dvh;overflow:auto}
+
+.kit-editorial{margin:.65rem 0 1.6rem;padding-top:.1rem;border-top:0}
+.kit-editorial h3{font:600 clamp(1.5rem,5.2vw,2.1rem)/1.15 Georgia,serif;margin:.45em 0 .5em}
+.kit-editorial .kit-passage{max-width:64ch;font:1.075rem/1.65 system-ui;margin:.75em 0}
+.kit-editorial .block-sources{margin:.9rem 0 1.3rem;padding-left:1.2rem;font-size:.88rem;line-height:1.48}
+.kit-editorial .block-sources li+li{margin-top:.45em}
