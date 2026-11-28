@@ -606,7 +606,7 @@ export class BuildUI {
         ${this.reviewImage(piece)}
         <span class="builder-review-kind">${esc(BUILDER_PIECES[piece.kind]?.label??piece.kind)}</span>
         <strong>${esc(label)} · ${esc(title(piece))}</strong>${details?`<p>${esc(details)}</p>`:''}</li>`).join('')}</ul>` : '<p>No changes from the published version.</p>'}
-      ${!budget?.valid?this.renderBudget():''}
+      ${budget?.valid===false?'<p class="builder-error">This draft exceeds the room budget. Review the limits in Outline.</p>':''}
       ${click('Publish this draft','publish',undefined,`class="builder-primary"${!budget?.valid||!this.draft.dirty?' disabled':''}`)}
     `;
   }
