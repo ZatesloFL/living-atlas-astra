@@ -52,13 +52,17 @@ export function atlasIntent(text,{limits={}}={}){
  }
  if(Object.keys(changes).length)return {kind:'lens',changes};
  if(/\b(?:keep (?:it|things) gentle|gentle (?:please|lens|settings))\b/i.test(text))return {kind:'lens',changes:Object.fromEntries(DIMENSIONS.map(([key])=>[key,{amount:key==='sexual'?0:1,graphicness:key==='sexual'?0:1}]))};
+ const topic=/\b(?:what['’]?s new|what is new|since I was last|recent updates)\b/i.test(text)?'news':/\b(?:clubs?|groups?)\b.*\b(?:join|here|available)\b/i.test(text)?'clubs':/\b(?:anyone else|who (?:is|can I follow)|people here|busy|right now)\b/i.test(text)?'people':null;
+ if(topic)return {kind:'index',topic,query:text};
+ if(/^(?:what|why|how|is|are|does|did|can|who|when)\b/i.test(text)&&!/^where\b/i.test(text))return clear('I do not have a record-backed answer to that question here. A Place’s Docent can answer from its readable Things; you can also ask about groups, shared presence or dated updates.');
  return {kind:'destination',query:text};
 }
 
 export function validateAtlasIntent(value){
  if(value?.kind==='extension'){extensionAreas(value);return value;}
- const fields={clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],narrow:['areas','scope'],lens:['changes'],trip:['target','choice','description'],destination:['query']};
+ const fields={index:['topic','query'],clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],narrow:['areas','scope'],lens:['changes'],trip:['target','choice','description'],destination:['query']};
  if(!value||!fields[value.kind]||Object.keys(value).some(k=>!['kind',...fields[value.kind]].includes(k)))throw new Error('Invalid Atlas intent.');
+ if(value.kind==='index'){if(!['news','clubs','people'].includes(value.topic)||typeof value.query!=='string'||value.query.length>1600)throw new Error('Invalid index question.');return value;}
  if(value.kind==='clarify'){if(typeof value.text!=='string'||!value.text||value.text.length>2000)throw new Error('Invalid clarification.');return value;}
  if(value.kind==='destination'){if(typeof value.query!=='string'||!value.query.trim()||value.query.length>1600)throw new Error('Name a Place to find.');return value;}
  if(value.kind==='lens'){if(!value.changes||Array.isArray(value.changes)||!Object.keys(value.changes).length||Object.entries(value.changes).some(([k,p])=>!DIMENSIONS.some(([id])=>id===k)||!validPair(p)))throw new Error('Each dimension needs both dials from 0 to 3.');return value;}

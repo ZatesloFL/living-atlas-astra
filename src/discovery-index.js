@@ -17,7 +17,12 @@ import {SORTS,discoveryGate,discoveryRoutes,curatorsFor,visiblePeople,eventsFor}
 
 const fold = value => String(value??'').normalize('NFKC').toLocaleLowerCase();
 const words = value => fold(value).match(/[\p{L}\p{N}]+/gu)??[];
-const validTime = value => typeof value==='string'&&Number.isFinite(Date.parse(value))?Date.parse(value):null;
+const validTime=value=>typeof value==='number'&&Number.isFinite(value)?value:typeof value==='string'&&Number.isFinite(Date.parse(value))?Date.parse(value):null;
+export function recordDates(node){
+ const publishedAt=validTime(node.publishedAt),updatedAt=validTime(node.updatedAt),scheduledAt=validTime(node.start);
+ const date=updatedAt!==null&&(publishedAt===null||updatedAt>publishedAt)?{dateAt:updatedAt,dateLabel:'Updated'}:publishedAt!==null?{dateAt:publishedAt,dateLabel:'Published'}:scheduledAt!==null?{dateAt:scheduledAt,dateLabel:'Scheduled'}:{dateAt:null,dateLabel:'Record date'};
+ return {publishedAt,updatedAt,newestAt:Math.max(publishedAt??-Infinity,updatedAt??-Infinity),...date};
+}
 const publicName = author => author?authorName(author):'Owner not supplied';
 const pairRanges = ranges => DIMENSIONS.flatMap(([key,label])=>AXES.filter(axis=>ranges?.[key]?.[axis]).map(axis=>({key,label,axis,...ranges[key][axis]})));
 
@@ -62,7 +67,7 @@ function baseEntry(key,lens,{paths,standing}) {
  const softGaps=[...new Set(routeRooms.flatMap(id=>gapsFor(viewRoom(ROOMS[id],lens),viewRoom(ROOMS[id],lens),lens)))];
  return {id:'place:'+room.id,type:'room',target:key,room:key,title:room.title,summary:room.substance?.summary??'',
   node:room,view:room,owner,gate,distance:path.length,softGaps,doorTerms:routeRooms.map(id=>terms(viewRoom(ROOMS[id],lens),lens)),
-  publishedAt:validTime(room.publishedAt),vouches:Number.isInteger(room.vouches)&&room.vouches>=0?room.vouches:null,
+  ...recordDates(room),vouches:Number.isInteger(room.vouches)&&room.vouches>=0?room.vouches:null,
   sourceBadge:room.sourceBadge??null,...recordMetadata(room,room,lens,standing)};
 }
 function communityEntry(type,node,places,lens) {
@@ -73,7 +78,7 @@ function communityEntry(type,node,places,lens) {
  return {...first,id:type+':'+node.id,type,target:node.id,title:node.title,summary:node.intro,node,view:room,community:true,
   ref:null,references:null,declaration:node.content,declarationSource:'authored community catalog',versionLabel:'',
   readings:{declared:node.content,steward:null,audience:null},facets:Object.fromEntries(Object.keys(FACETS).map(key=>[key,'unmeasured'])),
-  curator:node.curator,curatorRecord:CURATORS.find(c=>c.id===node.curator),owner:{id:null,name:'Owner not supplied',presentation:'pseudonym'},publishedAt:null,vouches:null,sourceBadge:node.sourceBadge??null,
+  curator:node.curator,curatorRecord:CURATORS.find(c=>c.id===node.curator),owner:{id:null,name:'Owner not supplied',presentation:'pseudonym'},...recordDates(node),vouches:null,sourceBadge:node.sourceBadge??null,
   softGaps:[...new Set([...targets.flatMap(t=>t.softGaps),...gapsFor(node,room,lens)])],
   doorTerms:[...new Map(targets.flatMap(t=>t.doorTerms).map(t=>[t.placeId,t])).values()]};
 }
@@ -87,7 +92,7 @@ export function catalogIndex(lens,{from='square',standing,now=Date.now()}={}) {
    entries.push({...entry,...recordMetadata(block,entry.view,lens,standing),id:'thing:'+entry.view.id+':'+(entry.view.version?.id??'original')+':'+block.id,
     type:'thing',target:block.id,node:block,title:block.title??block.label??(block.source&&typeof block.body==='string'?block.body:`${entry.title} · ${block.id.replace(/[-_]/g,' ')}`),summary:'',sourceState:sourceStateMessage(block),
     // The card contains metadata only. A soft preview never discloses the Thing body.
-    publishedAt:validTime(block.publishedAt),vouches:Number.isInteger(block.vouches)&&block.vouches>=0?block.vouches:null,
+    ...recordDates(block),vouches:Number.isInteger(block.vouches)&&block.vouches>=0?block.vouches:null,
     softGaps:[...new Set([...entry.softGaps,...gapsFor(block,entry.view,lens)])],sourceBadge:block.sourceBadge??entry.sourceBadge,
     doorTerms:[...entry.doorTerms,...(block.admission?[terms({...block,title:block.title??block.id},lens)]:[])]});
   }
@@ -100,7 +105,7 @@ export function catalogIndex(lens,{from='square',standing,now=Date.now()}={}) {
   if(!entry||!node||card.type==='layer'&&!layerAccess(entry.view,node,lens).visible)continue;
   const metadata=card.type==='layer'?{ref:null,references:null,versionLabel:'',declaration:node.content,readings:{declared:node.content,steward:null,audience:null},facets:Object.fromEntries(Object.keys(FACETS).map(key=>[key,'unmeasured'])),metadataFrom:'Layer declaration · layer readings unmeasured',softGaps:[...new Set([...entry.softGaps,...gapsFor(node,entry.view,lens)])]}:
    {metadataFrom:'Venue declaration and readings · facets refer to the presented person',facets:standing?readingSummary(standing.actorRecord(node.id,lens,{place:room,...(node.author.isAgent?{helperId:node.id}:{})})):Object.fromEntries(Object.keys(FACETS).map(key=>[key,null]))};
-  entries.push({...entry,...metadata,id:card.type+':'+card.target,type:card.type,target:card.target,title:card.title,node});
+  entries.push({...entry,...metadata,...recordDates(node),id:card.type+':'+card.target,type:card.type,target:card.target,title:card.title,node});
  }
  return entries;
 }
@@ -138,7 +143,7 @@ export function queryIndex(lens,query={},options={}) {
    indexId:entry.id,carriers:matching,reasons,why:reasons.join(' '),curationReceipt:curated?`Helper curation approved by a person · ${curated.model}`:null,
    orderPosition:Math.min(...matching.map(c=>{const index=BOARD_CARDS.findIndex(b=>b.id===c.id);return index<0?Infinity:index;}),Infinity)});
  }
- const compare=(a,b)=>sort==='newest'?(b.publishedAt??-Infinity)-(a.publishedAt??-Infinity):
+ const compare=(a,b)=>sort==='newest'?(b.newestAt??-Infinity)-(a.newestAt??-Infinity):
   sort==='vouched'?(b.vouches??-1)-(a.vouches??-1):sort==='nearest'?a.distance-b.distance:a.orderPosition-b.orderPosition;
  results.sort((a,b)=>compare(a,b)||a.title.localeCompare(b.title)||a.id.localeCompare(b.id));
  return {results,sort,sortLabel:SORTS[sort],query};

@@ -1,3 +1,4 @@
+import {indexQuestionAnswer} from './atlas-index-answers.js';
 import {ROOMS} from './data.js';
 import {ai} from './ai.js';
 import {ATLAS_INTENT_SCHEMA,AREA_LABELS,ATLAS_SCOPES} from './atlas-intents.js';
@@ -51,7 +52,13 @@ export class AtlasUI {
   const holder=this.holder;this.destinations=null;this.returnOffer=null;this.controller?.abort();this.controller=new AbortController();this.messages.push({who:'you',text:words});
   const result=await this.brain.request({job:'guide',agentId:'atlas',schema:ATLAS_INTENT_SCHEMA,context:{action:'personal-intent',question:words,lensLimits:structuredClone(this.lens().limits),place:{key:this.api.room?.()??'studio'},blocks:[]},signal:this.controller.signal,isCurrent:()=>personId(this.lens())===holder&&this.ui.mode==='ask-atlas'});
   if(this.pending){if(['revoke','narrow'].includes(result.proposal.kind)){await this.records.decline(this.lens(),this.pending.id);this.pending=null;}else throw new Error('Confirm or decline the open proposal first.');}
-  if(result.proposal.kind==='destination'){
+  if(result.proposal.kind==='index'){
+   this.records.require(this.lens(),'discovery','look');
+   const answer=indexQuestionAnswer(result.proposal,this.api.discovery(),{from:this.api.room?.()??'square'});
+   await this.records.lookup(this.lens(),{requested:result.proposal.query,rule:answer.rule,matches:answer.matches});
+   this.messages.push({who:'atlas',text:answer.text});
+  }
+  else if(result.proposal.kind==='destination'){
    if(holderReference(result.proposal.query))this.records.require(this.lens(),'travel','look');
    const personal=resolveHolderDestination(result.proposal.query,this.lens(),this.api.holderContext?.());
    if(personal){await this.records.holderLookup(this.lens(),personal);if(personId(this.lens())!==holder)throw new Error('The profile changed. Ask again.');this.messages.push({who:'atlas',text:personal.message});this.destinations=personal;this.returnOffer=personal.entrance?JSON.stringify(personal.entrance):null;
