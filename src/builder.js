@@ -12,6 +12,7 @@ import {composeBuilderRoom, withBuilderRoom} from './build-projection.js';
 import {BUILDER_DRAW_CEILING, BUILDER_PIECES, builderPieceCost, makeBuilderPiece, snapBuilderPosition, validateBuilderPiece} from './builder-pieces.js';
 import {builderPublication, builderPublications, builderSubject, stampBuilderProvenance, submissionFor} from './builder-provenance.js';
 import {AtlasRecords} from './atlas-records.js';
+import {atlasActionBoundary} from './atlas-action-policy.js';
 
 export const BUILDER_STORAGE = 'living-atlas.builder.v1';
 export const ROOM_BUDGET = Object.freeze({instances:80,atlasTiles:12,liveTextures:2,drawCalls:BUILDER_DRAW_CEILING,behaviors:16});
@@ -303,9 +304,12 @@ export class Builder {
     const room=this.owner(roomKey,lens);
     await this.atlasRecords.requireInitiative(lens,'build','suggest',{requested:true});
     const draft=this.open(roomKey,lens);
-    const wanted=Object.values(BUILDER_PIECES).find(def=>['Thing','Place'].includes(def.recordKind)&&text.toLowerCase().includes(def.label.toLowerCase()));
-    const tuning=/^move (?:the )?(.+?) (left|right|forward|back)\.?$/i.exec(text);
-    const piece=tuning&&draft.pieces.find(p=>p.block.title.toLowerCase()===tuning[1].toLowerCase());
+    const placement=/^(?:please\s+)?(?:place|add|build) (?:an? |the )?(.+?)[.!]?$/i.exec(text);
+    const wanted=placement&&Object.values(BUILDER_PIECES).find(def=>['Thing','Place'].includes(def.recordKind)&&placement[1].toLowerCase()===def.label.toLowerCase());
+    const tuning=/^(?:please\s+)?move (?:the )?(.+?) (left|right|forward|back)[.!]?$/i.exec(text);
+    const matches=tuning?draft.pieces.filter(p=>p.block.title.toLowerCase()===tuning[1].toLowerCase()):[];
+    if(matches.length>1)throw new Error('Several draft pieces have that name. Select the one you want to move.');
+    const [piece]=matches;
     if(tuning&&!piece)throw new Error('That Thing is no longer in this draft.');
     if(!wanted&&!piece)throw new Error('Try “Place a bench” or “Move the bench left”.');
     const direction=tuning?.[2].toLowerCase();
@@ -315,16 +319,23 @@ export class Builder {
     const proposal=await this.atlasRecords.proposeExtension(lens,{
       area:'build',action:piece?'move-piece':'place-piece',placeId:room.id,payload:change
     },text,{requested:true});
-    return {id:proposal.id,text,summary,status:'pending',change,receiptId:proposal.receipt};
+    return {id:proposal.id,text,summary,status:'pending',change,receiptId:proposal.receipt,boundary:atlasActionBoundary(proposal.value,lens)};
   }
 
-  async decide(roomKey,lens,proposalId,keep) {
+  async request(roomKey,lens,words) {
+    const proposal=await this.propose(roomKey,lens,words);
+    if(proposal.boundary.ask)return {proposal};
+    const draft=await this.decide(roomKey,lens,proposal.id,true,{requested:true});
+    return {draft};
+  }
+
+  async decide(roomKey,lens,proposalId,keep,{requested=false}={}) {
     const room=this.owner(roomKey,lens);
     const proposal=this.atlasRecords.state(lens).proposals.find(p=>p.id===proposalId&&p.status==='proposal'&&
       p.value.kind==='extension'&&p.value.area==='build'&&p.value.placeId===room.id);
     if(!proposal)throw new Error('This proposal is no longer pending for this Place.');
     if(!keep){await this.atlasRecords.decline(lens,proposalId);return this.open(roomKey,lens);}
-    await this.atlasRecords.confirm(lens,proposalId,(value,refs)=>this.transaction(roomKey,lens,async({data,draft,room})=>{
+    await this.atlasRecords[requested?'confirmRequested':'confirm'](lens,proposalId,(value,refs)=>this.transaction(roomKey,lens,async({data,draft,room})=>{
         const change=await this.atlasRecords.verifyExtension(lens,{area:'build',action:value.action,placeId:room.id,...refs});
         draft.undo.push(copy(draft.pieces));
         if(draft.undo.length>20)draft.undo.shift();

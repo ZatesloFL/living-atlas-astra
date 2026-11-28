@@ -91,6 +91,28 @@ test('Named room limits block publication and edits invalidate an earlier previe
   assert.deepEqual(builder.history(roomKey,lens),[]);
 });
 
+test('A direct private Build request applies under the starter and receipts the holder’s own words',async()=>{
+  const {roomKey,ownerId,lens}=starter(),disk=storage(),builder=new Builder({storage:()=>disk});
+  const starterGrant=await builder.atlasRecords.ensureStarter(lens);
+  const words='Please add a bench.';
+  await assert.rejects(builder.request(roomKey,lens,'I do not want a bench.'),/Try/);
+  assert.equal(builder.open(roomKey,lens).pieces.length,0);
+  const result=await builder.request(roomKey,lens,words);
+  assert.equal(result.draft.pieces[0].kind,'bench');
+  assert.equal(result.proposal,undefined);
+  const {receipts}=builder.atlasRecords.state(lens);
+  const proposal=receipts.find(r=>r.action==='atlas_proposed'&&r.diff.value.action==='place-piece');
+  const confirmation=receipts.find(r=>r.action==='atlas_confirmed'&&r.diff.proposalReceipt===proposal.hash);
+  assert.equal(proposal.diff.basis.grants.build,starterGrant.id);
+  assert.equal(confirmation.actor,ownerId);
+  assert.equal(confirmation.diff.source,'holder request');
+  assert.equal(confirmation.diff.words,words);
+  assert.ok(receipts.some(r=>r.action==='atlas_applied'&&r.diff.confirmationReceipt===confirmation.hash));
+  await builder.atlasRecords.revoke(lens,starterGrant.id);
+  await assert.rejects(builder.request(roomKey,lens,'Add a lantern'),/active suggest grant/);
+  assert.equal(builder.open(roomKey,lens).pieces.length,1);
+});
+
 test('Failed persistence cannot expose a published draft',async()=>{
   const {roomKey,lens}=starter(), disk=storage(),builder=new Builder({storage:()=>disk});
   await builder.add(roomKey,lens,'lantern');

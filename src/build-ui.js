@@ -370,14 +370,15 @@ export class BuildUI {
 
   renderAsk() {
     return `<header class="builder-panel-head"><h3>Ask the Atlas</h3>${click('Hide panel','hide-panel')}</header>
-      <p>Use your personal Build grant for these proposals. ${click('Grants and initiative','atlas-grants')}</p>
+      <p>Ask to place or move a piece in this draft. ${click('Grants and initiative','atlas-grants')}</p>
       <form data-builder-form="ask" class="builder-ask">
         <label for="builder-question">What would you like to change?</label>
-        <textarea id="builder-question" name="prompt" rows="2" maxlength="260" required placeholder="Add a lantern beside the reading area"></textarea>
+        <textarea id="builder-question" name="prompt" rows="2" maxlength="260" required placeholder="Add a lantern"></textarea>
         <button type="submit" class="builder-primary"${this.proposal?' disabled':''}>Ask the Atlas</button>
       </form>
       ${this.proposal ? `<article class="builder-proposal">
         <strong>Scripted proposal</strong><p>${esc(this.proposal.summary ?? this.proposal.text)}</p>
+        ${this.proposal.boundary?.reason ? `<p>${esc(this.proposal.boundary.reason)}</p>` : ''}
         <div class="builder-actions">${click('Keep in draft','keep-proposal',this.proposal.id,'class="builder-primary"')}${click('Dismiss','dismiss-proposal',this.proposal.id)}</div>
       </article>` : ''}
       ${this.track.length ? `<ul class="builder-track">${this.track.slice(-3).map(message=>`<li>${esc(message)}</li>`).join('')}</ul>` : ''}`;
@@ -759,9 +760,15 @@ export class BuildUI {
       this.run(async()=>{
         const text=String(values.get('prompt')??'').trim();
         if (!text) throw new Error('Tell the Atlas what you want to change.');
-        this.proposal=await this.builder.propose(this.draft.roomKey,this.lens,text);
+        const {proposal,draft}=await this.builder.request(this.draft.roomKey,this.lens,text);
+        this.proposal=proposal??null;
         this.track.push(text);
-        this.status('The Atlas proposed a draft edit. Review it before keeping it.');
+        if(draft){
+          this.applyDraft(draft);
+          this.track.push('The Atlas updated your draft.');
+          this.status('Done as you asked. Draft updated.');
+          this.renderStage();
+        }else this.status('Review the proposal before applying it.');
       });
       return;
     }

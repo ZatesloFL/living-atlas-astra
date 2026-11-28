@@ -58,16 +58,16 @@ const {enterPlaceByAddress, atlasState, grantBuildAndSources, revokeStarterForGr
 
     await dock.locator('[data-builder-action=panel][data-value=ask]').click();
     await askBuild('Move the bench left');
-    await dock.locator('.builder-proposal').getByText(/move bench left by one metre/i).waitFor();
-    assert.equal(await page.evaluate(()=>__atlas.build.draft.pieces[0].transform.position[0]),-3);
-    await dock.getByRole('button',{name:'Keep in draft',exact:true}).click();
     await page.waitForFunction(()=>__atlas.build.draft.pieces[0].transform.position[0]===-4);
+    assert.equal(await dock.getByRole('button',{name:'Keep in draft',exact:true}).count(),0);
     const atlas = await atlasState(page);
     const proposed = atlas.receipts.find(r=>r.action==='atlas_proposed'&&r.diff.value?.kind==='extension'&&
       r.diff.value.area==='build'&&r.diff.value.action==='move-piece'&&r.diff.value.placeId===home);
     const confirmed = atlas.receipts.find(r=>r.action==='atlas_confirmed'&&r.diff.proposalReceipt===proposed?.hash);
     assert.equal(proposed?.actor,'atlas');
     assert.equal(confirmed?.actor,atlas.holder);
+    assert.equal(confirmed?.diff.source,'holder request');
+    assert.equal(confirmed?.diff.words,'Move the bench left');
     assert.ok(atlas.receipts.some(r=>r.action==='atlas_applied'&&r.diff.confirmationReceipt===confirmed.hash));
     assert.deepEqual(atlas.grants.filter(g=>g.active).map(g=>g.id),[grant.id]);
     console.log('PASS explicit Build request under the persistent grant in Quiet posture',{grant:grant.id,proposal:proposed.hash,confirmation:confirmed.hash});
