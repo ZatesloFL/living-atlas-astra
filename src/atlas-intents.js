@@ -14,6 +14,16 @@ const clause=(text,start)=>text.match(new RegExp(start+'\\s+([^.;\\n]+)','i'))?.
 // Local interpretation, through ai.request. It cannot actuate anything.
 export function atlasIntent(text,{limits={}}={}){
  if(typeof text!=='string'||!text.trim()||text.length>1600)throw new Error('Use one request of up to 1,600 characters.');
+ const topic=/\b(?:what['’]?s new|what is new|since I was last|recent updates)\b/i.test(text)?'news':/\b(?:clubs?|groups?)\b.*\b(?:join|here|available)\b/i.test(text)?'clubs':/\b(?:anyone else|who (?:is|can I follow)|people here|busy|right now)\b/i.test(text)?'people':null;
+ if(topic&&/^(?:what|where|who|is|are|can|does|did|anyone|how|when)\b/i.test(text))return {kind:'index',topic,query:text};
+ // Questions about a Place are reads, not implicit requests to travel or edit a dial.
+ if(/^(?:please\s+)?(?:take|bring|lead|guide|send)\s+(?:me|us)\b|^(?:please\s+)?(?:go|travel|head)\s+to\b/i.test(text))return /\bbusy\b/i.test(text)?{kind:'index',topic:'people',query:text}:{kind:'destination',query:text};
+ if(/^where am i[?.! ]*$/i.test(text))return {kind:'destination',query:text};
+ if(/^where(?:['’]s|\s+(?:is|are|can i find))\b/i.test(text))return {kind:'place-question',question:'location',query:text};
+ if(/^(?:what(?:['’]s| is)|tell me about)\s+/i.test(text)&&!/^what(?:['’]s| is) new\b/i.test(text)){
+  if(/\b(?:the |my )?lens[?.! ]*$/i.test(text))return clear('Your Lens controls what you see. Each dimension has an amount and a graphicness dial, from 0 to 3. Ask for a change, or open Your records to inspect the dials. Fixed limits still apply.');
+  return {kind:'place-question',question:'overview',query:text};
+ }
  const areas=areasIn(text.replace(/\bstanding (?=(?:edit|look|suggest|access|grant|permission))/ig,''));
  if(/\b(revoke|remove|end|suspend)\b.*\bgrant\b|\b(?:turn off|stop) (?:the )?atlas\b|\bstop helping\b/i.test(text))return {kind:'revoke',areas};
  if(/\b(?:narrow|only help|only allow|limit atlas)\b/i.test(text))return areas.length?{kind:'narrow',areas,scope:/\blook|read.only\b/i.test(text)?'look':/\bsuggest\b/i.test(text)?'suggest':null}:clear('Which areas should Atlas keep?');
@@ -52,7 +62,6 @@ export function atlasIntent(text,{limits={}}={}){
  }
  if(Object.keys(changes).length)return {kind:'lens',changes};
  if(/\b(?:keep (?:it|things) gentle|gentle (?:please|lens|settings))\b/i.test(text))return {kind:'lens',changes:Object.fromEntries(DIMENSIONS.map(([key])=>[key,{amount:key==='sexual'?0:1,graphicness:key==='sexual'?0:1}]))};
- const topic=/\b(?:what['’]?s new|what is new|since I was last|recent updates)\b/i.test(text)?'news':/\b(?:clubs?|groups?)\b.*\b(?:join|here|available)\b/i.test(text)?'clubs':/\b(?:anyone else|who (?:is|can I follow)|people here|busy|right now)\b/i.test(text)?'people':null;
  if(topic)return {kind:'index',topic,query:text};
  if(/^(?:what|why|how|is|are|does|did|can|who|when)\b/i.test(text)&&!/^where\b/i.test(text))return clear('I do not have a record-backed answer to that question here. A Place’s Docent can answer from its readable Things; you can also ask about groups, shared presence or dated updates.');
  return {kind:'destination',query:text};
@@ -60,8 +69,9 @@ export function atlasIntent(text,{limits={}}={}){
 
 export function validateAtlasIntent(value){
  if(value?.kind==='extension'){extensionAreas(value);return value;}
- const fields={index:['topic','query'],clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],narrow:['areas','scope'],lens:['changes'],trip:['target','choice','description'],destination:['query']};
+ const fields={'place-question':['question','query'],index:['topic','query'],clarify:['text'],grant:['areas','scope','durationMs'],envelope:['areas','posture','specification','unasked','alwaysAsk','watch'],revoke:['areas'],narrow:['areas','scope'],lens:['changes'],trip:['target','choice','description'],destination:['query']};
  if(!value||!fields[value.kind]||Object.keys(value).some(k=>!['kind',...fields[value.kind]].includes(k)))throw new Error('Invalid Atlas intent.');
+ if(value.kind==='place-question'){if(!['overview','location'].includes(value.question)||typeof value.query!=='string'||!value.query.trim()||value.query.length>1600)throw new Error('Invalid Place question.');return value;}
  if(value.kind==='index'){if(!['news','clubs','people'].includes(value.topic)||typeof value.query!=='string'||value.query.length>1600)throw new Error('Invalid index question.');return value;}
  if(value.kind==='clarify'){if(typeof value.text!=='string'||!value.text||value.text.length>2000)throw new Error('Invalid clarification.');return value;}
  if(value.kind==='destination'){if(typeof value.query!=='string'||!value.query.trim()||value.query.length>1600)throw new Error('Name a Place to find.');return value;}

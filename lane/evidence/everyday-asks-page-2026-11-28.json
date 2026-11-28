@@ -1,0 +1,25 @@
+{
+  "overview": "Help as I explore: Off · turn on\n\nYou · What is the bus boycott?\n\nAtlas · From the Places in your view. Nothing has been crossed.\n\nThe 1956 bus boycott — its Place description says: “A community’s campaign against segregated public transport. This sample discusses racial injustice.”\n\nTake me there\nWhat would you like to do or know?\nAsk\nYour records",
+  "where": "Help as I explore: Off · turn on\n\nYou · What is the bus boycott?\n\nAtlas · From the Places in your view. Nothing has been crossed.\n\nYou · Where's the bus boycott?\n\nAtlas · From the Places in your view. Nothing has been crossed.\n\nThe 1956 bus boycott is at tlh/tallahassee/1956. Its route and door terms will be checked if you choose to go.\n\nTake me there\nWhat would you like to do or know?\nAsk\nYour records",
+  "presentation": {
+    "display": "pseudonym",
+    "backing": "none",
+    "pseudonym": "Page Fern"
+  },
+  "trip": true,
+  "refusals": [
+    {
+      "text": "No accessible room at that address. I tried “tlh/after-dark” as an exact room address and checked your current Lens, access and route. Nothing has been crossed.",
+      "top": 487.21875,
+      "bottom": 626.203125,
+      "height": 852
+    },
+    {
+      "text": "No accessible room at that address. I tried “tlh/no-such-place” as an exact room address and checked your current Lens, access and route. Nothing has been crossed.",
+      "top": 487.21875,
+      "bottom": 626.203125,
+      "height": 852
+    }
+  ],
+  "errors": []
+}

@@ -80,7 +80,7 @@ export class AtlasRecords {
    return operation(data,record,holder);
   };return globalThis.navigator?.locks?navigator.locks.request(ATLAS_RECORDS_KEY,run):run();
  });this.queue=job.catch(()=>{});return job;}
- propose(lens,value,words,{tripBasis=null,requested=false,supersedes=null}={}){validateAtlasIntent(value);value=clone(value);if(['clarify','destination'].includes(value.kind))throw new Error('A lookup or clarification is not a confirmed act.');return this.write(lens,async(data,record)=>{
+ propose(lens,value,words,{tripBasis=null,requested=false,supersedes=null}={}){validateAtlasIntent(value);value=clone(value);if(['clarify','destination','index','place-question'].includes(value.kind))throw new Error('A lookup or clarification is not a confirmed act.');return this.write(lens,async(data,record)=>{
   if(value.kind==='lens'){this.require(lens,'lens','suggest',data);validateLensChanges(value.changes,lens);}
   if(value.kind==='trip'){this.require(lens,'travel','suggest',data);if(typeof tripBasis!=='string')throw new Error('A current route is required.');}
   let basis=value.kind==='lens'?lensBasis(lens):value.kind==='trip'?tripBasis:null;
