@@ -1,0 +1,71 @@
+{
+  "build": "c764cfb1b614a1375d21b0540547338ea18666a3",
+  "home": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20",
+  "owner": "e03c80eb-f754-4ee5-81e0-fc974cd60c20",
+  "piece": "kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f",
+  "hall": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f",
+  "path": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f/door",
+  "publicationReceipt": "builder:eb209081cb9b1fdcc7193eb7b9e7996d0896581acb0e32d527082fcbf6824ee3",
+  "interiorPublicationReceipt": "builder:7f576e275f02f9155e800aa13e6c2f55764aafc843680ec64654b3eb2806ee91",
+  "crossing": {
+    "outside": {
+      "room": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20",
+      "scene": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20",
+      "position": {
+        "x": 8,
+        "z": -2.1000000000000005
+      }
+    },
+    "arrived": {
+      "room": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f",
+      "scene": "hall:builder-home-se03c80eb-df754-d4ee5-d81e0-dfc974cd60c20-shall-dkit-d0628e3f8-d3ea1-d44ba-dbb05-d45f896266b2f",
+      "position": {
+        "x": 0,
+        "z": 8.4
+      },
+      "inside": "Synthetic Lantern Hall",
+      "arrivalIsStandable": true,
+      "wallsBlockAnOutsidePosition": true,
+      "receipts": [
+        "88328f389dc6fc63df4b277a5ebee7f75e41441c160ac77f9727c5fab8fea549"
+      ]
+    },
+    "path": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f/door"
+  },
+  "subject": {
+    "ref": {
+      "placeId": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f",
+      "audienceVersion": null,
+      "thingId": "kit-3500bf87-02cb-486d-93f7-ba84b334154a"
+    },
+    "marker": "exhibit:home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f:kit-3500bf87-02cb-486d-93f7-ba84b334154a"
+  },
+  "refused": [
+    {
+      "profile": "seed-visitor",
+      "roomBeforeRequest": "home/e03c80eb-f754-4ee5-81e0-fc974cd60c20",
+      "message": "No accessible room at that address. I tried \u201ctlh/home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f\u201d as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+    },
+    {
+      "profile": "seed-verified",
+      "roomBeforeRequest": "square",
+      "message": "No accessible room at that address. I tried \u201ctlh/home/e03c80eb-f754-4ee5-81e0-fc974cd60c20/hall-kit-0628e3f8-3ea1-44ba-bb05-45f896266b2f\u201d as an exact room address and checked your current Lens, access and route. Nothing has been crossed."
+    }
+  ],
+  "liveCalls": 0,
+  "errors": [],
+  "sha256": {
+    "src/build-projection.js": "0b960e91c86614bceb1619176dac4d5e38cb2dfb41c5a223ae7b5f2ec47df0ef",
+    "src/builder-fixtures.js": "b834f58d8765a990ee8af7115cea4fdf3df189f0988467f1b513dd7887b8d3aa",
+    "src/builder-hall.js": "1ec0a3a8f7feb709795d467ddb274979d0d11fabf81a6612961c3b5930b7d3ee",
+    "src/builder-pieces.js": "75b40d8e66047aa30ad039e29f316de05ff462307da364c070b0a3bc0c19f680",
+    "src/builder-provenance.js": "c8c35e4817b6d92e33c77030abcf1d05da3e43d3cc701560a8306b5b85a66fb8",
+    "src/builder.js": "f631f0024c0233ec921568eb1ccb5371d5713a783e7df943807a8b708a6ebb08",
+    "src/interior-kit.js": "b7957afe48e2186c8634bdb874ef423c9f7c02363d7d4522f6bec9a6d17d7567",
+    "src/interior-space.js": "ebd59a81fdfab27796d160558d9aa01b0a3d1a8506a9cb4f53d6788d29e11308",
+    "src/interior-world.js": "f1e0d9db91eef8868a8610088a18328ae02c2233d909bf6925f71602c2b23c59",
+    "src/runtime.js": "2a0fb649ff9c55af7091102422d0d11de81b93b1749355e0f17cbfa791ee3bcf",
+    "src/world-bounds.js": "59e8501c80607e60b676e7d33ded6c8d4a4af92849dc426f48f59afe6b6ad22b",
+    "src/world.js": "2af19b6062df6e26a17248c58a434d8745b3b43a162d02714eae438e7975df5e"
+  }
+}
