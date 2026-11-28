@@ -1,0 +1,86 @@
+{
+  "build": "9aad15fc988064a2d25d8aa143e7e0f9fac3725e",
+  "url": "https://zateslofl.github.io/living-atlas-astra/",
+  "sha256": {
+    "src/builder.js": "380b887c3f59d064a520d01d83f8817f57bb25265d46bd953c0934f0bf933d5a",
+    "src/build-ui.js": "ac68b118ae0c87f63c0653724e980fa89c92818ae7ecc4b990a71fcabc993d8b",
+    "src/source-conversation.js": "0754d16bf8e7b83db33d79a2d0bf3d6844e3965582bca083e9dd1338db3664c2",
+    "src/source-conversation-ui.js": "850a12a6b26965d062d6c67333c9b2ffc163ee8cfa6c4c6b2d55852cee2bd66a",
+    "src/sources-ui.js": "d513c5edc96dff3c2f369337404041a8a0087fab348fa88a38c4e213b4cc9537"
+  },
+  "builder": {
+    "verified": true,
+    "receipts": [
+      [
+        "build_proposal_accepted",
+        "builder:05962c96669fa3eea4945fbea787f687c8947907f9d4bb4965ce02196dec4d67"
+      ],
+      [
+        "build_previewed",
+        "builder:3a041a0fdd921682ec419b3becd4a9c0fa02b133000fbd6466a58726e3fe7bc0"
+      ],
+      [
+        "build_previewed",
+        "builder:f8759645c8c798017c81cc5fd4d499b0f42939e397f00b7235f23788c17991e8"
+      ],
+      [
+        "build_previewed",
+        "builder:748876fca2134922d8d51c9be62c3ed611542803d0687b7a9ea7ba905c126069"
+      ],
+      [
+        "build_published",
+        "builder:3f3129d054edc0982281810b2510109b9347b016aa1099bdf8fb93c7b042de0e"
+      ]
+    ],
+    "build": "9aad15fc988064a2d25d8aa143e7e0f9fac3725e"
+  },
+  "sources": {
+    "scope": "Drive room",
+    "assets": "Pages",
+    "grant": "013459bf-83fa-40fe-af62-d1fb1084443f",
+    "pairs": [
+      {
+        "area": "build",
+        "action": "place-piece",
+        "proposal": "b9cb30bc34bb2e3616b6a16eb60b6e207edc719b6d2ff39111c11b199625ffb3",
+        "confirmation": "17db314e6d03a4eed79aeb30aa54028de90c2e45e14c0127bc8cc20a743d214c",
+        "outcome": "1cae14bc76e47bec61fc29f587fa555e8eaa6fad9533a07bc9e6096f155b10bc",
+        "applied": null
+      },
+      {
+        "area": "sources",
+        "action": "declare-upload",
+        "proposal": "6ae16b2cc51659f34b703238d9a177021295eeed544b10e183feb2a4c0f7c711",
+        "confirmation": "ed19c163cb9b16361dd9ab2f2c1c9e23eea22ae80a2e5e50b3ea1dd731a756f2",
+        "outcome": "79def166aa1f22b0d49216a78a01c8d6f73218606582949f5e02c68fe99dd0a9",
+        "applied": "10000000-0000-4000-8000-000000000003"
+      },
+      {
+        "area": "sources",
+        "action": "connect-and-map",
+        "proposal": "0f955a6cae5452d632f53d70ffc7e6db6442c5e105da30addb641f93a23047f3",
+        "confirmation": "74fc5ca15613eaa6038e1b6d922d04adf1c18877a9bbea92e47c198538cad70c",
+        "outcome": "401af6cee027d1c2b4b732b66bb5b7a177fc7d16a66ed08325ebf7bea71346ac",
+        "applied": "source:e87c40c113245a8485ed52e73588a998c4a180f26832116d32484ef5991ea206"
+      },
+      {
+        "area": "sources",
+        "action": "place-source",
+        "proposal": "e887d1d4678d3b905d231aed5e3e312bec028e4db64e35179cabf8caba0ade4e",
+        "confirmation": "a63d991d6c1501cb84f12d544febf2d39aec711a894a9fb65165e21c25931658",
+        "outcome": "d83b4022c3b950deede48c730a129cf13d7201888c900d8fc1a99464211542e2",
+        "applied": null
+      },
+      {
+        "area": "sources",
+        "action": "publish-draft",
+        "proposal": "d16b64cbbd4bef217ba5110d924d719b757eb36257d410282f02a15c4aaceab8",
+        "confirmation": "08a9401cc573912b26769a3b981423ca100088c9059cef052b229814b2fa09d2",
+        "outcome": "43d484b994cf100698b09a46dfbe79a8be41d4c45a16c1de2c4dc071b6eb44fa",
+        "applied": "builder:0d19a90cb5d42ba8f64d48cc569d248e036520a526dd10d3e5e41fbefa441c73"
+      }
+    ],
+    "syntheticDeclaration": "10000000-0000-4000-8000-000000000003",
+    "paidCalls": 0
+  }
+}
