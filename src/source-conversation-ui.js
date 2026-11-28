@@ -1,4 +1,5 @@
 import {AXES, DIMENSIONS} from './scores.js';
+import {shortReceipt} from './record-display.js';
 import {AREA_LABELS, atlasIntent} from './atlas-intents.js';
 import {connectionPlanFingerprint} from './connected-sources.js';
 import {SourceConversation, SOURCE_GRANT_COMMAND, sourceAssessmentEdge} from './source-conversation.js';
@@ -15,7 +16,6 @@ const locationPattern = /\s+(?:on|to|at|near|in|by)\s+(?:the\s+)?(left|right|fro
 const positions = {left:[-2,0,0], right:[2,0,0], front:[0,0,2], back:[0,0,-2], center:[0,0,0], entrance:[0,0,2]};
 const numberWords = ['zero','one','two','three'];
 const visualKinds = new Set(['mapping','placement','publication']);
-const shortReceipt = id => id?.split(':').at(-1).slice(0,8);
 const receiptCode = id => id.match(/.{1,10}/g).map(esc).join('<wbr>');
 const grantRequest = input => /^(?:give|grant|allow|let)\s+(?:the\s+)?atlas\b.*\b(?:sources?|build)\b/i.test(input);
 

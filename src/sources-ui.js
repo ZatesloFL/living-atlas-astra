@@ -3,6 +3,7 @@ import {videoReference} from './source-media.js';
 import {isStarterArchive} from './arrival-archive.js';
 import {ROOMS} from './data.js';
 import {AXES, DIMENSIONS, validPair} from './scores.js';
+import {formatRecordDate,formatRecordDateTime,placeAddressLabel} from './record-display.js';
 import {uploadAccept, uploadLimitLabel} from './upload-client.js';
 import {PHOTO_DESCRIPTION_LIMIT, PHOTO_SCORE_MODEL, uploadScoreBasis, validPhotoObservation, validPhotoRecordId} from './upload-scores.js';
 import {SourceConversationUI, confirmedSourceScores} from './source-conversation-ui.js';
@@ -25,11 +26,6 @@ export function formatSourceBytes(bytes) {
   const units = [[1e9, 'GB'], [1e6, 'MB'], [1e3, 'kB']];
   const unit = units.find(([size]) => bytes >= size);
   return unit ? (bytes / unit[0]).toLocaleString(undefined, {maximumFractionDigits: 2}) + ' ' + unit[1] : bytes.toLocaleString() + ' B';
-}
-
-function createdDate(iso) {
-  const date = new Date(iso);
-  return Number.isFinite(date.valueOf()) ? date.toISOString().slice(0, 10) : null;
 }
 
 function styleSheet() {
@@ -58,7 +54,8 @@ function rightsLabel(rights) {
 
 function viewStatus(source) {
   if (source.status === 'deleted') return 'Source unavailable';
-  const sync = source.lastSync ? 'Last synced ' + (createdDate(source.lastSync) ?? source.lastSync) : 'Awaiting first sync';
+  const date = formatRecordDateTime(source.lastSync);
+  const sync = date ? 'Last synced ' + date : source.lastSync ? 'Sync time unavailable' : 'Awaiting first sync';
   return `${source.simulated ? 'Simulated source · ' : ''}${modeLabels[source.syncMode] ?? 'Source'} · ${sync}`;
 }
 
@@ -441,12 +438,14 @@ export class SourcesUI {
   renderSource({source, mapping, pendingMapping, items = [], snapshot}) {
     const id = source.id;
     const recipe = recipes[source.kind];
+    const snapshotDate = formatRecordDate(snapshot?.capturedAt);
     const options = Object.entries(modeLabels).map(([value, label]) =>
       `<option value="${value}"${source.syncMode === value ? ' selected' : ''}>${label}</option>`).join('');
     return `<details class="source-details" data-source-detail="${esc(id)}"${this.openSources.has(id) ? ' open' : ''}>
-      <summary>${esc(source.label ?? source.id)}</summary>
+      <summary>${esc(source.label ?? 'Connected source')}</summary>
       <p class="source-caption">${esc(viewStatus(source))} · ${esc(rightsLabel(source.rightsDefault))}</p>
-      ${snapshot ? `<p class="source-caption">Simulated snapshot, as of ${esc(createdDate(snapshot.capturedAt))} · SHA-256 ${esc(snapshot.hash)}</p>` : ''}
+      ${snapshot ? `<p class="source-caption">${snapshotDate?`Simulated snapshot, as of ${esc(snapshotDate)}`:'Simulated snapshot · capture date unavailable'}</p>
+        <details class="source-details source-record-details"><summary>Snapshot record</summary><p>Captured <code>${esc(snapshot.capturedAt)}</code></p><p>SHA-256 <code>${esc(snapshot.hash)}</code></p></details>` : ''}
       ${recipe && source.status !== 'deleted' ? `
         <form data-form="mode" data-source-id="${esc(id)}" class="source-inline">
           <label>Feeding mode<select name="mode">${options}</select></label>
@@ -547,7 +546,7 @@ export class SourcesUI {
     const proposal = this.proposalFor(item);
     const basis = uploadScoreBasis(item.contentType);
     const reviewEdge=sourceAssessmentEdge(item,this.localTextFiles.get(item.id));
-    const date = createdDate(item.uploadedAt);
+    const date = formatRecordDate(item.uploadedAt);
     const readable = ['uploaded','published'].includes(item.state);
     const deletable = ['reserved','uploaded','published','deleting'].includes(item.state);
     const deleteLabel = item.state === 'reserved' ? 'Cancel pending upload' : item.state === 'deleting' ? 'Retry deletion' : 'Delete hosted copy';
@@ -587,13 +586,17 @@ export class SourcesUI {
   renderOperator() {
     const remote = this.hosted?.metrics?.served ?? [];
     const local = this.sources.meters?.(this.actor) ?? [];
-    const rows = [...remote, ...local];
+    const rows = [...remote.map(row=>({...row,hosted:true})),...local];
+    const places = new Map(Object.values(ROOMS).filter(room=>room.ownerId===this.context.actorId).map(room=>[room.id,room]));
     return `<section class="source-panel source-operator">
       <details class="source-details"><summary>Source usage and served bytes</summary>
         ${uploadUsage(this.hosted)}
         <p class="source-caption">Measured by Place and source. Embedded video plays from its host.</p>
-        ${rows.length ? `<ul class="source-items">${rows.map(row=>
-          `<li><strong>${formatSourceBytes(row.servedBytes)}</strong><small>${esc(row.placeId)} · ${esc(row.sourceId)}${row.simulated ? ' · simulated source' : ''}</small></li>`).join('')}</ul>`
+        ${rows.length ? `<ul class="source-items">${rows.map(row=>{
+          const source=row.hosted?'Atlas Storage':this.sources.list(row.placeId,this.actor).find(entry=>entry.id===row.sourceId)?.label??'Connected source';
+          return `<li><strong>${formatSourceBytes(row.servedBytes)}</strong><small>${esc(placeAddressLabel(places.get(row.placeId)))} · ${esc(source)}${row.simulated?' · simulated source':''}</small>
+            <details class="source-details"><summary>Record identifiers</summary><p>Place <code>${esc(row.placeId)}</code></p><p>Source <code>${esc(row.sourceId)}</code></p></details></li>`;
+        }).join('')}</ul>`
         : '<p class="source-caption">No served bytes have been reported.</p>'}
       </details>
     </section>`;

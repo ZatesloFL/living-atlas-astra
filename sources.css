@@ -63,6 +63,7 @@
 }
 .source-details > summary { padding: 11px 0; min-height: 44px; cursor: pointer; font-weight: 650; overflow-wrap: anywhere; }
 .source-details > :not(summary) { margin: 0 0 10px; }
+.source-record-details code { overflow-wrap: anywhere; }
 .source-usage { display: grid; gap: 5px; }
 .source-usage progress { width: 100%; accent-color: #81dec9; }
 .source-items { list-style: none; padding: 0; display: grid; gap: 8px; margin: 0; }
