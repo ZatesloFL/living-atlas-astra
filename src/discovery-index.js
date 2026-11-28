@@ -132,7 +132,7 @@ export function queryIndex(lens,query={},options={}) {
   if(matches.some(match=>!match.fields.length)||ranges.some(({key,axis,min=0,max=3})=>entry.declaration[key][axis]<min||entry.declaration[key][axis]>max)||conditions.some(([key,value])=>entry.facets[key]!==value))continue;
   if(sort==='followed'&&!prefs.followed.includes(entry.target)&&!prefs.followed.includes(entry.owner.id)&&!matching.some(c=>prefs.followed.includes(c.curator)))continue;
   const card=query.board?matching[0]:null;
-  const reasons=[...matching.map(c=>`${c.curatorRecord.name} selected this: ${c.rule}. ${prefs.curators.includes(c.curator)?'You chose this curator.':'Published on this curator’s board.'}`),
+  const reasons=[...matching.map(c=>`${c.curatorRecord.name} selected this: ${c.rule}. ${prefs.curators.includes(c.curator)?prefs.curatorChoice==='holder'?'You selected these board settings.':prefs.curatorChoice==='default'?'Included in the starting board selection; you can change it.':'Included in your saved board settings; who selected them is not on file.':'Published on this curator’s board.'}`),
    ...matches.map(m=>`“${m.term}” matches ${m.fields.join(', ')}.`),
    ...ranges.map(r=>`Declared ${r.label.toLowerCase()} ${r.axis} ${entry.declaration[r.key][r.axis]} matches ${r.min??0}–${r.max??3}.`),
    ...conditions.map(([key,value])=>`${FACETS[key]}: ${value}.`),
