@@ -65,17 +65,32 @@ test('Builder publishes one hall Place and Path and recovers the hall’s own fu
   assert.ok((await verifyChain(JSON.parse(disk.getItem(BUILDER_STORAGE)).receipts)).valid);
 });
 
-test('Invalid placement or failed persistence keeps the hall out of the live catalog',async t=>{
+test('Invalid placement is refused at edit time and an old invalid draft stays available to move',async t=>{
   const {key,owner,disk,builder}=fixture(t);
-  const {pieces:[piece]}=await builder.add(key,owner,'interior-shell',{position:[27,0,0]});
+  const outside=/outside your Place/;
+  await assert.rejects(builder.add(key,owner,'interior-shell',{position:[27,0,0]}),outside);
+  assert.deepEqual(builder.open(key,owner).pieces,[]);
+  const {pieces:[piece]}=await builder.add(key,owner,'interior-shell',{position:[2,0,-2]});
   const {placeId,pathId}=builderHallIdentity(key,piece.id);
-  await assert.rejects(publish(builder,key,owner),/frontage and arrival points/);
+  await assert.rejects(builder.update(key,owner,piece.id,{transform:{position:[27,0,0]}}),outside);
+  assert.deepEqual(builder.open(key,owner).pieces[0].transform.position,[2,0,-2]);
+
+  const old=JSON.parse(disk.getItem(BUILDER_STORAGE));
+  old.drafts[key].pieces[0].transform.position=[27,0,0];
+  old.drafts[key].pieces[0].block.title='Bird and Bread Hall';
+  disk.setItem(BUILDER_STORAGE,JSON.stringify(old));
+  const reopened=new Builder({storage:()=>disk});
+  await assert.rejects(publish(reopened,key,owner),outside);
+  assert.equal(reopened.open(key,owner).pieces[0].block.title,'Bird and Bread Hall');
+  await reopened.atlasRecords.ensureStarter(owner);
+  const proposal=await reopened.propose(key,owner,'Move the hall left');
+  assert.equal(proposal.change.pieceId,piece.id);
   assert.equal(ROOMS[placeId],undefined);
-  assert.equal(builder.history(key,owner).length,0);
-  await builder.update(key,owner,piece.id,{transform:{position:[2,0,-2]}});
-  await builder.preview(key,owner,owner);
+  assert.equal(reopened.history(key,owner).length,0);
+  await reopened.update(key,owner,piece.id,{transform:{position:[2,0,-2]}});
+  await reopened.preview(key,owner,owner);
   disk.setItem=()=>{throw new Error('Storage full');};
-  await assert.rejects(builder.publish(key,owner),/Storage full/);
+  await assert.rejects(reopened.publish(key,owner),/Storage full/);
   assert.equal(ROOMS[placeId],undefined);
   assert.equal(EDGES.some(edge=>edge.id===pathId),false);
 });

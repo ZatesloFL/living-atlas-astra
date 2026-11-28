@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {ROOMS,createLens} from '../src/data.js';
 import {blockHTML} from '../src/block-renderer.js';
 import {heroHTML} from '../src/presentation.js';
-import {configureSourceMedia,readHostedPhotoPreview,videoReference,videoReferenceHTML} from '../src/source-media.js';
+import {formatRecordDate} from '../src/record-display.js';
+import {configureSourceMedia,readHostedPhotoPreview,sourceBadgeHTML,videoReference,videoReferenceHTML} from '../src/source-media.js';
 
 const l={...createLens(),profileId:'media-owner',depth:'Deep'};
 const source={sourceId:'test-source',itemId:'test-item',label:'Source fixture',rights:'rights-reserved',mode:'live',status:'ready'};
@@ -37,12 +38,23 @@ test('A dead or revoked reference shows its state without a stale body, represen
 test('Hosted photos show upload date and a private byte-read control to their owner',()=>{
  const hosted={...block,body:'Your photo',sourceMedia:{kind:'image'},source:{...source,kind:'upload',owner:'media-owner',uploadedAt:'2026-11-24T14:00:00.000Z',mode:'snapshot'}};
  const html=blockHTML(hosted,ROOMS.studio,l,{approved:true});
- assert.match(html,/uploaded copy, as of 2026-11-24/);
+ assert.ok(html.includes('uploaded copy, as of '+formatRecordDate(hosted.source.uploadedAt)));
+ assert.doesNotMatch(html,/Synced 2026-11-24/);
  assert.match(html,/data-managed-source="image"/);
  assert.match(html,/Open original photo/);
  assert.doesNotMatch(html,/example.invalid|\ssrc=/);
  assert.equal(blockHTML(hosted,ROOMS.studio,{...l,profileId:'other'},{approved:true}),'');
  assert.equal(blockHTML(hosted,ROOMS.studio,{...l,isAgent:true},{approved:true}),'');
+});
+
+test('A source badge shows a readable sync time and keeps the linked source without its item key',()=>{
+ const syncedAt='2026-11-28T05:52:22.990Z';
+ const html=sourceBadgeHTML({...block,source:{...source,syncedAt,url:'https://example.invalid/record'}});
+ assert.match(html,/Source fixture/);
+ assert.match(html,/href="https:\/\/example.invalid\/record"/);
+ assert.match(html,/Synced [^·]+2026/);
+ assert.ok(!html.includes(syncedAt));
+ assert.doesNotMatch(html,/test-item/);
 });
 
 test('3D requests only the sized hosted preview after checking current source rights and availability',async()=>{

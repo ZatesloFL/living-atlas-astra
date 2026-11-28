@@ -6,6 +6,7 @@ import {validateBuilderPiece} from '../src/builder-pieces.js';
 import {Builder,BUILDER_STORAGE} from '../src/builder.js';
 import {connectedSources} from '../src/connected-sources.js';
 import {PRESETS,ROOMS} from '../src/data.js';
+import {formatRecordDate} from '../src/record-display.js';
 import {scores} from '../src/scores.js';
 import {makeSourcePiece,recordUploadInventory,sourcedRoom,subscribeHostedSourceChanges} from '../src/source-catalog.js';
 
@@ -76,7 +77,7 @@ test('Builder saves and republishes hosted placement references and resolves cur
   const read=sourcedRoom(ROOMS[id],lens);
   assert.equal(read.blocks.filter(block=>block.id===photo.sourceId).length,1);
   assert.equal(read.builderFixtures.filter(fixture=>fixture.block===photo.sourceId).length,2);
-  assert.match(articleHTML(id,lens),/uploaded copy, as of 2026-11-24/);
+  assert.ok(articleHTML(id,lens).includes('uploaded copy, as of '+formatRecordDate(photo.uploadedAt)));
   assert.match(articleHTML(id,other),/data-source-player="https:\/\/www\.youtube-nocookie\.com\/embed\//);
   assert.doesNotMatch(articleHTML(id,other),/Photo of the Atlas courtyard|data-managed-source/);
   assert.doesNotMatch(saved,/Photo of the Atlas courtyard|Video of the Atlas courtyard|youtube\.com|snapshot-receipt|declaration-receipt/);

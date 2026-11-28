@@ -1,4 +1,5 @@
 import {artSVG,artURL} from './kit-art.js';
+import {formatRecordDate,formatRecordDateTime} from './record-display.js';
 
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const youtubeHosts=new Set(['youtube.com','www.youtube.com','m.youtube.com','youtu.be','www.youtu.be','youtube-nocookie.com','www.youtube-nocookie.com']);
@@ -73,23 +74,23 @@ export function sourceStateMessage(block){
 }
 
 export function uploadedCopyLabel(source){
- const timestamp=source.uploadedAt??source.syncedAt;
- const date=typeof timestamp==='string'&&/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(timestamp)?timestamp.slice(0,10):null;
+ const date=formatRecordDate(source.uploadedAt??source.syncedAt);
  return date?'uploaded copy, as of '+date:'uploaded copy · upload date unavailable';
 }
 
 export function sourceBadgeHTML(block){
  const source=block?.source;
  if(!source)return '';
- const label=source.label??source.name??source.sourceId??'Source';
+ const upload=isUploadSource(source),synced=formatRecordDateTime(source.syncedAt);
+ const label=source.label??source.name??(upload?'Atlas Storage':'Connected source');
  const state=sourceStateMessage(block),mode=source.syncMode??source.mode;
- const href=state||isUploadSource(source)?null:webURL(source.url,globalThis.location?.href??'https://atlas.invalid/');
+ const href=state||upload?null:webURL(source.url,globalThis.location?.href??'https://atlas.invalid/');
  const sourceName=href?'<a href="'+escapeHTML(href.href)+'" target="_blank" rel="noopener noreferrer">'+escapeHTML(label)+' ↗</a>':escapeHTML(label);
  const pieces=[
-  'Source: '+sourceName+(source.itemId===undefined||state?'':' / '+escapeHTML(source.itemId)),
-  isUploadSource(source)?escapeHTML(uploadedCopyLabel(source)):Object.hasOwn(modes,mode)?modes[mode]:null,
+  'Source: '+sourceName,
+  upload?escapeHTML(uploadedCopyLabel(source)):Object.hasOwn(modes,mode)?modes[mode]:null,
   source.simulated?'Simulated source':null,
-  source.syncedAt?'Synced '+escapeHTML(source.syncedAt):'Not synced',
+  upload?null:synced?'Synced '+escapeHTML(synced):source.syncedAt?'Sync time unavailable':'Not synced',
   'Rights: '+escapeHTML(source.rights??'Unknown')
  ];
  return '<p class="source-pointer">'+pieces.filter(Boolean).join(' · ')+'</p>';

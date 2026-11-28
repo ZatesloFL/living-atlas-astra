@@ -197,10 +197,36 @@ async function tapHallFrontage(page, door) {
   await page.mouse.click(...point);
 }
 
-async function enterDoor(page,{hall,parent,paths},{atDoor}={}) {
-  await showMap(page);
-  await typeAddress(page,hall.address);
-  await page.locator('#travel-arrival').selectOption('door');
+async function resetPositionBeforeFinding(page) {
+  const entrance=await page.evaluate(()=>__atlas.state().viewpoint.entrance);
+  await page.locator('#world').focus();
+  await page.keyboard.down('s');
+  try {
+    await page.waitForFunction(start=>atlasStatus().position.z>start+.45,entrance.position[2]);
+  } finally {await page.keyboard.up('s');}
+  await page.locator('#navigation-return').click();
+  await page.waitForFunction(({room,position:[x,,z]})=>{
+    const here=atlasStatus();
+    return here.room===room&&Math.hypot(here.position.x-x,here.position.z-z)<.1;
+  },entrance);
+  return {room:entrance.room,entrance:[entrance.position[0],entrance.position[2]]};
+}
+
+async function enterDoor(page,{hall,parent,paths},{atDoor,findWork=false}={}) {
+  const hallCrossings=()=>page.evaluate(id=>(__atlas.access.data.ledgers[id]??[]).filter(entry=>
+    entry.action==='access_used'&&entry.actor===__atlas.state().activeProfile&&entry.diff.scope==='enter').length,hall.id);
+  const priorCrossings=findWork?await hallCrossings():null;
+  let reset;
+  if(findWork) {
+    reset=await resetPositionBeforeFinding(page);
+    await page.locator('#builder-find-work').click();
+    await page.locator('#sheet-content').getByRole('button',{name:hall.title,exact:true}).click();
+    assert.equal(await page.locator('#travel-arrival').inputValue(),'door');
+  } else {
+    await showMap(page);
+    await typeAddress(page,hall.address);
+    await page.locator('#travel-arrival').selectOption('door');
+  }
   await confirmManualRoute(page);
   await page.waitForFunction(id=>atlasStatus().room===id,parent.id);
   const outside=await page.evaluate(()=>{
@@ -208,6 +234,16 @@ async function enterDoor(page,{hall,parent,paths},{atDoor}={}) {
     return {room,scene,position,drawCalls};
   });
   assert.equal(outside.scene,parent.scene);
+  let located;
+  if(findWork) {
+    assert.deepEqual([outside.position.x,outside.position.z],hall.layout.interior.frontage.arrival);
+    assert.equal(await hallCrossings(),priorCrossings);
+    const nameplate=page.locator('#world-labels [data-room='+JSON.stringify(hall.id)+']');
+    await nameplate.filter({hasText:hall.title}).waitFor();
+    assert.equal(await nameplate.locator('strong').innerText(),hall.title);
+    located={nameplate:hall.title,arrival:'door',hallCrossingsBeforeEnter:priorCrossings,reset};
+    console.log('PASS Find my work after return to the entrance locates the hall’s named door without entering');
+  }
   const viewpoint=await atDoor?.(page,{hall,parent,paths});
   const prompt=page.locator('#edge-prompt').filter({hasText:hall.title});
   await prompt.waitFor();
@@ -251,7 +287,7 @@ async function enterDoor(page,{hall,parent,paths},{atDoor}={}) {
   assert.deepEqual([arrived.position.x,arrived.position.z],hall.layout.interior.arrival.position);
   assert.ok(arrived.arrivalIsStandable && arrived.wallsBlockAnOutsidePosition);
   assert.ok(arrived.receipts.length>0,'A separate enter Receipt belongs to the hall');
-  return {outside,arrived,path:paths[0].id,card,...(viewpoint?{viewpoint}:{})};
+  return {outside,arrived,path:paths[0].id,card,...(located?{located}:{}),...(viewpoint?{viewpoint}:{})};
 }
 
 async function readExhibit(page,records,exhibit) {
@@ -304,7 +340,7 @@ async function verifyRefused(page,records,profile) {
   return {profile,roomBeforeRequest:before,message};
 }
 
-async function checkNew(browser,url,{retest,atDoor}={}) {
+async function checkNew(browser,url,{retest,atDoor,findWork=false}={}) {
   const context=await browser.newContext(contextOptions);
   const {page,errors,liveCalls,open}=await observe(context,url);
   try {
@@ -326,7 +362,7 @@ async function checkNew(browser,url,{retest,atDoor}={}) {
     await page.locator('#sheet-close').click();
     console.log('PASS structural publication registers a distinct Place and one containing door on the live Map');
 
-    const crossing=await enterDoor(page,records,{atDoor});
+    const crossing=await enterDoor(page,records,{atDoor,findWork});
     const hallDock=await openBuild(page,records.hall.id);
     const exhibit=await addBuiltPiece(page,hallDock,{kind:'sign',name:exhibitTitle,text:exhibitText,position:[-2,0,0]});
     await publish(page,hallDock);
@@ -454,7 +490,7 @@ async function main(){
   try {
     const url=process.env.ATLAS_URL||'http://127.0.0.1:8000/';
     const result=process.env.ATLAS_HALL_SCENARIO==='legacy'
-      ? await checkLegacy(browser,url,process.env.ATLAS_LEGACY_URL) : await checkNew(browser,url);
+      ? await checkLegacy(browser,url,process.env.ATLAS_LEGACY_URL) : await checkNew(browser,url,{findWork:true});
     if(process.env.ATLAS_EVIDENCE_FILE) await writeFile(process.env.ATLAS_EVIDENCE_FILE,JSON.stringify(result,null,2)+'\n');
     console.log(JSON.stringify(result));
   } finally {await browser.close();}
