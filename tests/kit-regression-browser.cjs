@@ -11,7 +11,7 @@ const assert=require('node:assert/strict');
  const visit=async room=>{await page.locator('#page-places').click();await page.locator('#page-room').selectOption(room);for(let i=0;i<5&&await page.locator('[data-enter]').count();i++)await page.locator('[data-enter]').click();};
  try{
   await page.goto((process.env.ATLAS_URL||'http://127.0.0.1:8003/')+'?page&test&ai=local');await page.waitForFunction(()=>window.__atlasPage);
-  await page.locator('#setup-form [name=age]').fill('30');await completeArrival(page);await visit('boycott');
+  await page.locator('#setup-form [name=age]').fill('30');await completeArrival(page,{preset:'Teen'});await visit('boycott');
   await check('Newspaper zoom enlarges glyphs and permits panning at both phone orientations',async()=>{
    for(const size of [{width:524,height:1166},{width:1166,height:524}]){
     await page.setViewportSize(size);
@@ -87,9 +87,9 @@ const assert=require('node:assert/strict');
   await check('Reusable 3D pieces honor local facing and independent screen/photo settings in one atlas',async()=>{
    const result=await page.evaluate(async()=>{
     const THREE=await import('./vendor/three/three.module.min.js');const {World}=await import('./src/world.js');const {drawKit,flushKit}=await import('./src/kit-world.js');const {EXHIBITS}=await import('./src/exhibit-data.js');const {seedProfiles}=await import('./src/profiles.js');const {mediaPlayer,setMediaGuard}=await import('./src/kit-media.js');
-    const a=structuredClone(EXHIBITS[0]),b=structuredClone(a),photo=structuredClone(EXHIBITS[1]);b.id=b.exhibit.id='second-screen';a.exhibit.settings.slides[0].scene=1;b.exhibit.settings.slides[0].scene=3;photo.exhibit.settings.photos=photo.exhibit.settings.photos.slice(0,1);photo.exhibit.settings.photos[0].scene=4;
+    const a=structuredClone(EXHIBITS[0]),b=structuredClone(a),photo=structuredClone(EXHIBITS[1]);b.id=b.exhibit.id='second-screen';a.exhibit.settings.slides[0].scene=2;b.exhibit.settings.slides[0].scene=3;photo.exhibit.settings.photos=photo.exhibit.settings.photos.slice(0,1);photo.exhibit.settings.photos[0].scene=4;
     const layout={slot:[10,20],scale:2,facing:Math.PI/2,components:[{block:a.id,position:[2,3],facing:Math.PI/2},{block:b.id,position:[-2,3],facing:0},{block:photo.id,position:[0,-3],facing:0}]};
-    const w={lens:seedProfiles().find(p=>p.id==='seed-visitor'),placement:layout,batches:new Map(),colliders:[],labels:[],scene:new THREE.Scene(),pickables:[],dynamicResources:[]};
+    const w={lens:seedProfiles().find(p=>p.id==='seed-visitor'),placement:layout,batches:new Map(),subjectBounds:new Map(),draftSubjects:new Map(),solids:[],colliders:[],labels:[],scene:new THREE.Scene(),pickables:[],dynamicResources:[]};
     for(const k of ['add','box','block','transform','label'])w[k]=World.prototype[k];
     drawKit(w,{layout,blocks:[a,b,photo],content:{}},'fixture');flushKit(w);
     const mesh=w.scene.getObjectByName('Exhibit media atlas'),canvas=mesh.material.map.image,ctx=canvas.getContext('2d');
