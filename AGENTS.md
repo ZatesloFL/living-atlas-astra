@@ -59,6 +59,8 @@ You are the sole builder of the Living Atlas prototype. (An earlier plan for a p
 
 34. `docs/shared/34-presentation-later.md`: **owner ruling (2026-11-28) — presentation comes later.** No presentation question at sign-in or onboarding; every profile starts Named, recorded honestly as the starting presentation. The choice (named / pseudonymous / anonymous presentation, file 28 §4) lives in the profile, changeable in words at any time, and the Atlas may offer it once, in context, at the holder's first publication or first public knock — an offer, never a gate. Authorship on published things follows the presentation at the time; later changes do not rewrite recorded authorship. File 28 otherwise stands, including no account, no entry.
 
+35. `docs/shared/35-account-sync-scope.md`: **SCOPE, not a build order — one account, both worlds (Silver, 2026-11-28, at Nic's direction).** Sizes the interim path from TEST MODE local profiles to file 28's end state: the Atlas accepts the Second Look master identity (verified server-side; no Atlas-only login, ruled 2026-11-28), keys the profile to the account, and in a second phase pre-stocks the workshop with the holder's projects as backed Things (file 13, read live, never copied). Four owner decisions are named in its §5 — the local-world claim on first sign-in, Unverified assurance on arrival, sequencing against the December 8 launch, and Atlas-first creation later — and no build order is written until Nic rules on them.
+
 ## Where things go
 
 - **App code:** repo root. The app must be served at `index.html` via GitHub Pages. Three.js is vendored in `vendor/three/`; no runtime CDN. Generate all assets in code.
