@@ -1,0 +1,16 @@
+{
+  "live": {
+    "home": "home/c40b623a-c7cd-4351-9a37-eb14f97ce362",
+    "piece": "kit-f2a1593b-986f-4e63-87e6-9109a3950ab3",
+    "position": "9.600000000000001,-6.4"
+  },
+  "desktop": "612 912 616 456",
+  "mobile": {
+    "x": 24,
+    "y": 425.609375,
+    "width": 345,
+    "height": 321.75
+  },
+  "page": true,
+  "errors": []
+}

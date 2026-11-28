@@ -19,7 +19,7 @@ import {graphEdges,graphRoute} from './navigation.js';
 import {articleHTML,blockHTML,bindBlocks} from './block-renderer.js';
 import {contentStore,roomEntry} from './content.js';
 import {identityBadge,authorName,accessSettings,appliedPreset} from './identity.js';
-import {atlasGraphHTML} from './atlas-map-view.js';
+import {atlasGraphHTML,bindAtlasMap} from './atlas-map-view.js';
 import {atlasMapModel} from './atlas-map-model.js';
 import { ROOMS, EDGES, DISTRICTS, DIMENSIONS, PRESETS } from './data.js';
 import { visibleEdge, roomVisible, setPreset } from './rules.js';
@@ -140,15 +140,15 @@ export class UI {
     if($('edge-enter'))$('edge-enter').onclick=()=>{this.close();if(edge.travel)this.api.enter({...edge,result});else if(result.type==='seamless')this.toast('Follow the open path. No threshold to confirm.');else this.api.enter({...edge,result});};
   }
   atlas(){
-    this.mapSelected=null;this.open('atlas','Live Places and Things through your Lens','Atlas Map');this.renderAtlas();
+    this.mapSelected=null;this.mapViewState={};this.open('atlas','Live Places and Things through your Lens','Atlas Map');this.renderAtlas();
   }
   savedRecords(){openSavedRecords(this,this.api.state().access,()=>this.api.state().lens,{go:id=>this.api.travel(id)});}
   renderAtlas(preserve=false){
-    const {lens,context,access}=this.api.state(),model=atlasMapModel(lens,context.room,{showOthers:this.showOthers,columns:innerWidth<600?1:2}),byId=new Map(model.places.map(p=>[p.id,p]));
+    const {lens,context,access,kind,position}=this.api.state(),model=atlasMapModel(lens,context.room,{showOthers:this.showOthers,columns:innerWidth<600?1:2,scene:kind,position}),byId=new Map(model.places.map(p=>[p.id,p]));
     const scroll=this.content.scrollTop,focus=document.activeElement?.id,address=this.content.querySelector('[name=address]')?.value??'',selected=this.mapSelected;
     const places=access?.places(lens)??{pins:[],recent:[]},list=ids=>ids.filter(id=>byId.get(id)?.visible).map(id=>`<button data-place="${escapeHTML(id)}">${escapeHTML(byId.get(id).title)}</button>`).join('')||'<span class="muted">No places yet.</span>';
-    this.content.innerHTML=`<p id="map-here" role="status"><strong>You are here · ${escapeHTML(roomTitle(ROOMS[context.room],lens))}</strong></p><div class="atlas-saved"><button id="atlas-records">Your pins, recent Places & kept answers</button><button id="atlas-home">My home</button><button id="atlas-ask-destination">Ask where to go</button></div><div id="map-detail" aria-live="polite" hidden></div>${atlasGraphHTML(model)}<p class="muted">Live Places, their Things and connections. Local positions come from published placements; this graph is not a floor plan.</p><button id="atlas-square">Town Square</button><div class="atlas-saved"><details><summary>Pins</summary>${list(places.pins)}</details><details><summary>Recent places</summary>${list(places.recent)}</details></div><div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}">${this.showOthers?'On':'Off'}</button></div><details class="address-manual"><summary>Exact address · manual</summary><form id="atlas-address" class="address-form"><label>Room address<input name="address" placeholder="tlh/tallahassee/1956" required></label><button type="submit">Go</button></form></details>`;
-    this.mapContext=context.room;this.mapModel=model;this.content.querySelector('[name=address]').value=address;
+    this.content.innerHTML=`<p id="map-here" role="status"><strong>You are here · ${escapeHTML(roomTitle(ROOMS[context.room],lens))}</strong></p>${atlasGraphHTML(model)}<div id="map-detail" aria-live="polite" hidden></div><div class="atlas-saved"><button id="atlas-records">Your pins, recent Places & kept answers</button><button id="atlas-home">My home</button><button id="atlas-ask-destination">Ask where to go</button></div><button id="atlas-square">Town Square</button><div class="atlas-saved"><details><summary>Pins</summary>${list(places.pins)}</details><details><summary>Recent places</summary>${list(places.recent)}</details></div><div class="row"><label for="show-others">Show what others see</label><button id="show-others" role="switch" aria-checked="${this.showOthers}">${this.showOthers?'On':'Off'}</button></div><details class="address-manual"><summary>Exact address · manual</summary><form id="atlas-address" class="address-form"><label>Room address<input name="address" placeholder="tlh/tallahassee/1956" required></label><button type="submit">Go</button></form></details>`;
+    this.mapViewState=bindAtlasMap(this.content,model,this.mapViewState);this.mapContext=context.room;this.mapModel=model;this.content.querySelector('[name=address]').value=address;
     $('atlas-ask-destination').onclick=()=>this.api.askAtlas();$('atlas-address').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;try{const r=await this.api.address(form.elements.address.value);if(!r?.ok)showAddressFailure(form,r?.message??'The address could not be opened. Nothing has been crossed.');}catch(error){showAddressFailure(form,error.message);}};
     $('atlas-records').onclick=()=>this.savedRecords();$('atlas-square').onclick=()=>this.api.travel('square');$('atlas-home').onclick=()=>this.api.home();$('show-others').onclick=()=>{this.showOthers=!this.showOthers;this.renderAtlas(true);};
     const bind=(selector,action)=>this.content.querySelectorAll(selector).forEach(el=>{el.onclick=()=>action(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();action(el);}};});

@@ -1,5 +1,5 @@
 import {esc} from './block-renderer.js';
-export function atlasGraphHTML(model){
+function atlasListHTML(model){
  const byId=new Map(model.places.map(p=>[p.id,p]));
  const shorten=s=>esc(s.length>(model.columns===1?34:26)?s.slice(0,model.columns===1?33:25)+'…':s);let paths='',nodes='';
     for(const e of model.edges){const a=byId.get(e.from),b=byId.get(e.to),c=e.result.type==='door'?'#efba77':e.result.type==='window'?'#d8a9df':'#78cdbb';paths+=`<g data-map-edge="${esc(e.id)}" role="button" tabindex="0" aria-label="${esc(a.title+' to '+b.title)}"><path d="M${a.x+12} ${a.y+24} C4 ${a.y+24},4 ${b.y+24},${b.x+12} ${b.y+24}" fill="none" stroke="${c}" stroke-opacity=".5" stroke-width="4" ${e.result.type==='window'?'stroke-dasharray="6 5"':''}/></g>`;}
@@ -8,5 +8,34 @@ export function atlasGraphHTML(model){
       for(const [i,t] of p.things.entries()){const y=p.y+model.header+i*model.rowHeight,where=t.position?'Local position '+t.position.map(v=>Number(v.toFixed(2))).join(', '):'In this Place';nodes+=`<g class="map-node" data-map-thing="${esc(t.id)}" data-thing-room="${esc(p.id)}" role="button" tabindex="0" aria-label="${esc(t.title+' · '+where)}"><title>${esc(t.title+' · '+where)}</title><rect x="${p.x+5}" y="${y}" width="${p.width-10}" height="${model.rowHeight}" rx="5" fill="${i%2?'#1a3441':'#203c48'}"/><text x="${p.x+13}" y="${y+(model.columns===1?26:18)}" style="font-size:${model.columns===1?19:11}px">◇ ${shorten(t.title)}</text><text x="${p.x+13}" y="${y+(model.columns===1?49:34)}" style="fill:#9dbbc7;font-size:${model.columns===1?15:9}px">${esc(where)}</text></g>`;}
       nodes+='</g>';
     }
- return `<div class="map-wrap"><svg id="atlas-map" viewBox="0 0 ${model.width} ${model.height}" aria-label="Live Place and Thing graph" role="group">${paths}${nodes}</svg></div>`;
+ return `<div class="map-wrap"><svg class="atlas-list-svg" viewBox="0 0 ${model.width} ${model.height}" aria-label="Live Place and Thing graph" role="group">${paths}${nodes}</svg></div>`;
+}
+
+const num=n=>Number(n.toFixed(2));let mapSerial=0;
+export function atlasGraphHTML(model){
+ const m=model.spatial,clipId='map-area-clip-'+(++mapSerial);
+ const backgrounds=m.areas.map(a=>`<g><rect x="${a.x}" y="${a.y}" width="${a.width}" height="${a.height}" rx="20" fill="#132b32" stroke="#4d7374"/><text x="${a.x+18}" y="${a.y+29}" class="map-area-label">${esc(a.title)}</text>${[1,2,3,4].map(i=>`<path d="M${a.x+15} ${a.y+55+i*67}h570" stroke="#29444a" stroke-dasharray="2 9"/>`).join('')}</g>`).join('');
+ const paths=m.paths.map(e=>`<path data-map-edge="${esc(e.id)}" role="button" tabindex="0" aria-label="${esc(e.a.title+' to '+e.b.title)}" d="M${num(e.a.x)} ${num(e.a.y)} L${num(e.b.x)} ${num(e.b.y)}" stroke="${e.result.type==='door'?'#e7ba7e':'#78cdbb'}" stroke-width="3" ${e.a.scene!==e.b.scene||e.result.type==='window'?'stroke-dasharray="6 7"':''}/>`).join('');
+ const things=m.nodes.filter(n=>n.kind==='thing').map(n=>`<g class="map-node" data-map-thing="${esc(n.id)}" data-thing-room="${esc(n.room)}" data-world-position="${n.position.join(',')}" role="button" tabindex="0" aria-label="${esc(n.title)}"><title>${esc(n.title)}</title><circle cx="${num(n.x)}" cy="${num(n.y)}" r="14" fill="#102d38" fill-opacity=".35"/><path d="M${num(n.x)} ${num(n.y-6)}l6 6 -6 6 -6 -6Z" fill="#f1d5a0"/></g>`).join('');
+ const nodes=m.nodes.filter(n=>n.kind==='place').map(n=>{const r=n.label??{x:n.x,y:n.y,w:0,h:0},short=!n.label?'':n.title.length>20?n.title.slice(0,19)+'…':n.title;return `<g class="map-node" data-map-node="${esc(n.room)}" data-map-scene="${esc(n.scene)}" data-world-position="${n.position.join(',')}" ${n.current?'aria-current="location"':''} role="button" tabindex="0" aria-label="${esc(n.title)}${n.current?' · You are here':''}"><title>${esc(n.title)}</title><circle cx="${num(n.x)}" cy="${num(n.y)}" r="${n.current?15:10}" fill="${n.current?'#a5edcf':n.owned?'#e9bf78':'#82b8c4'}" stroke="#0e202c" stroke-width="3"/><path d="M${num(n.x)} ${num(n.y)}L${num(r.x+r.w/2)} ${num(r.y)}" stroke="#78979e"/><rect x="${num(r.x)}" y="${num(r.y)}" width="${r.w}" height="${r.h}" rx="6" fill="#132630" fill-opacity=".94"/><text x="${num(r.x+r.w/2)}" y="${num(r.y+24)}" text-anchor="middle">${esc(short)}</text></g>`;}).join('');
+ const here=m.visitor?`<g aria-label="Your position"><circle cx="${num(m.visitor.x)}" cy="${num(m.visitor.y)}" r="8" fill="#fff" stroke="#236953" stroke-width="3"/><text x="${num(m.visitor.x+13)}" y="${num(m.visitor.y-12)}">You</text></g>`:'';
+ return `<section class="atlas-map-surface"><div class="map-view-switch"><button data-map-view="map" aria-pressed="true">Map</button><button data-map-view="list" aria-pressed="false">List</button></div><div data-map-spatial><label class="map-area-choice">Area<select data-map-area><option value="all">All connected areas</option>${m.areas.map(a=>`<option value="${esc(a.id)}">${esc(a.title)}</option>`).join('')}</select></label><div class="map-wrap spatial-map"><svg id="atlas-map" viewBox="0 0 ${m.width} ${m.height}" role="group" aria-label="Live spatial Atlas Map"><defs><clipPath id="${clipId}"><rect data-map-clip/></clipPath></defs><g clip-path="url(#${clipId})">${backgrounds}${paths}${things}${nodes}${here}</g></svg></div><div class="map-view-controls"><button data-map-zoom="in" aria-label="Zoom in on map">+</button><button data-map-zoom="out" aria-label="Zoom out of map">−</button><button data-map-here>Here</button><button data-map-fit>Fit area</button></div><p class="muted">Drag to pan. Dots are Places; diamonds are positioned Things. Separate areas have their own coordinates. Dashed links connect areas or windows.</p></div><div data-map-list hidden>${atlasListHTML(model)}</div></section>`;
+}
+export function bindAtlasMap(root,model,state={}){
+ const svg=root.querySelector('#atlas-map'),m=model.spatial;
+ state.area??=m.currentArea??'all';if(state.area!=='all'&&!m.areas.some(a=>a.id===state.area))state.area='all';state.view??='map';
+ const applyView=()=>{root.querySelector('[data-map-spatial]').hidden=state.view==='list';root.querySelector('[data-map-list]').hidden=state.view!=='list';root.querySelectorAll('[data-map-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mapView===state.view));};
+ root.querySelectorAll('[data-map-view]').forEach(b=>b.onclick=()=>{state.view=b.dataset.mapView;applyView();});applyView();
+ const select=root.querySelector('[data-map-area]');select.value=state.area;
+ let box;
+ const draw=()=>svg.setAttribute('viewBox',box.map(num).join(' '));
+ const fit=()=>{const a=m.areas.find(a=>a.id===state.area),clip=svg.querySelector('[data-map-clip]');for(const [k,v] of Object.entries(a?{x:a.x,y:a.y,width:a.width,height:a.height}:{x:0,y:0,width:m.width,height:m.height}))clip.setAttribute(k,v);box=a?[a.x-8,a.y-8,a.width+16,a.height+16]:[0,0,m.width,m.height];draw();};fit();
+ select.onchange=()=>{state.area=select.value;fit();};root.querySelector('[data-map-fit]').onclick=fit;
+ root.querySelector('[data-map-here]').onclick=()=>{state.area=m.currentArea??'all';select.value=state.area;fit();};
+ root.querySelectorAll('[data-map-zoom]').forEach(b=>b.onclick=()=>{const f=b.dataset.mapZoom==='in'?.75:1.333;if(box[2]*f<140||box[2]*f>m.width*2)return;box=[box[0]+box[2]*(1-f)/2,box[1]+box[3]*(1-f)/2,box[2]*f,box[3]*f];draw();});
+ let drag=null,moved=false;
+ svg.onpointerdown=e=>{if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,box:[...box]};moved=false;};
+ svg.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<6&&!moved)return;moved=true;try{svg.setPointerCapture(e.pointerId);}catch{}const rect=svg.getBoundingClientRect(),scale=Math.max(drag.box[2]/rect.width,drag.box[3]/rect.height);box=[drag.box[0]-dx*scale,drag.box[1]-dy*scale,...drag.box.slice(2)];draw();};
+ svg.onpointerup=svg.onpointercancel=()=>{drag=null;};svg.addEventListener('click',e=>{if(moved){e.stopImmediatePropagation();e.preventDefault();moved=false;}},true);
+ return state;
 }

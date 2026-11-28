@@ -2,7 +2,7 @@ import {openPresentation} from './profile-presentation-ui.js';
 import {openSavedRecords} from './saved-records-ui.js';
 import {recordDetails} from './record-card.js';
 import {atlasMapModel} from './atlas-map-model.js';
-import {atlasGraphHTML} from './atlas-map-view.js';
+import {atlasGraphHTML,bindAtlasMap} from './atlas-map-view.js';
 import {resolveHolderDestination} from './holder-destinations.js';
 import {thingSubject,thingTitle} from './thing-subject.js';
 import {mountReturnControl} from './navigation-return.js';
@@ -58,9 +58,9 @@ export class PageRenderer {
  }
  open(room=this.initialRoom){document.body.classList.add('page-mode');this.root.hidden=false;document.getElementById('loading')?.classList.add('done');document.getElementById('sheet')?.setAttribute('hidden','');document.getElementById('veil')?.setAttribute('hidden','');document.body.classList.remove('panel-open');this.visit(ROOMS[room]?room:'studio');if(this.profiles&&!this.profiles.completed&&!this.arrival){this.arrival=new ArrivalFlow(readingDialog(),this.profiles,{staff:this.staff,apply:async id=>{this.lens=this.access.lens(this.profiles.current());this.approved.add(id);this.room=id;this.pending=null;this.visited(id);this.render();}});this.arrival.start({form:'page'});}}
  openMap(preserve=false){
-  const ui=this.atlasUI.ui,scroll=ui.content.scrollTop,model=atlasMapModel(this.lens,this.room,{columns:innerWidth<600?1:2});ui.open('atlas-map','Live Places and Things','Atlas Map');
-  ui.content.innerHTML=`<p id="map-here"><strong>You are here · ${esc(roomTitle(ROOMS[this.room],this.lens))}</strong></p><button id="page-map-home">My home</button><p>Choose a Place to review its door, or a Thing to read its own card. Local positions come from published placements.</p>${atlasGraphHTML(model)}`;
-  ui.content.querySelector('#page-map-home').onclick=()=>{const found=resolveHolderDestination('my home',this.lens,{profiles:this.profiles,room:this.room});if(!found.matches.length){ui.toast(found.message);return;}ui.close();this.visit(found.matches[0].room);};
+  if(!preserve)this.mapViewState={};const ui=this.atlasUI.ui,scroll=ui.content.scrollTop,model=atlasMapModel(this.lens,this.room,{columns:innerWidth<600?1:2});ui.open('atlas-map','Live Places and Things','Atlas Map');
+  ui.content.innerHTML=`<p id="map-here"><strong>You are here · ${esc(roomTitle(ROOMS[this.room],this.lens))}</strong></p>${atlasGraphHTML(model)}<button id="page-map-home">My home</button><p>Choose a Place to review its door, or a Thing to read its own card.</p>`;
+  this.mapViewState=bindAtlasMap(ui.content,model,this.mapViewState);ui.content.querySelector('#page-map-home').onclick=()=>{const found=resolveHolderDestination('my home',this.lens,{profiles:this.profiles,room:this.room});if(!found.matches.length){ui.toast(found.message);return;}ui.close();this.visit(found.matches[0].room);};
   const bind=(selector,fn)=>ui.content.querySelectorAll(selector).forEach(el=>{el.onclick=()=>fn(el);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn(el);}};});
   bind('[data-map-node]',el=>{ui.close();this.visit(el.dataset.mapNode);});bind('[data-map-edge]',el=>{ui.close();this.visit(model.edges.find(e=>e.id===el.dataset.mapEdge).to);});
   bind('[data-map-thing]',el=>{const subject=thingSubject(el.dataset.thingRoom,el.dataset.mapThing,this.lens);if(!subject){ui.toast('This Thing is unavailable through your current Lens.');return;}ui.open('thing','Thing',thingTitle(subject.block));ui.content.innerHTML=recordDetails(()=>blockHTML(subject.block,subject.room,this.lens,{approved:this.approved.has(subject.roomKey)}));bindBlocks(ui.content,{related:id=>{ui.close();this.visit(id);}});bindReadingLinks(ui.content,ref=>this.accessUI?.standingUI.open(ref));});
